@@ -46,95 +46,78 @@ flowchart LR
 ## TODO
 
 ### VEC-01 – VectorStore abstraction & wiring
-
-* [ ] Add a `VectorStore` trait (and minimal `EmbeddingProvider` if needed) under a new platform crate:
-
-  * `lib/app/web/backend/vector_store` -> crate `dfps_vector_store`
-  * Trait operations:
-
-    * [ ] `index_items(namespace, items: &[(id, text)]) -> Result<()>`
-    * [ ] `search(namespace, query_vec, top_k) -> Result<Vec<(id, score)>>`
-  * [ ] Expose a `VectorStoreConfig` struct driven by env (`DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_BACKEND`).
-* [ ] In `dfps_mapping`, introduce an optional `VectorRankerBackend` implementing `CandidateRanker` by calling `VectorStore::search`.
+Establish the shared VectorStore contract and config surface so mapping can call a real backend while retaining deterministic offline fallback (Targets A1/A3/B).
+- Implementation
+  - [ ] Add `dfps_vector_store` under `lib/platform/vector_store` with `VectorStore` trait (`health`, `index_items`, `search`) and optional `EmbeddingProvider`; enforce namespace on all calls.
+  - [ ] Wire `VectorStoreConfig` (`DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_ENABLED`, pool/timeout) and validate env combinations.
+  - [ ] Add `VectorRankerBackend` in `dfps_mapping` implementing `CandidateRanker` via `VectorStore::search`, keeping deterministic ordering on ties.
+- Tests/observability
+  - [ ] Mock `VectorStore` recording `vector_queries`/`vector_fallbacks`; unit tests for config parsing, namespace guards, and ordered ties.
+  - [ ] Surface capacity proxies (`geom_rm_sqrt_dm`, `cap_alpha_sim`) and document deterministic embedding complexity (`O(kd)` query, bounded build).
 
 ### VEC-02 – First concrete backend (pgvector or Qdrant)
-
-* [ ] Implement one concrete backend in `dfps_vector_store` (behind a feature flag, e.g., `backend-pgvector` or `backend-qdrant`):
-
-  * [ ] Connection pool + health probe.
-  * [ ] Schema / collection layout for reference codes (namespace per code system / project).
-* [ ] Add namespace-aware env wiring:
-
-  * [ ] `.env.domain.mapping.dev` / `.env.platform.vector_store.dev` templates in `data/environment/`.
-  * [ ] Document minimal setup in a short runbook section (`docs/runbook/vector-store-quickstart.md`).
+Stand up one FOSS backend (pgvector or Qdrant) behind a feature flag with health probes, schema/collection bootstrap, and namespace isolation (Targets A1/A2/B/C).
+- Implementation
+  - [ ] Implement backend client with pool + `health()`; enforce `(namespace, ref_id)` primary key and record metadata (`backend`, `dim`, `metric`, `embedding_version`).
+  - [ ] Provide DDL/collection init (dimensionality, metric, ANN parameters) and rebuild semantics (`truncate` vs upsert) with comments on `O(n log n)` build and `O(kd)` query.
+  - [ ] Add `.env.domain.mapping.dev` and `.env.platform.vector_store.dev` templates; expose CI skip flag when backend unavailable.
+- Tests/observability
+  - [ ] Feature-gated health/create/drop integration tests per namespace.
+  - [ ] Baseline latency/recall expectations; record search latency metrics and capacity drift snapshot per namespace.
+- Docs/runbook
+  - [ ] Document dev docker-compose instructions and FOSS-only dependency posture in `docs/runbook/vector-store-quickstart.md`.
 
 ### VEC-03 – Reference index builder
 
-* [ ] Add a `dfps_cli` subcommand:
-
-  * `dfps_cli build-vector-index` (or `map-codes --build-index` mode) that:
-
-    * [ ] Loads reference codes from `dfps_mapping::load_umls_xrefs()` + NCIt concepts.
-    * [ ] Generates embeddings using your existing pipeline (e.g., TF-IDF/SVD or an external embedder).
-    * [ ] Calls `VectorStore::index_items` to (re)build the index for the configured namespace.
-* [ ] Ensure it is **idempotent** and safe for local rebuilds (truncate & repopulate or upsert-only, depending on backend).
+Provide a deterministic index builder CLI that loads NCIt concepts + UMLS xrefs, generates embeddings, and populates the backend (Targets A1/A3/D).
+- Implementation
+  - [ ] Add `dfps_cli build-vector-index` (or `map-codes --build-index`) to bulk-load reference codes and embeddings into the configured namespace.
+  - [ ] Make the builder idempotent (truncate vs upsert per backend) and reject namespace/dimension mismatches.
+  - [ ] Pin `embedding_version` and allow dim cap/seed flags; emit summary stats (counts, mean/median norm, participation ratio).
+- Tests
+  - [ ] Mock-store integration test validating deterministic embeddings for a seed and idempotent re-run; ensure empty namespace is rejected.
+- Docs
+  - [ ] Add CLI examples into the quickstart and note where metrics are written.
 
 ### VEC-04 – MappingEngine integration & feature flags
-
-* [ ] Extend `MappingEngine` to accept an optional `VectorRankerBackend` in addition to the existing `VectorRankerMock`:
-
-  * [ ] `default_engine()` stays pure-Rust + mock (no network) for tests.
-  * [ ] Introduce `vector_engine(store: Arc<dyn VectorStore>) -> MappingEngine<LexicalRanker, VectorRankerBackend>`.
-* [ ] Add configuration in mapping pipeline:
-
-  * [ ] `map_staging_codes_with_summary` consults env (`DFPS_VECTOR_ENABLED`) to decide whether to:
-
-    * [ ] Use `VectorRankerBackend` (real vector DB).
-    * [ ] Fall back to pure `VectorRankerMock` deterministically when unavailable.
+Wire the optional backend ranker into `MappingEngine` while keeping the offline default and deterministic fallback (Targets B/D with capacity awareness).
+- Implementation
+  - [ ] Accept `VectorRankerBackend` alongside `VectorRankerMock`; keep `default_engine()` offline-only for tests and provide `vector_engine(store)` for real backends.
+  - [ ] `map_staging_codes_with_summary` reads `DFPS_VECTOR_ENABLED` and falls back on health/timeouts; log vector vs lexical score gaps for tuning.
+  - [ ] Add weighted fusion/reranker hook to monitor centroid similarity and avoid false merges.
+- Tests/observability
+  - [ ] Fixture-backed tests showing recall/precision uplift when vector mode is enabled and parity when disabled; assert `vector_fallbacks` increments on forced failures.
+  - [ ] Document latency budgets and allowable slowdown vs lexical-only in `dfps_mapping` docs.
 
 ### VEC-05 – Tests & observability
-
-* [ ] Add integration tests in `dfps_test_suite` under `tests/integration/vector_mapping.rs` that:
-
-  * [ ] Stand up a test VectorStore (either real backend in Docker, or a test double).
-  * [ ] Compare mapping quality vs. baseline (mock vector ranker) on a small PET/CT fixture.
-  * [ ] Assert deterministic behavior when the backend is disabled.
-* [ ] Extend `PipelineMetrics` or add a new `VectorMetrics` struct to log:
-
-  * [ ] `vector_queries`, `vector_hits`, `vector_fallbacks`.
-  * [ ] Mean search latency (ms) if available.
-* [ ] Wire logging into `dfps_observability` for:
-
-  * [ ] Backend connectivity failures.
-  * [ ] Index build start/finish events.
+Add integration coverage and metrics so vector-enabled runs are measurable, gated, and reversible (Targets A3/B/D).
+- Tests
+  - [ ] `dfps_test_suite/tests/integration/vector_mapping.rs` using Docker backend or test double; assert uplift vs mock and deterministic offline mode.
+  - [ ] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured.
+- Observability/CI
+  - [ ] Metrics for `vector_queries`, `vector_hits`, `vector_fallbacks`, latency; structured logs for connectivity/index events.
+  - [ ] CI gate that fails on recall regression >X% or latency budget breach; Prometheus-friendly exposition via `dfps_observability`.
 
 ### VEC-06 – Docs & runbooks
-
-* [ ] Add `docs/system-design/clinical/ncit/concepts/vector-layer.md` describing:
-
-  * [ ] How the vector store fits between staging codes and `MappingEngine`.
-  * [ ] The fallback behavior when the backend is down.
-* [ ] Add a runbook `docs/runbook/vector-store-quickstart.md` with:
-
-  * [ ] Local setup instructions (e.g., `docker-compose` or `psql` DDL).
-  * [ ] Example commands:
-
-    * [ ] `dfps_cli build-vector-index`
-    * [ ] `dfps_cli map-codes` with vector backend enabled.
+Document the vector layer, capacity checklist, and operational runbook with clear fallback instructions (Targets A1/A3/B/D/C).
+- System design
+  - [ ] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` covering placement between staging and mapping, geometry impacts (radius/dimension/centroid overlap), and Leiden/Louvain considerations.
+  - [ ] Include capacity checklist (embedding_version, dim, norm stats, community health notes) and fallback steps.
+- Runbook
+  - [ ] Add `docs/runbook/vector-store-quickstart.md` with pgvector/Qdrant setup, CLI examples, and troubleshooting for downtime or capacity regressions.
+  - [ ] Note FOSS-only dependencies and how to run eval harness comparing vector-enabled vs mock mapping quality.
 
 </details>
 
 ### VEC-01 – VectorStore abstraction & wiring
-- [ ] Define `dfps_vector_store` crate under `lib/platform/vector_store` with FOSS-only dependencies (pgvector/qdrant/milvus clients).
-- [ ] Add `VectorStore` trait with `index_items` and `search`; optional `EmbeddingProvider` wrapper.
-- [ ] Provide `VectorStoreConfig` using env (`DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_POOL_MAX`, `DFPS_VECTOR_HEALTH_TIMEOUT_MS`, `DFPS_VECTOR_ENABLED`).
-- [ ] In `dfps_mapping`, add optional `VectorRankerBackend` implementing `CandidateRanker` via `VectorStore::search`.
-- Notes: trait must be `Send + Sync`; namespace required on all calls; deterministic ordering on equal scores; license posture GPLv3/FOSS-only.
-- Tie-in: Keeps vector layer geometry observable (e.g., radius/dimension proxies per namespace) and enables capacity-aware rankers (Engineering Targets A1–A3, B). Namespace scoping lets us monitor centroid overlap drift and fall back cleanly when capacity collapses.
-- [ ] Add capacity/correlation metrics per namespace (e.g., radius proxy `||v||_2`, effective dim via participation ratio) exposed through the trait.
-- [ ] Document deterministic embedding function and complexity expectations alongside trait docs in `lib/platform/vector_store`.
-- [ ] Wire env parsing and validation into `dfps_configuration` consumers; add unit tests for config parsing and deterministic ordering ties.
-- [ ] Add a mock `VectorStore` impl for tests that records query counts to validate `vector_queries`/`vector_fallbacks`.
+Define the shared VectorStore crate/config so vector search can be toggled on without breaking offline determinism; expose capacity hooks to watch geometry health (Targets A1/A3/B).
+- Implementation
+  - [ ] Create `dfps_vector_store` under `lib/platform/vector_store` with FOSS-only deps; add `VectorStore` trait (`health`, `index_items`, `search`) and optional `EmbeddingProvider`, all `Send + Sync` and namespace-required.
+  - [ ] Ship `VectorStoreConfig` (`DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_POOL_MAX`, `DFPS_VECTOR_HEALTH_TIMEOUT_MS`, `DFPS_VECTOR_ENABLED`) plus validation for backend/namespace combinations and pool/timeout bounds.
+  - [ ] Add `VectorRankerBackend` in `dfps_mapping` implementing `CandidateRanker` via `VectorStore::search`; deterministic ordering on ties and explicit namespace resolution per code.
+- Metrics/tests/docs
+  - [ ] Expose capacity/correlation proxies per namespace (`geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `cap_alpha_sim`) through the trait; document deterministic embedding complexity and GPLv3/FOSS-only posture.
+  - [ ] Provide a mock `VectorStore` that records `vector_queries`/`vector_fallbacks`; unit tests for env parsing, namespace guards, and ordered ties, including disabled-mode behavior.
 
 #### Cross-Cohesion
 
@@ -156,15 +139,14 @@ flowchart LR
   - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_NAMESPACE`
 
 ### VEC-02 – First concrete backend (pgvector or Qdrant)
-- [ ] Implement one backend behind `backend-pgvector` or `backend-qdrant` feature; pool + health probe.
-- [ ] Schema/collection keyed by `(namespace, ref_id)` to avoid collisions.
-- [ ] Add `.env.domain.mapping.dev` and `.env.platform.vector_store.dev` in `data/environment/`.
-- [ ] Document setup in `docs/runbook/vector-store-quickstart.md`; include FOSS-only dependency statement.
-- Tie-in: Backend choice impacts curvature/neighbor quality; track search latency vs. recall uplift to ensure manifold capacity is not degraded by ANN parameters (Targets A2, B, C). Health probes prevent geometry skew from partial indexes.
-- [ ] Define backend-specific collection/DDL bootstrap scripts and index parameters (dimensionality, metric type) with comments on expected `O(n log n)` build vs `O(kd)` query cost.
-- [ ] Add backend health check integration tests (feature-gated) to assert creation and teardown per namespace.
-- [ ] Record backend metadata (`backend`, `dim`, `metric`, `embedding_version`) in the index for observability and drift detection.
-- [ ] Add CI skip path when backend features are disabled; document dev Docker compose for pgvector/Qdrant.
+Implement and harden the first FOSS backend (pgvector or Qdrant) behind a feature flag with namespace isolation, health probes, and drift checks (Targets A1/A2/B/C).
+- Implementation
+  - [ ] Implement the backend client (pool + `health()`) and schema/collection keyed by `(namespace, ref_id)` with recorded metadata (`backend`, `dim`, `metric`, `embedding_version`).
+  - [ ] Provide backend bootstrap (DDL/collection init, ANN params) with cost notes (`O(n log n)` build, `O(kd)` query) and rebuild semantics; add CI skip when backend feature disabled.
+  - [ ] Add `.env.domain.mapping.dev` and `.env.platform.vector_store.dev` templates plus dev docker-compose instructions; include FOSS-only dependency statement.
+- Guardrails/tests
+  - [ ] Feature-gated health/create/drop integration tests per namespace; skip path when backend unavailable.
+  - [ ] Capacity/recall guardrails: CI thresholds `geom_rm_sqrt_dm` drift ≤ 10%, `cap_alpha_sim` ≥ baseline − 5%, mapping recall uplift ≥ +3% vs mock on PET/CT fixture with baseline recorded in fixture metadata.
 
 #### Cross-Cohesion
 
@@ -187,14 +169,14 @@ flowchart LR
   - Env: `DFPS_VECTOR_URL`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_NAMESPACE`
 
 ### VEC-03 – Reference index builder
-- [ ] Add `dfps_cli build-vector-index` (or `map-codes --build-index`) that loads UMLS xrefs + NCIt concepts and bulk-indexes embeddings.
-- [ ] Deterministic embeddings (TF-IDF/SVD or existing embedder) with pinned `embedding_version`.
-- [ ] Idempotent rebuild (truncate or upsert per backend); namespace-scoped guardrails.
-- Tie-in: Embedding generation governs manifold radius and effective dimension; pinning versions lets us watch capacity drift and centroid correlations across rebuilds (Targets A1–A3, D). Idempotency keeps graph geometry stable across reruns.
-- [ ] Add CLI flags for `--embedding-version` and `--max-dim` to bound `D_M` and track in index metadata.
-- [ ] Emit summary metrics after build: count, mean/median norm, participation ratio; write to stdout and structured log.
-- [ ] Integration test: run builder against mock store, ensure deterministic embeddings given seed and stable ordering; assert idempotent re-run produces identical payload.
-- [ ] Guardrails to refuse empty namespace or mismatched embedding dimension vs. backend collection.
+Provide a deterministic index builder CLI that loads NCIt/UMLS references, generates embeddings, and (re)builds the backend namespace safely (Targets A1/A3/D).
+- Implementation
+  - [ ] Add `dfps_cli build-vector-index` (or `map-codes --build-index`) to bulk-index embeddings with namespace guardrails and reject dimension mismatches.
+  - [ ] Pin `embedding_version`, allow seed/dim caps (`--embedding-version`, `--max-dim`), and enforce idempotent rebuild (truncate/upsert per backend).
+  - [ ] Emit summary stats (count, mean/median norm, participation ratio) to stdout and structured logs; store metadata alongside index.
+- Tests/docs
+  - [ ] Integration test against mock store to confirm deterministic embeddings for a seed, stable ordering, and identical payload on re-run; refuse empty namespace.
+  - [ ] Document CLI examples in the quickstart, including where metrics are recorded.
 
 #### Cross-Cohesion
 
@@ -216,14 +198,14 @@ flowchart LR
   - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_NAMESPACE`
 
 ### VEC-04 – MappingEngine integration & feature flags
-- [ ] Extend `MappingEngine` to accept `VectorRankerBackend` alongside mock.
-- [ ] `default_engine()` remains offline mock for tests; `vector_engine(store)` uses real backend when `DFPS_VECTOR_ENABLED=true`.
-- [ ] `map_staging_codes_with_summary` checks env; if disabled/unhealthy, falls back deterministically to lexical + mock and logs fallback.
-- Tie-in: Blending lexical and vector rankers should increase separability when manifold capacity is sufficient; fallback keeps classification stable when curvature/coverage degrade (Targets B, D). Feature flags allow CI to track capacity-aware uplift without breaking offline mode.
-- [ ] Add weighted fusion or reranker hook that logs vector vs lexical score gaps; monitor centroid similarity for false merges.
-- [ ] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
-- [ ] Env-driven toggles verified via tests to ensure `DFPS_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`.
-- [ ] Document expected latency budget per query and allowable slowdown vs. pure lexical in `dfps_mapping` docs.
+Wire the optional backend ranker into `MappingEngine` with feature flags, deterministic fallback, and score-fusion hooks (Targets B/D with A3 observability).
+- Implementation
+  - [ ] Accept `VectorRankerBackend` alongside `VectorRankerMock`; keep `default_engine()` offline-only and provide `vector_engine(store)` when `DFPS_VECTOR_ENABLED=true`.
+  - [ ] In `map_staging_codes_with_summary`, route to backend when healthy else fall back to lexical+mock deterministically; log vector vs lexical score gaps and centroid similarity to avoid false merges.
+  - [ ] Add weighted fusion/reranker hook with configurable weights and guardrails on slowdown vs lexical-only.
+- Tests/docs
+  - [ ] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
+  - [ ] Env toggle tests proving `DFPS_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`; document latency budget and acceptable slowdown in `dfps_mapping` docs.
 
 #### Cross-Cohesion
 
@@ -246,14 +228,13 @@ flowchart LR
   - Env: `DFPS_VECTOR_ENABLED`
 
 ### VEC-05 – Tests & observability
-- [ ] Add `dfps_test_suite/tests/integration/vector_mapping.rs` using Dockerized backend or test double; assert uplift vs mock and deterministic offline path.
-- [ ] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, mean/p95 latency; surfaced via `dfps_observability`.
-- [ ] Logs: connectivity failures, index build start/finish, per-namespace counts; structured fields (`backend`, `namespace`, `duration_ms`).
-- Tie-in: Observability must capture capacity proxies (norms, participation ratios) and correlation drift; tests ensure mapping quality tracks capacity and catches regressions (Targets A3, B, D).
-- [ ] Add test asserting capacity proxy (e.g., average norm) remains within tolerance between runs for same seed.
-- [ ] Emit histogram snapshots for score distributions and hit@k per backend; ensure logs include timeout/error codes.
-- [ ] Add CI gating to fail if vector-enabled recall falls below baseline by >X% or if latency exceeds budget.
-- [ ] Provide Prometheus-friendly metrics wiring in `dfps_observability` for vector counters and capacity proxies.
+Add integration coverage, capacity drift checks, and metrics so vector mode is observable and gated (Targets A3/B/D).
+- Tests
+  - [ ] `dfps_test_suite/tests/integration/vector_mapping.rs` with Docker backend or test double; assert uplift vs mock and deterministic offline path.
+  - [ ] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured in fixture.
+- Metrics/CI
+  - [ ] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `dfps_observability`; structured logs for connectivity/index events with namespace/backend/duration.
+  - [ ] CI gate fails if vector-enabled recall drops >X% vs baseline or latency exceeds budget; include error/timeout codes in logs and Prometheus-friendly exports.
 
 #### Cross-Cohesion
 
@@ -275,14 +256,13 @@ flowchart LR
   - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`
 
 ### VEC-06 – Docs & runbooks
-- [ ] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` describing vector layer and fallback.
-- [ ] Add `docs/runbook/vector-store-quickstart.md` with local setup and CLI examples.
-- [ ] Cross-link FHIR overview and NCIt architecture; note GPLv3/FOSS-only dependency posture.
-- Tie-in: Docs should clarify how vector geometry (radius/dimension, centroid overlap) affects mapping states and how Leiden/Louvain choices alter graph conditioning (Targets A–D). Runbook must outline how to monitor capacity drift and switch to fallback safely.
-- [ ] Include a minimal “capacity checklist” in the concept doc: record embedding_version, dim, norm stats, and community health notes.
-- [ ] Add troubleshooting steps for backend downtime and capacity regressions (switch to mock, rebuild index).
-- [ ] Document how to run eval harness to compare vector-enabled vs mock mapping quality, including expected metrics.
-- [ ] Note FOSS-only dependencies and configuration snippets for pgvector and Qdrant in the quickstart.
+Document the vector layer concept and operational runbook, including capacity checklist and fallback steps (Targets A1/A3/B/D/C).
+- System design
+  - [ ] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` covering placement between staging and mapping, geometry effects (radius/dimension/centroid overlap), and Leiden/Louvain graph conditioning.
+  - [ ] Include capacity checklist (embedding_version, dim, norm stats, community health notes) and explicit fallback guidance.
+- Runbook
+  - [ ] Add `docs/runbook/vector-store-quickstart.md` with pgvector/Qdrant setup snippets, FOSS-only dependencies, and CLI examples (`build-vector-index`, `map-codes`).
+  - [ ] Troubleshooting steps for downtime/capacity regressions (switch to mock, rebuild index) and instructions for running eval harness comparing vector-enabled vs mock quality with expected metrics.
 
 #### Cross-Cohesion
 
@@ -307,7 +287,7 @@ flowchart LR
 | Variable | Example | Purpose |
 | ------------------------------- | ---------------------------------------------------------------------- | -------------------------- |
 | `DFPS_VECTOR_ENABLED` | `true` | Toggle real vector backend |
-| `DFPS_VECTOR_BACKEND` | `pgvector` | `qdrant` | `milvus` | `mock` | Select backend |
+| `DFPS_VECTOR_BACKEND` | `pgvector` / `qdrant` / `milvus` / `mock` | Select backend |
 | `DFPS_VECTOR_URL` | `postgres://...` or `http://localhost:6333` or `tcp://localhost:19530` | Endpoint |
 | `DFPS_VECTOR_NAMESPACE` | `ncit_dev` | Index namespace |
 | `DFPS_VECTOR_POOL_MAX` | `10` | Pool size |
@@ -418,6 +398,7 @@ DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=qdrant DFPS_VECTOR_URL=http://local
   - **Vector-enabled**: leverages a real vector DB for candidate ranking.
 - CLIs (`map_codes`, `map_bundles`) expose a clear UX for enabling/disabling vector search.
 - Tests validate deterministic behavior in offline mode and improved ranking in vector-enabled mode.
+- Capacity/latency guardrails in CI enforce geometry/capacity thresholds (`geom_rm_sqrt_dm` drift ≤ 10%, `cap_alpha_sim` ≥ baseline − 5%) and mapping uplift (≥ +3% recall on PET/CT fixture) with `vector_queries`/`vector_fallbacks`/latency metrics emitted.
 - Failure of the vector backend does **not** crash the pipeline; it falls back cleanly to lexical + mock vector rankers.
 
 ## Out of Scope
