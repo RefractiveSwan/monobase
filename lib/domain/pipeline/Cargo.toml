@@ -4,12 +4,13 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_core = { path = "../core" }
 dfps_ingestion = { path = "../ingestion" }
 dfps_mapping = { path = "../mapping" }
+dfps_core = { path = "../core" }
 dfps_observability = { path = "../../platform/observability" }
-serde.workspace = true
+serde = { workspace = true }
 serde_json.workspace = true
 thiserror = "2.0.17"
-env_logger = "0.11"
 log = "0.4"
+env_logger = "0.11"
+dfps_vector_store = { path = "../../platform/vector_store" }

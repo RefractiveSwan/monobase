@@ -5,7 +5,11 @@ use std::path::PathBuf;
 use clap::Parser;
 use dfps_configuration::load_env;
 use dfps_core::staging::StgSrCodeExploded;
-use dfps_mapping::{explain_staging_code, map_staging_codes_with_summary};
+use dfps_mapping::{
+    explain_staging_code, map_staging_codes_with_summary, map_staging_codes_with_vector,
+    DeterministicEmbeddingProvider,
+};
+use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend, VectorStoreConfig};
 
 #[derive(Parser)]
 #[command(name = "map_codes", about = "Map staging codes to NCIt concepts")]
@@ -40,7 +44,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         codes.push(code);
     }
 
-    let (results, _, summary) = map_staging_codes_with_summary(codes.clone());
+    let vector_mapping = try_vector_mapping(&codes);
+    let (results, summary) = match vector_mapping {
+        Ok((results, _dims, summary, usage)) => {
+            if let Some(usage) = usage {
+                eprintln!(
+                    "vector_usage queries={} hits={} fallbacks={}",
+                    usage.queries, usage.hits, usage.fallbacks
+                );
+            }
+            (results, summary)
+        }
+        Err(err) => {
+            log::warn!("vector mapping disabled or failed ({err}); using offline mock");
+            let (results, _, summary) = map_staging_codes_with_summary(codes.clone());
+            (results, summary)
+        }
+    };
     let stdout = io::stdout();
     let mut handle = stdout.lock();
     for result in results {
@@ -67,4 +87,72 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     Ok(())
+}
+
+fn try_vector_mapping(
+    codes: &[StgSrCodeExploded],
+) -> Result<
+    (
+        Vec<dfps_core::mapping::MappingResult>,
+        Vec<dfps_core::mapping::DimNCITConcept>,
+        dfps_mapping::MappingSummary,
+        Option<dfps_vector_store::VectorUsageSnapshot>,
+    ),
+    String,
+> {
+    let config =
+        VectorStoreConfig::from_env().map_err(|err| format!("vector config error: {err}"))?;
+    if !config.enabled {
+        return Err("DFPS_VECTOR_ENABLED=false".into());
+    }
+    match config.backend {
+        VectorBackend::Qdrant => {
+            let client = QdrantVectorStore::from_config(&config)
+                .map_err(|err| format!("qdrant client: {err}"))?;
+            let store = std::sync::Arc::new(client);
+            map_staging_codes_with_vector(
+                codes.to_owned(),
+                store,
+                config,
+                DeterministicEmbeddingProvider::new(),
+                5,
+            )
+            .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
+            .map_err(|err| format!("vector mapping error: {err}"))
+        }
+        VectorBackend::PgVector => {
+            #[cfg(feature = "backend-pgvector")]
+            {
+                let client = dfps_vector_store::PgVectorStore::from_config(&config)
+                    .map_err(|err| format!("pgvector client: {err}"))?;
+                let store = std::sync::Arc::new(client);
+                map_staging_codes_with_vector(
+                    codes.to_owned(),
+                    store,
+                    config,
+                    DeterministicEmbeddingProvider::new(),
+                    5,
+                )
+                .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
+                .map_err(|err| format!("vector mapping error: {err}"))
+            }
+            #[cfg(not(feature = "backend-pgvector"))]
+            {
+                Err("pgvector backend not compiled; enable feature".into())
+            }
+        }
+        VectorBackend::Mock => {
+            let store = std::sync::Arc::new(MockVectorStore::new(config.namespace.clone()));
+            map_staging_codes_with_vector(
+                codes.to_owned(),
+                store,
+                config,
+                DeterministicEmbeddingProvider::new(),
+                5,
+            )
+            .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
+            .map_err(|err| format!("vector mapping error: {err}"))
+        }
+        other => Err(format!("backend {:?} not supported in CLI", other)),
+    }
 }

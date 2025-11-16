@@ -12,6 +12,8 @@ fn metrics_snapshot_matches_expected_counts() {
         &output.exploded_codes,
         &output.mapping_results,
         &mut metrics,
+        output.vector_usage,
+        None,
     );
     for result in &output.mapping_results {
         if matches!(result.state, dfps_core::mapping::MappingState::NoMatch) {

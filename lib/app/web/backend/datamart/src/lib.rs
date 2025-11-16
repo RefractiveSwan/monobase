@@ -184,6 +184,7 @@ mod tests {
                 preferred_name: "FDG Uptake".into(),
                 semantic_group: "Procedure".into(),
             }],
+            vector_usage: None,
         }
     }
 
@@ -232,6 +233,7 @@ mod tests {
                 source_kind: None,
             }],
             dim_concepts: vec![],
+            vector_usage: None,
         }
     }
 

@@ -42,8 +42,12 @@ flowchart LR
 
 ## Observability
 - Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, search latency (mean/p95), tagged with `backend` and `namespace`.
+- Capacity proxies (when surfaced by the backend or mock): `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `cap_alpha_sim`; logged alongside vector counters for drift detection.
 - Logs: health probe failures, index build start/finish, per-namespace counts; structured fields for backend, namespace, duration_ms, error.
 - Surface metrics via `dfps_observability` and expose counts alongside pipeline metrics consumers.
+
+Complexity notes:
+- Deterministic embedding is `O(d)` for dimensionality `d`; search is `O(kd)` for top-k without ANN, with `O(n log n)` upfront collection/index creation on first bootstrap. If the backend is down or times out, the pipeline logs the failure, increments `vector_fallbacks`, and reverts to lexical + mock ranking deterministically.
 
 ## Cross-Links
 - FHIR overview: `../../fhir/overview.md`

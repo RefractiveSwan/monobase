@@ -7,6 +7,7 @@ edition.workspace = true
 dfps_terminology = { path = "../terminology" }
 dfps_core = { path = "../core" }
 dfps_eval = { path = "../eval", features = ["eval-advanced"] }
+dfps_vector_store = { path = "../../platform/vector_store" }
 serde.workspace = true
 serde_json.workspace = true
 

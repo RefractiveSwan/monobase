@@ -421,6 +421,14 @@ mod tests {
                 auto_mapped: 1,
                 needs_review: 0,
                 no_match: 0,
+                vector_queries: 0,
+                vector_hits: 0,
+                vector_fallbacks: 0,
+                vector_latency_ms_p95: None,
+                vector_capacity_geom_rm: None,
+                vector_capacity_geom_dm: None,
+                vector_capacity_geom_rm_sqrt_dm: None,
+                vector_capacity_cap_alpha_sim: None,
             }))
             .mount(&backend)
             .await;

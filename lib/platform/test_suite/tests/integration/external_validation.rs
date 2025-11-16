@@ -5,7 +5,8 @@ use dfps_ingestion::{
     validation::{ValidationMode, ValidationReport},
 };
 use serde_json::json;
-use std::{net::SocketAddr, sync::Arc};
+use once_cell::sync::Lazy;
+use std::{net::SocketAddr, sync::{Arc, Mutex}};
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
 
 async fn mock_validate_handler(with_issue: Arc<bool>) -> impl IntoResponse {
@@ -68,9 +69,12 @@ fn set_env_for(with_issue: bool) {
     }
 }
 
+static ENV_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+
 #[tokio::test]
 async fn external_issues_merge_into_report() {
-    let (addr, shutdown, handle) = spawn_validator(true).await;
+    let _guard = ENV_LOCK.lock().unwrap();
+    let (_addr, shutdown, handle) = spawn_validator(true).await;
     set_env_for(true);
 
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
@@ -95,7 +99,8 @@ async fn external_issues_merge_into_report() {
 
 #[tokio::test]
 async fn external_strict_blocks_ingestion_on_error() {
-    let (addr, shutdown, handle) = spawn_validator(true).await;
+    let _guard = ENV_LOCK.lock().unwrap();
+    let (_addr, shutdown, handle) = spawn_validator(true).await;
     set_env_for(true);
 
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
@@ -122,7 +127,8 @@ async fn external_strict_blocks_ingestion_on_error() {
 
 #[tokio::test]
 async fn external_preferred_allows_pass_through_when_clean() {
-    let (addr, shutdown, handle) = spawn_validator(false).await;
+    let _guard = ENV_LOCK.lock().unwrap();
+    let (_addr, shutdown, handle) = spawn_validator(false).await;
     set_env_for(false);
 
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();

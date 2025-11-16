@@ -81,6 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &output.exploded_codes,
             &output.mapping_results,
             &mut metrics,
+            output.vector_usage,
+            None,
         );
 
         for flat in &output.flats {

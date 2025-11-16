@@ -19,6 +19,7 @@ members = [
     "lib/domain/pipeline",
     "lib/platform/configuration",
     "lib/platform/observability",
+    "lib/platform/vector_store",
     "lib/platform/test_suite",
 ]
 
@@ -48,6 +49,7 @@ serde_json = "1.0.145"
 tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal"] }
 dotenvy = "0.15.7"
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
+dfps_vector_store = { path = "lib/platform/vector_store" }
 
 [dependencies]
 # root-package-specific dependencies go here (if any), e.g.:

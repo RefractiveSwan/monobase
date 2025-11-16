@@ -45,15 +45,19 @@ Prerequisites: Docker + Docker Compose, Rust toolchain, `psql` for pgvector or a
    export DFPS_VECTOR_POOL_MAX=10
    export DFPS_VECTOR_HEALTH_TIMEOUT_MS=500
    ```
+   Note: the `build-vector-index` CLI currently supports the Qdrant/mock backends. For pgvector, keep the manual SQL bootstrap above and skip to mapping (or set `DFPS_VECTOR_BACKEND=mock` for a dry-run index build).
 4) Build index:
    ```bash
    cd code
-   cargo run -p dfps_cli -- build-vector-index --namespace ncit_dev --source umls,ncit --force-rebuild
+   cargo run -p dfps_cli --features backend-pgvector -- build-vector-index \
+     --namespace ncit_dev --limit 1000 \
+     --embedding-version deterministic-hash-v1 --max-dim 768 --force-rebuild
    ```
+   The CLI prints embedding stats (count/mean/median norm + participation ratio) and enforces dim/version guardrails; batches with mixed dims are rejected.
 5) Map codes with vector search:
    ```bash
    cd code
-   cargo run -p dfps_cli -- map-codes ./staging_codes.ndjson --top-k 25
+   cargo run -p dfps_cli -- map-codes --explain --explain-top 5 ./staging_codes.ndjson
    ```
 
 ## Alternates (service + env only)
@@ -65,12 +69,11 @@ Prerequisites: Docker + Docker Compose, Rust toolchain, `psql` for pgvector or a
   export DFPS_VECTOR_URL=http://localhost:6333
   export DFPS_VECTOR_NAMESPACE=ncit_dev
   ```
-  Create collection once (example):
+  Build or rebuild index (auto-creates collection if missing):
   ```bash
-  curl -X PUT "http://localhost:6333/collections/ncit_dev" \
-    -H 'Content-Type: application/json' \
-    -d '{"vectors":{"size":768,"distance":"Cosine"}}'
+  cargo run -p dfps_cli -- build-vector-index --namespace ncit_dev --limit 1000 --embedding-version deterministic-hash-v1 --max-dim 768 --force-rebuild
   ```
+  Cost/guardrails: collection create is `O(1)` but initial HNSW build behaves like `O(n log n)`; searches are ~`O(kd)` per query. Set `DFPS_VECTOR_HEALTH_TIMEOUT_MS` to bound probes; if the backend is down, vector mode falls back to lexical+mock and increments `vector_fallbacks`.
 
 - Milvus:
   ```bash
@@ -91,8 +94,8 @@ Prerequisites: Docker + Docker Compose, Rust toolchain, `psql` for pgvector or a
 
 ## Health Checks & Fallback Verification
 - Health:
-  - pgvector: `psql ... -c "SELECT 1"` and ensure `SELECT count(*) FROM ncit_vectors;`
-  - Qdrant: `curl http://localhost:6333/collections`
+    - pgvector: `psql ... -c "SELECT 1"` and ensure `SELECT count(*) FROM ncit_vectors;`
+    - Qdrant: `curl http://localhost:6333/collections`
   - Milvus: `grpcurl -plaintext localhost:19530 milvus.proto. milvus.proto.MilvusService/DescribeCollection` (or SDK call)
 - Fallback: `export DFPS_VECTOR_ENABLED=false` then rerun `map-codes`; expect deterministic lexical+mock behavior and `vector_fallbacks` metric increments.
 - Common errors:

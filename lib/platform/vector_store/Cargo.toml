@@ -1,0 +1,19 @@
+[package]
+name = "dfps_vector_store"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["backend-qdrant"]
+backend-qdrant = ["dep:tokio", "dep:reqwest"]
+backend-pgvector = ["dep:tokio", "dep:tokio-postgres", "dep:pgvector"]
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror = "2.0.17"
+dfps_configuration = { path = "../configuration" }
+tokio = { workspace = true, optional = true, features = ["rt-multi-thread"] }
+reqwest = { workspace = true, optional = true, features = ["blocking"] }
+tokio-postgres = { version = "0.7", optional = true, features = ["with-uuid-1"] }
+pgvector = { version = "0.3.2", optional = true, features = ["postgres"] }

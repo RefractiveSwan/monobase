@@ -260,6 +260,8 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             &output.exploded_codes,
             &output.mapping_results,
             &mut request_metrics,
+            output.vector_usage.clone(),
+            None,
         );
 
         response.flats.extend(output.flats);
@@ -287,6 +289,12 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         global.auto_mapped += request_metrics.auto_mapped;
         global.needs_review += request_metrics.needs_review;
         global.no_match += request_metrics.no_match;
+        global.vector_queries += request_metrics.vector_queries;
+        global.vector_hits += request_metrics.vector_hits;
+        global.vector_fallbacks += request_metrics.vector_fallbacks;
+        global.vector_latency_ms_p95 = global
+            .vector_latency_ms_p95
+            .or(request_metrics.vector_latency_ms_p95);
     }
     info!(
         target: "dfps_api",

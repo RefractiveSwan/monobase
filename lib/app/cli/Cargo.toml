@@ -23,6 +23,10 @@ path = "src/bin/validate_fhir.rs"
 name = "load_datamart"
 path = "src/bin/load_datamart.rs"
 
+[[bin]]
+name = "build_vector_index"
+path = "src/bin/build_vector_index.rs"
+
 [dependencies]
 dfps_core = { path = "../../domain/core" }
 dfps_pipeline = { path = "../../domain/pipeline" }
@@ -32,6 +36,7 @@ dfps_observability = { path = "../../platform/observability" }
 dfps_configuration = { path = "../../platform/configuration" }
 dfps_eval = { path = "../../domain/eval" }
 dfps_datamart = { path = "../web/backend/datamart" }
+dfps_vector_store = { path = "../../platform/vector_store" }
 serde.workspace = true
 serde_json.workspace = true 
 env_logger = "0.11"
@@ -39,3 +44,6 @@ log = "0.4"
 clap.workspace = true
 tokio = { version = "1", features = ["rt-multi-thread"] }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
+
+[features]
+backend-pgvector = ["dfps_vector_store/backend-pgvector"]

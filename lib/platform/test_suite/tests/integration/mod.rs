@@ -5,5 +5,7 @@ mod mapping;
 mod mapping_eval;
 mod regression;
 mod validation;
+mod vector_backend_smoke;
+mod vector_mapping;
 mod warehouse;
 mod web_api;
