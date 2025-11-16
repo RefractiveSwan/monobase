@@ -39,34 +39,6 @@ flowchart LR
 
 ## TODO
 
-### VEC-06 – Docs & runbooks
-Document the vector layer concept and operational runbook, including capacity checklist and fallback steps (Targets A1/A3/B/D/C).
-- System design
-  - [x] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` covering placement between staging and mapping, geometry effects (radius/dimension/centroid overlap), and Leiden/Louvain graph conditioning.
-  - [x] Include capacity checklist (embedding_version, dim, norm stats, community health notes) and explicit fallback guidance.
-- Runbook
-  - [x] Add `docs/runbook/vector-store-quickstart.md` with pgvector/Qdrant setup snippets, FOSS-only dependencies, and CLI examples (`build-vector-index`, `map-codes`).
-  - [x] Troubleshooting steps for downtime/capacity regressions (switch to mock, rebuild index) and instructions for running eval harness comparing vector-enabled vs mock quality with expected metrics.
-
-#### Cross-Cohesion
-
-- **Engineering Targets:** A1, A3, B, D
-- **Crates & Paths:**
-  - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
-  - `docs/runbook/vector-store-quickstart.md`
-- **Shared Metrics & Signals:**
-  - `geom_rm`, `geom_dm`, `geom_centroid_cos`
-  - `vector_queries`, `vector_fallbacks`
-- **Docs & Kanbans Touched:**
-  - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
-  - `docs/system-design/clinical/ncit/architecture/system-architecture.md`
-- **Experiments / CI Hooks:**
-  - Reference paths for `dfps_eval` comparisons of vector-enabled vs mock runs
-  - Guidance for `dfps_test_suite/tests/integration/vector_mapping.rs` expectations
-- **Interfaces & Contracts:**
-  - CLIs: `dfps_cli build-vector-index`, `dfps_cli map-codes`
-  - Env: `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_ENABLED`
-
 ## DONE
 
 ### VEC-01 – VectorStore abstraction & wiring
@@ -218,7 +190,34 @@ Add integration coverage, capacity drift checks, and metrics so vector mode is o
   - Traits: `VectorStore`
   - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`
 
-  
+### VEC-06 – Docs & runbooks
+Document the vector layer concept and operational runbook, including capacity checklist and fallback steps (Targets A1/A3/B/D/C).
+- System design
+  - [x] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` covering placement between staging and mapping, geometry effects (radius/dimension/centroid overlap), and Leiden/Louvain graph conditioning.
+  - [x] Include capacity checklist (embedding_version, dim, norm stats, community health notes) and explicit fallback guidance.
+- Runbook
+  - [x] Add `docs/runbook/vector-store-quickstart.md` with pgvector/Qdrant setup snippets, FOSS-only dependencies, and CLI examples (`build-vector-index`, `map-codes`).
+  - [x] Troubleshooting steps for downtime/capacity regressions (switch to mock, rebuild index) and instructions for running eval harness comparing vector-enabled vs mock quality with expected metrics.
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** A1, A3, B, D
+- **Crates & Paths:**
+  - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
+  - `docs/runbook/vector-store-quickstart.md`
+- **Shared Metrics & Signals:**
+  - `geom_rm`, `geom_dm`, `geom_centroid_cos`
+  - `vector_queries`, `vector_fallbacks`
+- **Docs & Kanbans Touched:**
+  - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
+  - `docs/system-design/clinical/ncit/architecture/system-architecture.md`
+- **Experiments / CI Hooks:**
+  - Reference paths for `dfps_eval` comparisons of vector-enabled vs mock runs
+  - Guidance for `dfps_test_suite/tests/integration/vector_mapping.rs` expectations
+- **Interfaces & Contracts:**
+  - CLIs: `dfps_cli build-vector-index`, `dfps_cli map-codes`
+  - Env: `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_ENABLED`
+
 ----
 
 ## Configuration

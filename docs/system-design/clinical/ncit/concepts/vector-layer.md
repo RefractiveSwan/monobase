@@ -5,8 +5,8 @@ Short abstract: Vector-assisted candidate retrieval layer that sits between FHIR
 ```mermaid
 flowchart LR
   Stg[StgSrCodeExploded] --> Lex[Lexical ranker]
-  Stg --> Emb[Embed (TF-IDF/SVD or OSS encoder)]
-  Emb --> VecStore[Vector Store (pgvector/Qdrant/Milvus)]
+  Stg --> Emb[Embed]
+  Emb --> VecStore[Vector Store]
   Lex --> Merge[Candidates merge]
   VecStore --> Merge
   Merge --> Thresh[Thresholds & rules]
