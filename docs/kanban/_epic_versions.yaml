@@ -8,3 +8,6 @@ epics:
   EVAL-022:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0
+  VEC-013:
+    introduced_in: v0.1.0
+    last_updated_in: v0.1.0
