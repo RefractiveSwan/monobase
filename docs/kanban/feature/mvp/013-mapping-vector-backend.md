@@ -39,42 +39,14 @@ flowchart LR
 
 ## TODO
 
-### VEC-05 – Tests & observability
-Add integration coverage, capacity drift checks, and metrics so vector mode is observable and gated (Targets A3/B/D).
-- Tests
-  - [x] `dfps_test_suite/tests/integration/vector_mapping.rs` with Docker backend and test double; assert uplift vs mock and deterministic offline path.
-  - [x] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured in fixture.
-- Metrics/CI
-  - [x] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `dfps_observability`; structured logs for connectivity/index events with namespace/backend/duration.
-  - [x] CI gate fails if vector-enabled recall drops >X% vs baseline or latency exceeds budget; include error/timeout codes in logs and Prometheus-friendly exports.
-
-#### Cross-Cohesion
-
-- **Engineering Targets:** A3, B, D
-- **Crates & Paths:**
-  - `lib/platform/test_suite/tests/integration/vector_mapping.rs`
-  - `lib/domain/mapping` (`dfps_mapping`)
-- **Shared Metrics & Signals:**
-  - `geom_rm`, `geom_dm`, `cap_alpha_sim`
-  - `vector_queries`, `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`
-- **Docs & Kanbans Touched:**
-  - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
-  - `docs/runbook/vector-store-quickstart.md`
-- **Experiments / CI Hooks:**
-  - CI job collecting capacity proxies and hit@k per backend
-  - Drift checks that fail when recall or capacity proxy regresses
-- **Interfaces & Contracts:**
-  - Traits: `VectorStore`
-  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`
-
 ### VEC-06 – Docs & runbooks
 Document the vector layer concept and operational runbook, including capacity checklist and fallback steps (Targets A1/A3/B/D/C).
 - System design
-  - [ ] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` covering placement between staging and mapping, geometry effects (radius/dimension/centroid overlap), and Leiden/Louvain graph conditioning.
-  - [ ] Include capacity checklist (embedding_version, dim, norm stats, community health notes) and explicit fallback guidance.
+  - [x] Author `docs/system-design/clinical/ncit/concepts/vector-layer.md` covering placement between staging and mapping, geometry effects (radius/dimension/centroid overlap), and Leiden/Louvain graph conditioning.
+  - [x] Include capacity checklist (embedding_version, dim, norm stats, community health notes) and explicit fallback guidance.
 - Runbook
-  - [ ] Add `docs/runbook/vector-store-quickstart.md` with pgvector/Qdrant setup snippets, FOSS-only dependencies, and CLI examples (`build-vector-index`, `map-codes`).
-  - [ ] Troubleshooting steps for downtime/capacity regressions (switch to mock, rebuild index) and instructions for running eval harness comparing vector-enabled vs mock quality with expected metrics.
+  - [x] Add `docs/runbook/vector-store-quickstart.md` with pgvector/Qdrant setup snippets, FOSS-only dependencies, and CLI examples (`build-vector-index`, `map-codes`).
+  - [x] Troubleshooting steps for downtime/capacity regressions (switch to mock, rebuild index) and instructions for running eval harness comparing vector-enabled vs mock quality with expected metrics.
 
 #### Cross-Cohesion
 
@@ -218,6 +190,35 @@ Wire the optional backend ranker into `MappingEngine` with feature flags, determ
   - CLIs: `dfps_cli map-codes`, `dfps_cli map-bundles`
   - Env: `DFPS_VECTOR_ENABLED`
 
+### VEC-05 – Tests & observability
+Add integration coverage, capacity drift checks, and metrics so vector mode is observable and gated (Targets A3/B/D).
+- Tests
+  - [x] `dfps_test_suite/tests/integration/vector_mapping.rs` with Docker backend and test double; assert uplift vs mock and deterministic offline path.
+  - [x] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured in fixture.
+- Metrics/CI
+  - [x] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `dfps_observability`; structured logs for connectivity/index events with namespace/backend/duration.
+  - [x] CI gate fails if vector-enabled recall drops >X% vs baseline or latency exceeds budget; include error/timeout codes in logs and Prometheus-friendly exports.
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** A3, B, D
+- **Crates & Paths:**
+  - `lib/platform/test_suite/tests/integration/vector_mapping.rs`
+  - `lib/domain/mapping` (`dfps_mapping`)
+- **Shared Metrics & Signals:**
+  - `geom_rm`, `geom_dm`, `cap_alpha_sim`
+  - `vector_queries`, `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`
+- **Docs & Kanbans Touched:**
+  - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
+  - `docs/runbook/vector-store-quickstart.md`
+- **Experiments / CI Hooks:**
+  - CI job collecting capacity proxies and hit@k per backend
+  - Drift checks that fail when recall or capacity proxy regresses
+- **Interfaces & Contracts:**
+  - Traits: `VectorStore`
+  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`
+
+  
 ----
 
 ## Configuration

@@ -49,6 +49,14 @@ flowchart LR
 Complexity notes:
 - Deterministic embedding is `O(d)` for dimensionality `d`; search is `O(kd)` for top-k without ANN, with `O(n log n)` upfront collection/index creation on first bootstrap. If the backend is down or times out, the pipeline logs the failure, increments `vector_fallbacks`, and reverts to lexical + mock ranking deterministically.
 
+## Capacity checklist
+- Embedding metadata: `embedding_version` pinned; `dim` recorded per collection/namespace.
+- Geometry stats: track `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `geom_centroid_cos` (if available) and `cap_alpha_sim` per build; compare against prior baselines for drift.
+- Norms/participation ratio: record mean/median vector norm and participation ratio from index build logs to spot collapse or explosion.
+- Community health (Leiden/Louvain): snapshot cluster/graph health where available; flag unexpected community splits/merges across builds.
+- Fallback posture: toggling `DFPS_VECTOR_ENABLED=false` or health failures must preserve deterministic lexical+mock behavior, with `vector_fallbacks` incremented and structured warning logs.
+- Latency budgets: track search p95; gate CI if vector-enabled latency exceeds baseline by budget or if recall drops > X% vs mock/lexical baseline.
+
 ## Cross-Links
 - FHIR overview: `../../fhir/overview.md`
 - NCIt architecture: `../../ncit/architecture/system-architecture.md`

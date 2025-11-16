@@ -53,7 +53,7 @@ Prerequisites: Docker + Docker Compose, Rust toolchain, `psql` for pgvector or a
      --namespace ncit_dev --limit 1000 \
      --embedding-version deterministic-hash-v1 --max-dim 768 --force-rebuild
    ```
-   The CLI prints embedding stats (count/mean/median norm + participation ratio) and enforces dim/version guardrails; batches with mixed dims are rejected.
+   The CLI prints embedding stats (count/mean/median norm + participation ratio) and enforces dim/version guardrails; batches with mixed dims are rejected. Keep the stats output as a baseline for drift checks.
 5) Map codes with vector search:
    ```bash
    cd code
@@ -92,10 +92,26 @@ Prerequisites: Docker + Docker Compose, Rust toolchain, `psql` for pgvector or a
   ```
   Create collection (example via milvus-cli or SDK) with dim=768, index IVF/HNSW as needed.
 
+## Eval harness vs mock
+- Run vector-enabled vs mock to compare recall/precision (example: gold_pet_ct_small):
+  ```bash
+  DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=pgvector DFPS_VECTOR_URL=postgres://vector:vector@localhost:5433/vector \
+    cargo run -p dfps_cli --features backend-pgvector -- map-codes -- ./lib/domain/fake_data/data/eval/gold_pet_ct_small.ndjson
+  DFPS_VECTOR_ENABLED=false cargo run -p dfps_cli -- map-codes -- ./lib/domain/fake_data/data/eval/gold_pet_ct_small.ndjson
+  ```
+- Use `dfps_test_suite/tests/integration/vector_mapping.rs` parity/recall guard as a CI signal; gate if vector-enabled recall drops >X% vs baseline or latency exceeds the recorded budget.
+- For latency drift, watch `vector_latency_ms_p95` in logs; alert if it exceeds your budget.
+
+## Troubleshooting
+- Backend down or unhealthy: set `DFPS_VECTOR_ENABLED=false` to force deterministic lexical+mock fallback; `vector_fallbacks` should increment and logs should note the reason.
+- Index drift or bad norms: re-run `build-vector-index` and compare embedding stats (norm/participation ratio) to prior runs; rebuild if `geom_rm_sqrt_dm` or `cap_alpha_sim` drifts beyond thresholds.
+- Dimension mismatch errors: ensure all embeddings in a batch share the same `dim` (CLI rejects mixed dims).
+- Collection missing: recreate via `build-vector-index` (pgvector) or `curl`/CLI (Qdrant); rerun after health check.
+
 ## Health Checks & Fallback Verification
 - Health:
-    - pgvector: `psql ... -c "SELECT 1"` and ensure `SELECT count(*) FROM ncit_vectors;`
-    - Qdrant: `curl http://localhost:6333/collections`
+  - pgvector: `psql ... -c "SELECT 1"` and ensure `SELECT count(*) FROM ncit_vectors;`
+  - Qdrant: `curl http://localhost:6333/collections`
   - Milvus: `grpcurl -plaintext localhost:19530 milvus.proto. milvus.proto.MilvusService/DescribeCollection` (or SDK call)
 - Fallback: `export DFPS_VECTOR_ENABLED=false` then rerun `map-codes`; expect deterministic lexical+mock behavior and `vector_fallbacks` metric increments.
 - Common errors:
