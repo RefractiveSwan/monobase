@@ -4,7 +4,9 @@ use dfps_core::{mapping::MappingState, staging::StgSrCodeExploded};
 use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes_with_summary, map_staging_codes_with_vector,
 };
-use dfps_vector_store::{MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig};
+use dfps_vector_store::{
+    CapacityProxies, MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig,
+};
 
 #[test]
 fn vector_backend_improves_recall_over_baseline_mock() {
@@ -92,4 +94,112 @@ fn vector_toggle_false_increments_fallbacks() {
 
     assert_eq!(snapshot.fallbacks, 1);
     assert!(!results.is_empty());
+}
+
+#[test]
+fn vector_backend_shows_uplift_vs_baseline() {
+    let codes = vec![
+        StgSrCodeExploded {
+            sr_id: "SR-uplift-1".into(),
+            system: Some("http://loinc.org".into()),
+            code: Some("1111-1".into()),
+            display: Some("uplift code 1".into()),
+        },
+        StgSrCodeExploded {
+            sr_id: "SR-uplift-2".into(),
+            system: Some("http://loinc.org".into()),
+            code: Some("2222-2".into()),
+            display: Some("uplift code 2".into()),
+        },
+    ];
+
+    let (baseline_results, _, _) = map_staging_codes_with_summary(codes.clone());
+    let baseline_auto = baseline_results
+        .iter()
+        .filter(|r| matches!(r.state, MappingState::AutoMapped))
+        .count();
+
+    let store = Arc::new(MockVectorStore::new("ncit_dev"));
+    store.set_response(
+        "ncit_dev",
+        vec![
+            VectorSearchHit {
+                ref_id: "C12345".into(),
+                score: 0.99,
+            },
+            VectorSearchHit {
+                ref_id: "C54321".into(),
+                score: 0.97,
+            },
+        ],
+    );
+    let codes_len = codes.len();
+    let config = VectorStoreConfig {
+        backend: VectorBackend::Mock,
+        url: None,
+        namespace: "ncit_dev".into(),
+        pool_max: 2,
+        health_timeout_ms: 250,
+        enabled: true,
+    };
+
+    let (vector_results, _, _, usage) = map_staging_codes_with_vector(
+        codes,
+        store.clone(),
+        config,
+        DeterministicEmbeddingProvider::new(),
+        3,
+    )
+    .expect("vector mapping");
+    assert_eq!(vector_results.len(), codes_len);
+    let vector_auto = vector_results
+        .iter()
+        .filter(|r| matches!(r.state, MappingState::AutoMapped))
+        .count();
+
+    assert_eq!(baseline_auto, 0);
+    assert!(vector_auto > baseline_auto, "vector mode should uplift automapped count");
+    assert_eq!(usage.fallbacks, 0);
+    assert!(usage.hits >= vector_auto);
+}
+
+#[test]
+fn capacity_proxy_is_carried_from_vector_store() {
+    let codes = vec![StgSrCodeExploded {
+        sr_id: "SR-cap".into(),
+        system: Some("http://loinc.org".into()),
+        code: Some("3333-3".into()),
+        display: Some("cap test".into()),
+    }];
+
+    let store = Arc::new(
+        MockVectorStore::new("ncit_dev").with_capacity(CapacityProxies {
+            geom_rm: Some(0.12),
+            geom_dm: Some(3.0),
+            geom_rm_sqrt_dm: Some(0.2),
+            cap_alpha_sim: Some(0.9),
+        }),
+    );
+    let config = VectorStoreConfig {
+        backend: VectorBackend::Mock,
+        url: None,
+        namespace: "ncit_dev".into(),
+        pool_max: 2,
+        health_timeout_ms: 250,
+        enabled: true,
+    };
+
+    let (_, _, _, usage) = map_staging_codes_with_vector(
+        codes,
+        store.clone(),
+        config,
+        DeterministicEmbeddingProvider::new(),
+        3,
+    )
+    .expect("vector mapping");
+
+    assert!(usage.capacity.is_some());
+    let cap = usage.capacity.unwrap();
+    assert_eq!(cap.geom_rm_sqrt_dm, Some(0.2));
+    assert_eq!(cap.cap_alpha_sim, Some(0.9));
 }
