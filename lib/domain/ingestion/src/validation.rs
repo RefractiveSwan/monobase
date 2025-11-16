@@ -2,10 +2,15 @@
 //!
 //! Each [`RequirementRef`] corresponds to an ID defined in
 //! `docs/system-design/clinical/fhir/requirements/ingestion-requirements.md`.
+//! When the `profile_validation` feature is enabled, profile cardinalities from
+//! `dfps_fhir_profiles` are applied alongside the hand-written checks to keep
+//! ingestion aligned with embedded StructureDefinitions.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use dfps_core::fhir;
+#[cfg(feature = "profile_validation")]
+use dfps_fhir_profiles::{self, ElementDefinition as ProfileElement, FhirProfile};
 use serde::{Deserialize, Serialize};
 
 use crate::reference::reference_id_from_str;
@@ -79,6 +84,113 @@ impl ValidationIssue {
     }
 }
 
+/// Map RequirementRefs to specific profile element definitions for traceability.
+#[cfg(feature = "profile_validation")]
+pub fn profile_requirement_links(profile: &FhirProfile) -> Vec<(RequirementRef, ProfileElement)> {
+    [
+        (RequirementRef::RSubject, "ServiceRequest.subject"),
+        (RequirementRef::RStatus, "ServiceRequest.status"),
+        (RequirementRef::RTrace, "ServiceRequest.id"),
+    ]
+    .iter()
+    .filter_map(|(req, path)| profile.element_by_path(path).cloned().map(|el| (*req, el)))
+    .collect()
+}
+
+/// Profile-driven checks for ServiceRequest cardinalities and required elements.
+#[cfg(feature = "profile_validation")]
+pub fn validate_sr_profile(
+    sr: &fhir::ServiceRequest,
+    profile: &FhirProfile,
+) -> Vec<ValidationIssue> {
+    let mut issues = Vec::new();
+    let requirement_lookup = build_requirement_lookup(profile);
+
+    for element in &profile.elements {
+        if !element.path.starts_with("ServiceRequest.") {
+            continue;
+        }
+        let min = element.min.unwrap_or(0);
+        if min > 0 && !sr_field_present(sr, &element.path) {
+            let requirement = requirement_lookup
+                .get(element.path.as_str())
+                .copied()
+                .unwrap_or(RequirementRef::RTrace);
+            let id = profile_issue_id(&element.path, "MISSING");
+            let message = format!(
+                "{} required by profile {} is missing.",
+                element.path, profile.meta.url
+            );
+            issues.push(ValidationIssue::new(
+                id,
+                ValidationSeverity::Error,
+                message,
+                requirement,
+            ));
+        }
+        if let Some(max) = element.max.as_deref() {
+            if max == "0" && sr_field_present(sr, &element.path) {
+                let requirement = requirement_lookup
+                    .get(element.path.as_str())
+                    .copied()
+                    .unwrap_or(RequirementRef::RTrace);
+                let id = profile_issue_id(&element.path, "NOT_ALLOWED");
+                let message = format!(
+                    "{} is not permitted by profile {}.",
+                    element.path, profile.meta.url
+                );
+                issues.push(ValidationIssue::new(
+                    id,
+                    ValidationSeverity::Error,
+                    message,
+                    requirement,
+                ));
+            }
+        }
+    }
+
+    issues
+}
+
+#[cfg(feature = "profile_validation")]
+fn build_requirement_lookup(profile: &FhirProfile) -> HashMap<String, RequirementRef> {
+    profile_requirement_links(profile)
+        .into_iter()
+        .map(|(req, el)| (el.path.clone(), req))
+        .collect()
+}
+
+#[cfg(feature = "profile_validation")]
+fn sr_field_present(sr: &fhir::ServiceRequest, path: &str) -> bool {
+    match path {
+        "ServiceRequest.id" => sr.id.as_deref().map(|v| !v.is_empty()).unwrap_or(false),
+        "ServiceRequest.status" => sr.status.as_deref().map(|v| !v.is_empty()).unwrap_or(false),
+        "ServiceRequest.intent" => sr.intent.as_deref().map(|v| !v.is_empty()).unwrap_or(false),
+        "ServiceRequest.subject" => sr
+            .subject
+            .as_ref()
+            .and_then(|r| r.reference.as_deref())
+            .map(|v| !v.is_empty())
+            .unwrap_or(false),
+        "ServiceRequest.encounter" => sr
+            .encounter
+            .as_ref()
+            .and_then(|r| r.reference.as_deref())
+            .map(|v| !v.is_empty())
+            .unwrap_or(false),
+        _ => false,
+    }
+}
+
+#[cfg(feature = "profile_validation")]
+fn profile_issue_id(path: &str, suffix: &str) -> String {
+    let key = path
+        .trim_start_matches("ServiceRequest.")
+        .replace('.', "_")
+        .to_ascii_uppercase();
+    format!("VAL_SR_PROFILE_{}_{}", key, suffix)
+}
+
 /// Validate a FHIR ServiceRequest against ingestion requirements.
 pub fn validate_sr(sr: &fhir::ServiceRequest) -> Vec<ValidationIssue> {
     let mut issues = Vec::new();
@@ -141,6 +253,12 @@ pub fn validate_bundle(bundle: &fhir::Bundle) -> ValidationReport {
     validate_bundle_with_external_profile(bundle, ValidationMode::Lenient, None)
 }
 
+#[cfg(feature = "profile_validation")]
+fn load_service_request_profile(profile_url: Option<&str>) -> Option<FhirProfile> {
+    let url = profile_url.unwrap_or(dfps_fhir_profiles::SERVICE_REQUEST_PROFILE_URL);
+    dfps_fhir_profiles::load_profile(url)
+}
+
 /// Validate a bundle and optionally merge external validator feedback.
 pub fn validate_bundle_with_external(
     bundle: &fhir::Bundle,
@@ -155,6 +273,9 @@ pub fn validate_bundle_with_external_profile(
     mode: ValidationMode,
     profile_url: Option<&str>,
 ) -> ValidationReport {
+    #[cfg(feature = "profile_validation")]
+    let sr_profile = load_service_request_profile(profile_url);
+
     let patient_ids = collect_resource_ids(bundle, "Patient");
     let encounter_ids = collect_resource_ids(bundle, "Encounter");
     let mut issues = Vec::new();
@@ -163,6 +284,10 @@ pub fn validate_bundle_with_external_profile(
         match entry {
             Ok(sr) => {
                 issues.extend(validate_sr(&sr));
+                #[cfg(feature = "profile_validation")]
+                if let Some(profile) = sr_profile.as_ref() {
+                    issues.extend(validate_sr_profile(&sr, profile));
+                }
                 validate_bundle_relationships(&sr, &patient_ids, &encounter_ids, &mut issues);
             }
             Err(err) => {
@@ -493,6 +618,61 @@ mod tests {
 
         let issues = validate_sr(&sr);
         assert!(issues.is_empty());
+    }
+
+    #[test]
+    fn profile_requirement_links_return_expected_paths() {
+        let profile =
+            dfps_fhir_profiles::load_profile(dfps_fhir_profiles::SERVICE_REQUEST_PROFILE_URL)
+                .unwrap();
+        let mappings = profile_requirement_links(&profile);
+        assert!(mappings.iter().any(|(req, el)| {
+            *req == RequirementRef::RSubject && el.path == "ServiceRequest.subject"
+        }));
+        assert!(
+            mappings.iter().any(|(req, el)| {
+                *req == RequirementRef::RTrace && el.path == "ServiceRequest.id"
+            })
+        );
+    }
+
+    #[test]
+    fn validate_sr_profile_flags_missing_intent() {
+        let profile =
+            dfps_fhir_profiles::load_profile(dfps_fhir_profiles::SERVICE_REQUEST_PROFILE_URL)
+                .unwrap();
+        let sr = fhir::ServiceRequest {
+            resource_type: "ServiceRequest".into(),
+            id: Some("SR-123".into()),
+            status: Some("active".into()),
+            intent: None,
+            subject: Some(fhir::Reference {
+                reference: Some("Patient/P1".into()),
+                display: None,
+            }),
+            encounter: None,
+            requester: None,
+            supporting_info: vec![],
+            code: None,
+            category: vec![],
+            description: None,
+            authored_on: None,
+        };
+
+        let issues = validate_sr_profile(&sr, &profile);
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.id == "VAL_SR_PROFILE_INTENT_MISSING"),
+            "missing intent should surface a profile issue"
+        );
+        assert_eq!(
+            issues
+                .iter()
+                .filter(|i| i.requirement == RequirementRef::RTrace)
+                .count(),
+            1
+        );
     }
 
     #[test]

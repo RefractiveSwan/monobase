@@ -58,3 +58,8 @@ pub fn fhir_bundle_missing_encounter() -> fhir::Bundle {
     fixtures::bundles::load(registry(), "fhir_bundle_missing_encounter")
         .expect("missing-encounter bundle should be valid JSON")
 }
+
+pub fn fhir_bundle_profile_missing_intent() -> fhir::Bundle {
+    fixtures::bundles::load(registry(), "fhir_bundle_profile_missing_intent")
+        .expect("profile-violating bundle should be valid JSON")
+}

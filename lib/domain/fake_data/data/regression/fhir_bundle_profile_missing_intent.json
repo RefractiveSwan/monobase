@@ -1,0 +1,22 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "PAT-100"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-100",
+        "status": "active",
+        "subject": {
+          "reference": "Patient/PAT-100"
+        }
+      }
+    }
+  ]
+}

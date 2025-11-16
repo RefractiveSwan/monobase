@@ -14,6 +14,7 @@ members = [
     "lib/domain/terminology",
     "lib/domain/core",
     "lib/domain/fake_data",
+    "lib/domain/fhir_profiles",
     "lib/domain/ingestion",
     "lib/domain/mapping",
     "lib/domain/pipeline",

@@ -24,3 +24,5 @@ pub use validation::{
     validate_bundle, validate_bundle_with_external, validate_bundle_with_external_profile,
     validate_sr,
 };
+#[cfg(feature = "profile_validation")]
+pub use validation::{profile_requirement_links, validate_sr_profile};

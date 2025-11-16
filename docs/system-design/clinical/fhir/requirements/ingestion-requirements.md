@@ -47,3 +47,16 @@ The `dfps_ingestion::validation` module enforces these requirements via the
 
 Downstream callers can inspect each `ValidationIssue`'s `requirement_ref()` to
 tie failures directly to the diagram IDs above.
+
+## Profile mapping
+
+DFPS embeds lightweight `StructureDefinition` snapshots via `dfps_fhir_profiles` and ties
+ingestion requirements to explicit profile paths:
+
+- `R_Subject` → `ServiceRequest.subject`
+- `R_Status` → `ServiceRequest.status`
+- `R_Trace` → `ServiceRequest.id`
+
+When the `profile_validation` feature is enabled, `validate_bundle_with_external_profile`
+applies these cardinalities on top of hand-written validation to surface
+profile-aware `ValidationIssue`s alongside existing checks.

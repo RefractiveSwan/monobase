@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - FHIR-CONF-015 – External validator model and client (`dfps_ingestion::validation::external` adds OperationOutcome/ExternalValidationReport, `validate_bundle_external`, and env template for external FHIR validation).
 - FHIR-CONF-015 – Internal+external validation wiring and CLI (`ValidationMode` gains ExternalPreferred/ExternalStrict, `validate_bundle_with_external_profile` merges OperationOutcome issues, and new `dfps_cli validate_fhir` emits NDJSON issues/summary with optional external profile support). 
 - VEC-013 – “VectorStore abstraction & Qdrant/mock wiring” (checkboxes: `dfps_vector_store` crate + config, `VectorRankerBackend`, mock store tests, `build-vector-index` CLI).
+- FHIR-018 – “FHIR profiles crate + profile validation” (checkboxes: `dfps_fhir_profiles` embedded StructureDefinitions, `profile_requirement_links`, `validate_sr_profile` + profile-driven bundle validation paths, docs/runbook updates).
 
 ### Planned
 - CLI application (`feature/app/cli-mvp` – 004): `dfps_cli` scaffold + `map-bundles` / `generate-fhir-bundles` subcommands, flags, tests, CI smoke.

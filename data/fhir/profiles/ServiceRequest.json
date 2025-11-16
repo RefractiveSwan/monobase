@@ -1,0 +1,66 @@
+{
+  "resourceType": "StructureDefinition",
+  "url": "http://hl7.org/fhir/StructureDefinition/ServiceRequest",
+  "name": "ServiceRequest",
+  "status": "draft",
+  "kind": "resource",
+  "fhirVersion": "4.0.1",
+  "type": "ServiceRequest",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/DomainResource",
+  "snapshot": {
+    "element": [
+      {
+        "id": "ServiceRequest",
+        "path": "ServiceRequest",
+        "min": 0,
+        "max": "1"
+      },
+      {
+        "id": "ServiceRequest.id",
+        "path": "ServiceRequest.id",
+        "min": 1,
+        "max": "1",
+        "type": [{ "code": "id" }]
+      },
+      {
+        "id": "ServiceRequest.status",
+        "path": "ServiceRequest.status",
+        "min": 1,
+        "max": "1",
+        "type": [{ "code": "code" }],
+        "mustSupport": true,
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://hl7.org/fhir/ValueSet/request-status"
+        }
+      },
+      {
+        "id": "ServiceRequest.intent",
+        "path": "ServiceRequest.intent",
+        "min": 1,
+        "max": "1",
+        "type": [{ "code": "code" }],
+        "mustSupport": true,
+        "binding": {
+          "strength": "required",
+          "valueSet": "http://hl7.org/fhir/ValueSet/request-intent"
+        }
+      },
+      {
+        "id": "ServiceRequest.subject",
+        "path": "ServiceRequest.subject",
+        "min": 1,
+        "max": "1",
+        "type": [{ "code": "Reference" }],
+        "mustSupport": true
+      },
+      {
+        "id": "ServiceRequest.encounter",
+        "path": "ServiceRequest.encounter",
+        "min": 0,
+        "max": "1",
+        "type": [{ "code": "Reference" }]
+      }
+    ]
+  }
+}
