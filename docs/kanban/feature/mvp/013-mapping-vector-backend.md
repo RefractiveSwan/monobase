@@ -39,36 +39,6 @@ flowchart LR
 
 ## TODO
 
-### VEC-04 – MappingEngine integration & feature flags
-Wire the optional backend ranker into `MappingEngine` with feature flags, deterministic fallback, and score-fusion hooks (Targets B/D with A3 observability).
-- Implementation
-  - [x] Accept `VectorRankerBackend` alongside `VectorRankerMock`; keep `default_engine()` offline-only and provide `vector_engine(store)` when `DFPS_VECTOR_ENABLED=true`.
-  - [x] In `map_staging_codes_with_summary`, route to backend when healthy else fall back to lexical+mock deterministically; log vector vs lexical score gaps and centroid similarity to avoid false merges.
-  - [x] Add weighted fusion/reranker hook with configurable weights and guardrails on slowdown vs lexical-only.
-- Tests/docs
-  - [x] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
-  - [x] Env toggle tests proving `DFPS_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`; document latency budget and acceptable slowdown in `dfps_mapping` docs.
-
-#### Cross-Cohesion
-
-- **Engineering Targets:** A3, B, D
-- **Crates & Paths:**
-  - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/platform/vector_store` (`dfps_vector_store`)
-- **Shared Metrics & Signals:**
-  - `auto_mapped`, `needs_review`, `no_match`
-  - `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`
-- **Docs & Kanbans Touched:**
-  - `docs/system-design/clinical/ncit/behavior/sequence-servicerequest.md`
-  - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
-- **Experiments / CI Hooks:**
-  - Regression suites comparing lexical vs vector-enabled mapping in `dfps_test_suite`
-  - CI alert when mapping recall drops or latency exceeds budget
-- **Interfaces & Contracts:**
-  - Traits: `CandidateRanker`
-  - CLIs: `dfps_cli map-codes`, `dfps_cli map-bundles`
-  - Env: `DFPS_VECTOR_ENABLED`
-
 ### VEC-05 – Tests & observability
 Add integration coverage, capacity drift checks, and metrics so vector mode is observable and gated (Targets A3/B/D).
 - Tests
@@ -217,6 +187,36 @@ Provide a deterministic index builder CLI that loads NCIt/UMLS references, gener
 - **Interfaces & Contracts:**
   - CLIs: `dfps_cli build-vector-index`
   - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_NAMESPACE`
+
+### VEC-04 – MappingEngine integration & feature flags
+Wire the optional backend ranker into `MappingEngine` with feature flags, deterministic fallback, and score-fusion hooks (Targets B/D with A3 observability).
+- Implementation
+  - [x] Accept `VectorRankerBackend` alongside `VectorRankerMock`; keep `default_engine()` offline-only and provide `vector_engine(store)` when `DFPS_VECTOR_ENABLED=true`.
+  - [x] In `map_staging_codes_with_summary`, route to backend when healthy else fall back to lexical+mock deterministically; log vector vs lexical score gaps and centroid similarity to avoid false merges.
+  - [x] Add weighted fusion/reranker hook with configurable weights and guardrails on slowdown vs lexical-only.
+- Tests/docs
+  - [x] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
+  - [x] Env toggle tests proving `DFPS_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`; document latency budget and acceptable slowdown in `dfps_mapping` docs.
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** A3, B, D
+- **Crates & Paths:**
+  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/platform/vector_store` (`dfps_vector_store`)
+- **Shared Metrics & Signals:**
+  - `auto_mapped`, `needs_review`, `no_match`
+  - `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`
+- **Docs & Kanbans Touched:**
+  - `docs/system-design/clinical/ncit/behavior/sequence-servicerequest.md`
+  - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
+- **Experiments / CI Hooks:**
+  - Regression suites comparing lexical vs vector-enabled mapping in `dfps_test_suite`
+  - CI alert when mapping recall drops or latency exceeds budget
+- **Interfaces & Contracts:**
+  - Traits: `CandidateRanker`
+  - CLIs: `dfps_cli map-codes`, `dfps_cli map-bundles`
+  - Env: `DFPS_VECTOR_ENABLED`
 
 ----
 

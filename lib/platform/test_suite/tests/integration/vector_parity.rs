@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use dfps_core::mapping::MappingState;
 use dfps_eval::{self, EvalCase, EvalSummary};
-use dfps_mapping::{map_staging_codes_with_summary, map_staging_codes_with_vector, DeterministicEmbeddingProvider};
+use dfps_mapping::{
+    DeterministicEmbeddingProvider, map_staging_codes_with_summary, map_staging_codes_with_vector,
+};
 use dfps_test_suite::fixtures;
 use dfps_vector_store::{MockVectorStore, VectorBackend, VectorStoreConfig};
 
@@ -19,8 +21,16 @@ fn build_codes_from_cases(cases: &[EvalCase]) -> Vec<dfps_core::staging::StgSrCo
 }
 
 fn summary_states(summary: &EvalSummary) -> (usize, usize, usize) {
-    let auto = summary.state_counts.get("auto_mapped").copied().unwrap_or(0);
-    let review = summary.state_counts.get("needs_review").copied().unwrap_or(0);
+    let auto = summary
+        .state_counts
+        .get("auto_mapped")
+        .copied()
+        .unwrap_or(0);
+    let review = summary
+        .state_counts
+        .get("needs_review")
+        .copied()
+        .unwrap_or(0);
     let no_match = summary.state_counts.get("no_match").copied().unwrap_or(0);
     (auto, review, no_match)
 }
