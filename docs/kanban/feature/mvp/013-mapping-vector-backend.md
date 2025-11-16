@@ -46,7 +46,7 @@ Wire the optional backend ranker into `MappingEngine` with feature flags, determ
   - [x] In `map_staging_codes_with_summary`, route to backend when healthy else fall back to lexical+mock deterministically; log vector vs lexical score gaps and centroid similarity to avoid false merges.
   - [x] Add weighted fusion/reranker hook with configurable weights and guardrails on slowdown vs lexical-only.
 - Tests/docs
-  - [ ] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
+  - [x] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
   - [x] Env toggle tests proving `DFPS_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`; document latency budget and acceptable slowdown in `dfps_mapping` docs.
 
 #### Cross-Cohesion

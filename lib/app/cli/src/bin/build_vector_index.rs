@@ -4,9 +4,11 @@ use clap::Parser;
 use dfps_configuration::load_env;
 use dfps_core::mapping::CodeElement;
 use dfps_mapping::{DeterministicEmbeddingProvider, load_ncit_concepts};
+#[cfg(feature = "backend-pgvector")]
+use dfps_vector_store::PgVectorStore;
 use dfps_vector_store::{
-    EmbeddingProvider, MockVectorStore, PgVectorStore, QdrantVectorStore, VectorBackend,
-    VectorItem, VectorStore, VectorStoreConfig,
+    EmbeddingProvider, MockVectorStore, QdrantVectorStore, VectorBackend, VectorItem, VectorStore,
+    VectorStoreConfig,
 };
 
 #[derive(Parser)]

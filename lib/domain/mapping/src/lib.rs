@@ -70,7 +70,10 @@ impl FusionWeights {
 
 impl Default for FusionWeights {
     fn default() -> Self {
-        Self { lexical: 1.0, vector: 1.0 }
+        Self {
+            lexical: 1.0,
+            vector: 1.0,
+        }
     }
 }
 
