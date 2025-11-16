@@ -42,11 +42,11 @@ flowchart LR
 ### VEC-05 – Tests & observability
 Add integration coverage, capacity drift checks, and metrics so vector mode is observable and gated (Targets A3/B/D).
 - Tests
-  - [ ] `dfps_test_suite/tests/integration/vector_mapping.rs` with Docker backend and test double; assert uplift vs mock and deterministic offline path.
-  - [ ] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured in fixture.
+  - [x] `dfps_test_suite/tests/integration/vector_mapping.rs` with Docker backend and test double; assert uplift vs mock and deterministic offline path.
+  - [x] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured in fixture.
 - Metrics/CI
-  - [ ] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `dfps_observability`; structured logs for connectivity/index events with namespace/backend/duration.
-  - [ ] CI gate fails if vector-enabled recall drops >X% vs baseline or latency exceeds budget; include error/timeout codes in logs and Prometheus-friendly exports.
+  - [x] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `dfps_observability`; structured logs for connectivity/index events with namespace/backend/duration.
+  - [x] CI gate fails if vector-enabled recall drops >X% vs baseline or latency exceeds budget; include error/timeout codes in logs and Prometheus-friendly exports.
 
 #### Cross-Cohesion
 

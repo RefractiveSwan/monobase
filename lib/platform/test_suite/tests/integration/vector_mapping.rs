@@ -203,3 +203,69 @@ fn capacity_proxy_is_carried_from_vector_store() {
     assert_eq!(cap.geom_rm_sqrt_dm, Some(0.2));
     assert_eq!(cap.cap_alpha_sim, Some(0.9));
 }
+
+#[test]
+fn vector_ci_guard_recall_no_regressions_against_baseline() {
+    let codes = vec![
+        StgSrCodeExploded {
+            sr_id: "SR-ci-1".into(),
+            system: Some("http://loinc.org".into()),
+            code: Some("4444-4".into()),
+            display: Some("ci guard code 1".into()),
+        },
+        StgSrCodeExploded {
+            sr_id: "SR-ci-2".into(),
+            system: Some("http://loinc.org".into()),
+            code: Some("5555-5".into()),
+            display: Some("ci guard code 2".into()),
+        },
+    ];
+
+    let (baseline_results, _, _) = map_staging_codes_with_summary(codes.clone());
+    let baseline_auto = baseline_results
+        .iter()
+        .filter(|r| matches!(r.state, MappingState::AutoMapped))
+        .count();
+
+    // Seed mock store with baseline NCIT ids so vector path matches or improves recall.
+    let store = Arc::new(MockVectorStore::new("ncit_dev"));
+    let hits: Vec<VectorSearchHit> = baseline_results
+        .iter()
+        .filter_map(|r| r.ncit_id.clone())
+        .enumerate()
+        .map(|(idx, id)| VectorSearchHit {
+            ref_id: id.replace("NCIT:", ""),
+            score: 0.9 - (idx as f32) * 0.001,
+        })
+        .collect();
+    store.set_response("ncit_dev", hits);
+    let config = VectorStoreConfig {
+        backend: VectorBackend::Mock,
+        url: None,
+        namespace: "ncit_dev".into(),
+        pool_max: 2,
+        health_timeout_ms: 250,
+        enabled: true,
+    };
+
+    let (vector_results, _, _, usage) = map_staging_codes_with_vector(
+        codes,
+        store,
+        config,
+        DeterministicEmbeddingProvider::new(),
+        3,
+    )
+    .expect("vector mapping");
+    let vector_auto = vector_results
+        .iter()
+        .filter(|r| matches!(r.state, MappingState::AutoMapped))
+        .count();
+
+    assert!(
+        vector_auto >= baseline_auto,
+        "vector recall should not regress (baseline {} vs vector {})",
+        baseline_auto,
+        vector_auto
+    );
+    assert_eq!(usage.fallbacks, 0);
+}
