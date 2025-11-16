@@ -158,7 +158,10 @@ fn vector_backend_shows_uplift_vs_baseline() {
         .count();
 
     assert_eq!(baseline_auto, 0);
-    assert!(vector_auto > baseline_auto, "vector mode should uplift automapped count");
+    assert!(
+        vector_auto > baseline_auto,
+        "vector mode should uplift automapped count"
+    );
     assert_eq!(usage.fallbacks, 0);
     assert!(usage.hits >= vector_auto);
 }
