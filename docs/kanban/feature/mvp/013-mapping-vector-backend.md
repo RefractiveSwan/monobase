@@ -49,7 +49,7 @@ flowchart LR
 
 * [ ] Add a `VectorStore` trait (and minimal `EmbeddingProvider` if needed) under a new platform crate:
 
-  * `lib/platform/vector_store` -> crate `dfps_vector_store`
+  * `lib/app/web/backend/vector_store` -> crate `dfps_vector_store`
   * Trait operations:
 
     * [ ] `index_items(namespace, items: &[(id, text)]) -> Result<()>`
