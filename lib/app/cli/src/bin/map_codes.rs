@@ -6,8 +6,8 @@ use clap::Parser;
 use dfps_configuration::load_env;
 use dfps_core::staging::StgSrCodeExploded;
 use dfps_mapping::{
-    explain_staging_code, map_staging_codes_with_summary, map_staging_codes_with_vector,
-    DeterministicEmbeddingProvider,
+    DeterministicEmbeddingProvider, explain_staging_code, map_staging_codes_with_summary,
+    map_staging_codes_with_vector,
 };
 use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend, VectorStoreConfig};
 

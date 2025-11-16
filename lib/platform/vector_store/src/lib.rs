@@ -542,9 +542,7 @@ mod tests {
             .index_items("ncit_dev", &items)
             .expect("initial index");
         let first = store.last_indexed();
-        store
-            .index_items("ncit_dev", &items)
-            .expect("second index");
+        store.index_items("ncit_dev", &items).expect("second index");
         let second = store.last_indexed();
         assert_eq!(first, second);
     }

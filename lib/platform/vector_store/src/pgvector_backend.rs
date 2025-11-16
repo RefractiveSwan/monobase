@@ -30,9 +30,7 @@ impl PgVectorStore {
             .as_ref()
             .ok_or_else(|| VectorStoreError::SearchFailed("missing pgvector url".into()))?
             .clone();
-        Ok(Self {
-            conn_str: url,
-        })
+        Ok(Self { conn_str: url })
     }
 
     fn with_client<F, Fut, T>(&self, op: F) -> Result<T, VectorStoreError>

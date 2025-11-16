@@ -4,9 +4,12 @@ use dfps_ingestion::{
     IngestionError, bundle_to_staging_with_validation,
     validation::{ValidationMode, ValidationReport},
 };
-use serde_json::json;
 use once_cell::sync::Lazy;
-use std::{net::SocketAddr, sync::{Arc, Mutex}};
+use serde_json::json;
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+};
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
 
 async fn mock_validate_handler(with_issue: Arc<bool>) -> impl IntoResponse {

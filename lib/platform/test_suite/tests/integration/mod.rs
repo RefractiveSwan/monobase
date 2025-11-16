@@ -7,5 +7,6 @@ mod regression;
 mod validation;
 mod vector_backend_smoke;
 mod vector_mapping;
+mod vector_parity;
 mod warehouse;
 mod web_api;
