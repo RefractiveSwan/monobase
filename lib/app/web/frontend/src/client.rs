@@ -94,6 +94,28 @@ impl BackendClient {
         Self::handle_json(response).await
     }
 
+    pub async fn analytics_summary(&self) -> Result<AnalyticsSummaryResponse, ClientError> {
+        let response = self
+            .client
+            .get(self.endpoint("/analytics/ncit-summary"))
+            .send()
+            .await?;
+        Self::handle_json(response).await
+    }
+
+    pub async fn analytics_cohort(
+        &self,
+        filters: &CohortFilters,
+    ) -> Result<CohortResponse, ClientError> {
+        let response = self
+            .client
+            .get(self.endpoint("/analytics/cohort"))
+            .query(filters)
+            .send()
+            .await?;
+        Self::handle_json(response).await
+    }
+
     async fn handle_json<T>(response: Response) -> Result<T, ClientError>
     where
         T: DeserializeOwned,
@@ -142,4 +164,49 @@ pub struct EvalRunResponse {
     pub dataset: String,
     pub manifest: Option<DatasetManifest>,
     pub summary: EvalSummary,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AnalyticsSummaryResponse {
+    pub rows: Vec<AnalyticsSummaryRow>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AnalyticsSummaryRow {
+    pub ncit_id: String,
+    pub preferred_name: Option<String>,
+    pub mapping_state: Option<String>,
+    pub time_bucket: Option<String>,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CohortResponse {
+    pub total: usize,
+    pub rows: Vec<CohortRow>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct CohortRow {
+    pub sr_id: String,
+    pub patient_id: Option<String>,
+    pub encounter_id: Option<String>,
+    pub ncit_id: Option<String>,
+    pub status: String,
+    pub intent: String,
+    pub description: String,
+    pub ordered_at: Option<String>,
+    pub mapping_state: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct CohortFilters {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ncit_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub date_from: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub date_to: Option<String>,
 }

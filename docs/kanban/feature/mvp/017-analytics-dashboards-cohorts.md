@@ -1,7 +1,9 @@
 # Kanban - feature/analytics-dashboards-cohorts (017)
 
+**Epic:** ANA-017 – Analytics dashboards & cohorts  
+**Branch:** `feature/app/web/ANA-017-analytics-dashboard-cohorts` | **Target version:** `v0.1.0`  
+**Status:** INPROGRESS | **Introduced:** `v0.1.0` | **Last updated:** `v0.1.0`  
 **Theme:** Warehouse & analytics platform - BI-style dashboards & cohort UI  
-**Branch:** `feature/app/web/analytics-dashboards-cohorts`  
 **Goal:** Provide a minimal analytics surface (HTTP + web UI) to explore NCIt-coded cohorts and mapping state distributions, and define integration points for external BI tools.
 
 ### Columns
@@ -32,6 +34,28 @@
   - [ ] Direct queries into the warehouse DB (when epic 016 is implemented), or
   - [ ] In-memory aggregation over a streamed `PipelineOutput` (for single-bundle / demo mode).
 
+#### Cross-Cohesion
+
+- **Engineering Targets:** B, C, D
+- **Crates & Paths:**
+  - `lib/app/web/backend/api` (`dfps_api`)
+  - `lib/app/web/backend/datamart` (`dfps_datamart`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+- **Docs & Kanbans Touched:**
+  - `docs/system-design/clinical/ncit/architecture.md`
+  - `docs/system-design/clinical/ncit/models/data-model-er.md`
+  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/web_api.rs`
+  - `dfps_test_suite/tests/e2e/observability_metrics.rs`
+- **Interfaces & Contracts:**
+  - `GET /analytics/ncit-summary`
+  - `GET /analytics/cohort`
+  - `DFPS_API_HOST`, `DFPS_API_PORT`
+
 ### ANL-02 – Frontend analytics views
 
 - [ ] Extend `dfps_web_frontend` with new routes/views:
@@ -50,6 +74,26 @@
 
 - [ ] Add view models for analytics responses (e.g., `AnalyticsSummaryView`, `CohortRowView`) and tests to validate mapping.
 
+#### Cross-Cohesion
+
+- **Engineering Targets:** B, C
+- **Crates & Paths:**
+  - `lib/app/web/frontend` (`dfps_web_frontend`)
+  - `lib/app/web/backend/api` (`dfps_api`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+- **Docs & Kanbans Touched:**
+  - `docs/system-design/clinical/ncit/architecture.md`
+  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/web_api.rs`
+  - UI snapshot/assertion tests under `dfps_web_frontend`
+- **Interfaces & Contracts:**
+  - `/analytics`, `/analytics/cohort` frontend routes
+  - Backend clients for `GET /analytics/ncit-summary`, `GET /analytics/cohort`
+
 ### ANL-03 – BI integration surface
 
 - [ ] Document a set of database views or API endpoints intended for BI tools:
@@ -61,6 +105,27 @@
   - [ ] How to point a BI tool (Superset/Metabase/etc.) at the warehouse schema.
   - [ ] Recommended views and fields.
 
+#### Cross-Cohesion
+
+- **Engineering Targets:** C, D
+- **Crates & Paths:**
+  - `lib/app/web/backend/datamart` (`dfps_datamart`)
+  - `lib/app/web/backend/api` (`dfps_api`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+- **Docs & Kanbans Touched:**
+  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
+  - `docs/system-design/clinical/ncit/models/data-model-er.md`
+  - `docs/runbook/warehouse-quickstart.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/warehouse.rs`
+  - BI connectivity smoke tests (manual/CI)
+- **Interfaces & Contracts:**
+  - Warehouse views (e.g., `fact_sr`, `dim_ncit`)
+  - `/analytics/cohort` API surface for BI tools
+
 ### ANL-04 – Observability & metrics
 
 - [ ] Extend `PipelineMetrics` or introduce `AnalyticsMetrics` to track:
@@ -68,6 +133,29 @@
   - [ ] `cohort_queries`, `analytics_requests`, `avg_cohort_size`.
 
 - [ ] Log analytics requests with correlation IDs and filters for debugging.
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** C, D
+- **Crates & Paths:**
+  - `lib/platform/observability` (`dfps_observability`)
+  - `lib/app/web/backend/api` (`dfps_api`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+  - vector_queries
+  - vector_hits
+- **Docs & Kanbans Touched:**
+  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
+  - `docs/system-design/clinical/ncit/architecture.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/e2e/observability_metrics.rs`
+  - `dfps_test_suite/tests/integration/web_api.rs`
+- **Interfaces & Contracts:**
+  - `GET /metrics/summary`
+  - `PipelineMetrics` JSON schema
+  - `DFPS_API_HOST`, `DFPS_API_PORT`
 
 ### ANL-05 – Tests & UX polish
 
@@ -80,6 +168,26 @@
 
   - [ ] Charts/tables render correctly given mock analytics endpoints.
   - [ ] Empty-state / error handling UX is sensible (no data, backend down, etc.).
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** B, C
+- **Crates & Paths:**
+  - `lib/platform/test_suite` (`dfps_test_suite`)
+  - `lib/app/web/frontend` (`dfps_web_frontend`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+- **Docs & Kanbans Touched:**
+  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
+  - `docs/system-design/clinical/ncit/models/data-model-er.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/web_api.rs`
+  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+- **Interfaces & Contracts:**
+  - `/analytics` and `/analytics/cohort` UI flows
+  - Backend analytics endpoints and view models
 
 ---
 

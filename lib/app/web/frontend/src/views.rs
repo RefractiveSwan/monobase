@@ -2,7 +2,9 @@ use dfps_core::mapping::MappingState;
 use dfps_observability::PipelineMetrics;
 use maud::{DOCTYPE, Markup, PreEscaped, html};
 
-use crate::view_model::{AlertKind, AlertMessage, MappingResultsView, PageContext};
+use crate::view_model::{
+    AlertKind, AlertMessage, CohortRowView, CohortView, MappingResultsView, PageContext,
+};
 
 pub fn render_page(ctx: &PageContext) -> String {
     html! {
@@ -119,6 +121,7 @@ pub fn render_page(ctx: &PageContext) -> String {
                         (render_results(ctx))
                     }
                     (render_metrics_dashboard(ctx.metrics.as_ref()))
+                    (render_analytics_panels(ctx))
                     (render_eval_panel(ctx))
                     (render_no_match_explorer(ctx.results.as_ref()))
                 }
@@ -166,11 +169,187 @@ fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
                     (state_metric_card("Needs review", metrics.needs_review, "bg-amber-100 text-amber-900", "Score fell into the review band; confirm the NCIt suggestion manually."))
                     (state_metric_card("No match", metrics.no_match, "bg-rose-100 text-rose-900", "No NCIt concept resolved even after mock UMLS crosswalks."))
                 }
+                div class="grid gap-4 md:grid-cols-3" {
+                    (metric_card("Analytics requests", metrics.analytics_requests, "Count of calls to analytics endpoints.", "text-indigo-700"))
+                    (metric_card("Cohort queries", metrics.cohort_queries, "Number of cohort filter requests processed.", "text-indigo-700"))
+                    (metric_card_text("Avg cohort size", metrics.avg_cohort_size.map(|v| format!("{:.1}", v)).unwrap_or_else(|| "n/a".into()), "Mean rows returned per cohort query.", "text-indigo-700"))
+                }
             } @else {
                 p class="text-sm text-slate-500" {
                     "Run a mapping request to populate live metrics. The dashboard refreshes on each page load."
                 }
             }
+        }
+    }
+}
+
+fn render_analytics_panels(ctx: &PageContext) -> Markup {
+    html! {
+        section class="grid gap-6 lg:grid-cols-2" id="analytics-overview" {
+            div class="bg-white shadow-sm rounded-xl p-6 space-y-4" {
+                div class="flex items-center justify-between" {
+                    h2 class="text-xl font-semibold" { "Analytics overview" }
+                    span class="text-sm text-slate-500" { "GET /analytics/ncit-summary" }
+                }
+                @if let Some(error) = &ctx.analytics_error {
+                    (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
+                } @else if let Some(summary) = &ctx.analytics_summary {
+                    (render_top_concepts(&summary.top_concepts))
+                    (render_state_distribution(&summary.state_counts))
+                    (render_time_buckets(&summary.time_buckets))
+                } @else {
+                    p class="text-sm text-slate-500" { "No analytics summary yet. Submit mapping runs or hit /analytics after sending Bundles." }
+                }
+            }
+            div class="bg-white shadow-sm rounded-xl p-6 space-y-4" {
+                div class="flex items-center justify-between" {
+                    h2 class="text-xl font-semibold" { "Cohort exploration" }
+                    span class="text-sm text-slate-500" { "GET /analytics/cohort" }
+                }
+                form method="get" action="/analytics" class="grid gap-3 md:grid-cols-2 text-sm" {
+                    label class="flex flex-col gap-1" for="ncit_id" {
+                        span class="text-slate-700" { "NCIt ID" }
+                        input type="text" id="ncit_id" name="ncit_id" value=(ctx.cohort_filters.ncit_id.clone().unwrap_or_default()) placeholder="CXXXX" class="rounded-lg border border-slate-300 px-3 py-2" {}
+                    }
+                    label class="flex flex-col gap-1" for="status" {
+                        span class="text-slate-700" { "Status" }
+                        input type="text" id="status" name="status" value=(ctx.cohort_filters.status.clone().unwrap_or_default()) placeholder="active|completed" class="rounded-lg border border-slate-300 px-3 py-2" {}
+                    }
+                    label class="flex flex-col gap-1" for="date_from" {
+                        span class="text-slate-700" { "Date from (YYYY-MM-DD)" }
+                        input type="text" id="date_from" name="date_from" value=(ctx.cohort_filters.date_from.clone().unwrap_or_default()) class="rounded-lg border border-slate-300 px-3 py-2" {}
+                    }
+                    label class="flex flex-col gap-1" for="date_to" {
+                        span class="text-slate-700" { "Date to (YYYY-MM-DD)" }
+                        input type="text" id="date_to" name="date_to" value=(ctx.cohort_filters.date_to.clone().unwrap_or_default()) class="rounded-lg border border-slate-300 px-3 py-2" {}
+                    }
+                    button type="submit" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-white font-medium hover:bg-emerald-700 md:col-span-2" {
+                        "Apply cohort filters"
+                    }
+                }
+                @if let Some(error) = &ctx.cohort_error {
+                    (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
+                }
+                @if let Some(cohort) = &ctx.cohort {
+                    p class="text-sm text-slate-600" { (format!("Matched {} orders", cohort.total)) }
+                    (render_cohort_table(cohort))
+                } @else {
+                    p class="text-sm text-slate-500" { "Run a cohort query to see resolved dim/fact rows." }
+                }
+            }
+        }
+    }
+}
+
+fn render_top_concepts(concepts: &[crate::view_model::AnalyticsConceptTile]) -> Markup {
+    html! {
+        div class="space-y-3" {
+            h3 class="text-sm font-semibold text-slate-800" { "Top NCIt concepts" }
+            @if concepts.is_empty() {
+                p class="text-sm text-slate-500" { "No concepts yet." }
+            } @else {
+                div class="grid gap-3 sm:grid-cols-2" {
+                    @for concept in concepts {
+                        div class="rounded-lg border border-slate-200 p-3" {
+                            p class="text-sm font-semibold text-slate-800" { (concept.preferred_name.clone()) }
+                            p class="text-xs text-slate-500" { (concept.ncit_id.clone()) }
+                            p class="text-xs text-slate-500 mt-1" { (format!("Count: {}", concept.total)) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn render_state_distribution(states: &[crate::view_model::CountStat]) -> Markup {
+    html! {
+        div class="space-y-2" {
+            h3 class="text-sm font-semibold text-slate-800" { "Mapping states" }
+            @for stat in states {
+                div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700" {
+                    span { (stat.label.clone()) }
+                    span class="font-semibold" { (stat.count) }
+                }
+            }
+            @if states.is_empty() {
+                p class="text-sm text-slate-500" { "No mappings observed yet." }
+            }
+        }
+    }
+}
+
+fn render_time_buckets(buckets: &[crate::view_model::AnalyticsTimeBucket]) -> Markup {
+    html! {
+        div class="space-y-2" {
+            h3 class="text-sm font-semibold text-slate-800" { "Counts by time bucket" }
+            @if buckets.is_empty() {
+                p class="text-sm text-slate-500" { "No ordered_at timestamps available." }
+            } @else {
+                table class="min-w-full border border-slate-200 rounded-lg text-sm" {
+                    thead class="bg-slate-50" {
+                        tr {
+                            th class="px-3 py-2 text-left text-slate-600" { "Date" }
+                            th class="px-3 py-2 text-left text-slate-600" { "State counts" }
+                        }
+                    }
+                    tbody {
+                        @for bucket in buckets {
+                            tr class="border-t border-slate-200" {
+                                td class="px-3 py-2" { (bucket.bucket.clone()) }
+                                td class="px-3 py-2 space-x-2" {
+                                    @for stat in &bucket.state_counts {
+                                        span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700" {
+                                            (format!("{}: {}", stat.label, stat.count))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn render_cohort_table(cohort: &CohortView) -> Markup {
+    html! {
+        div class="overflow-x-auto" {
+            table class="min-w-full border border-slate-200 rounded-lg text-sm" {
+                thead class="bg-slate-50" {
+                    tr {
+                        th class="px-3 py-2 text-left text-slate-600" { "SR ID" }
+                        th class="px-3 py-2 text-left text-slate-600" { "Patient" }
+                        th class="px-3 py-2 text-left text-slate-600" { "Encounter" }
+                        th class="px-3 py-2 text-left text-slate-600" { "NCIt" }
+                        th class="px-3 py-2 text-left text-slate-600" { "Status" }
+                        th class="px-3 py-2 text-left text-slate-600" { "Intent" }
+                        th class="px-3 py-2 text-left text-slate-600" { "Ordered at" }
+                        th class="px-3 py-2 text-left text-slate-600" { "State" }
+                    }
+                }
+                tbody {
+                    @for row in &cohort.rows {
+                        (render_cohort_row(row))
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn render_cohort_row(row: &CohortRowView) -> Markup {
+    html! {
+        tr class="border-t border-slate-200" {
+            td class="px-3 py-2 font-medium text-slate-800" { (row.sr_id.clone()) }
+            td class="px-3 py-2" { (row.patient_id.clone()) }
+            td class="px-3 py-2" { (row.encounter_id.clone()) }
+            td class="px-3 py-2" { (row.ncit_id.clone()) }
+            td class="px-3 py-2" { (row.status.clone()) }
+            td class="px-3 py-2" { (row.intent.clone()) }
+            td class="px-3 py-2" { (row.ordered_at.clone()) }
+            td class="px-3 py-2" { (row.mapping_state.clone()) }
         }
     }
 }
@@ -491,6 +670,16 @@ fn state_chip(state: MappingState) -> Markup {
 }
 
 fn metric_card(title: &str, value: usize, description: &str, accent: &str) -> Markup {
+    html! {
+        div class="rounded-lg border border-slate-200 p-4 shadow-sm" {
+            p class="text-sm text-slate-500" { (title) }
+            p class={(format!("text-3xl font-semibold {}", accent))} { (value) }
+            p class="text-xs text-slate-500 mt-1" { (description) }
+        }
+    }
+}
+
+fn metric_card_text(title: &str, value: String, description: &str, accent: &str) -> Markup {
     html! {
         div class="rounded-lg border border-slate-200 p-4 shadow-sm" {
             p class="text-sm text-slate-500" { (title) }

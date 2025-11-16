@@ -43,3 +43,10 @@ sqlite3 :memory:
 .tables
 select count(*) from fact_service_request;
 ```
+
+## 5) Analytics API persistence
+- Set `DFPS_WAREHOUSE_URL` before running `dfps_api` to persist analytics cohorts and NCIt summaries.
+- The API writes to `dim_*` + `fact_service_request` via `dfps_datamart` and exposes:
+  - `/analytics/ncit-summary` (aggregated counts)
+  - `/analytics/cohort` (filtered fact rows)
+- See `docs/runbook/bi-integration-quickstart.md` for BI tool wiring tips.

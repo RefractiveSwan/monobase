@@ -51,6 +51,14 @@ pub struct PipelineMetrics {
     pub vector_capacity_geom_rm_sqrt_dm: Option<f32>,
     #[serde(default)]
     pub vector_capacity_cap_alpha_sim: Option<f32>,
+    #[serde(default)]
+    pub analytics_requests: usize,
+    #[serde(default)]
+    pub cohort_queries: usize,
+    #[serde(default)]
+    pub cohort_results_total: usize,
+    #[serde(default)]
+    pub avg_cohort_size: Option<f32>,
 }
 
 impl PipelineMetrics {
