@@ -27,6 +27,7 @@ export DFPS_TERMINOLOGY_MODE=http_fallback   # mock_only | http_fallback | http_
   - `map_bundles --fail-on-license-block` does the same for Bundle ingestion.
 - Export/warehouse:
   - Datamart loader and API persistence call `dfps_compliance::assert_export_allowed(...)` before writing facts; adjust the mode or policy if licensed tiers should be permitted.
+- API metrics: `/metrics/summary` now includes `compliance_mode` and `license_blocked` fields alongside existing counters.
 - Env template: `data/environment/.env.platform.compliance.dev.example` documents the compliance settings.
 
 ## Local mock server (for tests/demos)

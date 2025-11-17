@@ -29,15 +29,15 @@
 
 Codify behavior so regression suites (especially vector_mapping.rs from 013) stay green in Internal mode and gain new coverage for OpenSource/Partner.
 
-- [ ] Add tests in `dfps_test_suite` ensuring:
+  - [x] Add tests in `dfps_test_suite` ensuring:
 
-  - [ ] In `OpenSource` mode, CPT/SNOMED codes are blocked from mapping; LOINC/OBO remain allowed.
-  - [ ] In `Internal` mode, behavior is unchanged from current mapping.
+  - [x] In `OpenSource` mode, CPT/SNOMED codes are blocked from mapping; LOINC/OBO remain allowed.
+  - [x] In `Internal` mode, behavior is unchanged from current mapping.
 
-  - [ ] Ensure logs from `dfps_observability` include:
+  - [x] Ensure logs from `dfps_observability` include:
 
-    - [ ] License mode.
-    - [ ] Counts of license-blocked codes.
+    - [x] License mode.
+    - [x] Counts of license-blocked codes.
 
   - [ ] Add audit log wording/fields that align with existing NoMatch reasons to avoid confusing downstream analytics.
 
