@@ -1101,6 +1101,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "dfps_api",
+ "dfps_compliance",
  "dfps_configuration",
  "dfps_core",
  "dfps_datamart",

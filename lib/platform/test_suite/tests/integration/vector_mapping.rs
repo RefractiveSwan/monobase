@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use dfps_compliance::{ComplianceMode, Policy};
 use dfps_core::{mapping::MappingState, staging::StgSrCodeExploded};
 use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes_with_summary,
-    map_staging_codes_with_summary_with_client, map_staging_codes_with_vector,
+    map_staging_codes_with_summary_and_policy, map_staging_codes_with_summary_with_client,
+    map_staging_codes_with_vector,
 };
 use dfps_terminology::MockTerminologyClient;
 use dfps_vector_store::{
@@ -202,6 +204,25 @@ fn external_terminology_lookup_resolves_unknown_system() {
             .iter()
             .any(|r| r.ncit_id.as_deref() == Some("CEXTERNAL"))
     );
+}
+
+#[test]
+fn compliance_mode_blocks_licensed_codes_in_oss_mode() {
+    let codes = vec![StgSrCodeExploded {
+        sr_id: "SR-lic-1".into(),
+        system: Some("http://www.ama-assn.org/go/cpt".into()),
+        code: Some("99213".into()),
+        display: Some("Office visit".into()),
+    }];
+
+    let policy = Policy::default_for_mode(ComplianceMode::OpenSource);
+    let (results, _dims, summary) = map_staging_codes_with_summary_and_policy(codes, &policy);
+
+    assert_eq!(summary.total, 1);
+    assert_eq!(summary.by_license_tier.get("licensed"), Some(&1));
+    let result = &results[0];
+    assert_eq!(result.state, MappingState::NoMatch);
+    assert_eq!(result.reason.as_deref(), Some("license_blocked"));
 }
 
 #[test]

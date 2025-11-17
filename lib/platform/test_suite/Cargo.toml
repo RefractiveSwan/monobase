@@ -26,6 +26,7 @@ dfps_pipeline = { path = "../../domain/pipeline" }
 dfps_observability = { path = "../observability" }
 dfps_configuration = { path = "../configuration" }
 dfps_vector_store = { path = "../vector_store" }
+dfps_compliance = { path = "../compliance" }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
 dfps_eval = { path = "../../domain/eval" }
 

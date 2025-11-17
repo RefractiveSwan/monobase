@@ -43,7 +43,7 @@ Apply the policy layer to the mapping flow without changing ranking logic from 0
   - [x] Print a summary of license-blocked codes.
   - [x] Optionally fail-fast in strict modes (`--fail-on-license-block`).
 
-  - [ ] Keep CLI UX consistent with prior flags from epics 013/014; document interaction with `--explain` and eval flags (no breaking changes to defaults).
+  - [x] Keep CLI UX consistent with prior flags from epics 013/014; document interaction with `--explain` and eval flags (no breaking changes to defaults).
 
 #### Cross-Cohesion
 

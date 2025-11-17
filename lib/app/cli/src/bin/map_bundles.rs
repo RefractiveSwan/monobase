@@ -4,6 +4,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
+use dfps_compliance::load_policy_from_env;
 use dfps_configuration::load_env;
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
@@ -25,6 +26,9 @@ struct Args {
     /// Log level for env_logger (error,warn,info,debug,trace)
     #[arg(long, value_name = "LEVEL", default_value = "info")]
     log_level: String,
+    /// Exit with error if any code is blocked by compliance policy
+    #[arg(long)]
+    fail_on_license_block: bool,
 }
 
 #[derive(Serialize)]
@@ -38,6 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
     let args = Args::parse();
     init_logging(&args.log_level)?;
+    let policy = load_policy_from_env()?;
     let reader: Box<dyn BufRead> = match &args.input {
         Some(path) => Box::new(BufReader::new(File::open(path)?)),
         None => Box::new(BufReader::new(io::stdin())),
@@ -106,13 +111,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!(
         target: "dfps_pipeline",
-        "pipeline_complete bundles={} automap={} review={} nomatch={}",
+        "pipeline_complete bundles={} automap={} review={} nomatch={} license_blocked={} compliance_mode={}",
         metrics.bundle_count,
         metrics.auto_mapped,
         metrics.needs_review,
-        metrics.no_match
+        metrics.no_match,
+        metrics.license_blocked,
+        policy.mode.as_str()
     );
     write_json(&mut handle, "metrics_summary", &metrics)?;
+
+    if args.fail_on_license_block && metrics.license_blocked > 0 {
+        return Err(format!(
+            "{} mapping result(s) blocked by compliance mode {}; rerun without --fail-on-license-block or adjust DFPS_COMPLIANCE_MODE",
+            metrics.license_blocked,
+            policy.mode.as_str()
+        )
+        .into());
+    }
 
     Ok(())
 }
