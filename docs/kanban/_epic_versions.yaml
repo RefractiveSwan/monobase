@@ -5,6 +5,9 @@ epics:
   ANA-017:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0
+  TERM-014:
+    introduced_in: v0.1.0
+    last_updated_in: Unreleased
   FHIR-018:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0

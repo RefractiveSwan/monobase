@@ -15,7 +15,7 @@ use dfps_core::{
     },
     staging::StgSrCodeExploded,
 };
-use dfps_terminology::{CodeKind, EnrichedCode};
+use dfps_terminology::{CodeKind, EnrichedCode, TerminologyClient, TerminologyResult};
 use dfps_vector_store::{
     CapacityProxies, Embedding, EmbeddingMetadata, EmbeddingProvider, VectorStore,
     VectorStoreConfig, VectorStoreError, VectorUsageCounters, VectorUsageHandle,
@@ -36,6 +36,9 @@ pub struct MappingSummary {
     pub total: usize,
     pub by_code_kind: BTreeMap<String, usize>,
     pub by_license_tier: BTreeMap<String, usize>,
+    pub extern_lookup_success: usize,
+    pub extern_lookup_miss: usize,
+    pub extern_lookup_error: usize,
 }
 
 const DEFAULT_VECTOR_TOP_K: usize = 5;
@@ -85,6 +88,18 @@ impl MappingSummary {
 
         let license_key = license_label.unwrap_or("unknown").to_string();
         *self.by_license_tier.entry(license_key).or_default() += 1;
+    }
+
+    pub fn record_external_success(&mut self) {
+        self.extern_lookup_success += 1;
+    }
+
+    pub fn record_external_miss(&mut self) {
+        self.extern_lookup_miss += 1;
+    }
+
+    pub fn record_external_error(&mut self) {
+        self.extern_lookup_error += 1;
     }
 }
 
@@ -578,10 +593,20 @@ pub fn map_staging_codes_with_summary<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
+    map_staging_codes_with_summary_with_client(codes, None)
+}
+
+pub fn map_staging_codes_with_summary_with_client<I>(
+    codes: I,
+    client: Option<&dyn TerminologyClient>,
+) -> (Vec<MappingResult>, Vec<DimNCITConcept>, MappingSummary)
+where
+    I: IntoIterator<Item = StgSrCodeExploded>,
+{
     let dim_concepts = dim_concepts();
     let xrefs = load_umls_xrefs();
     let engine = default_engine();
-    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs);
+    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs, client);
     (results, dim_concepts, summary)
 }
 
@@ -610,7 +635,12 @@ where
     let vector_ranker = VectorRankerBackend::from_config(store, embedding, config, top_k)?;
     let usage_handle = vector_ranker.usage_handle();
     let engine = MappingEngine::new(LexicalRanker, vector_ranker, RuleReranker);
-    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs);
+    let (results, summary) = map_with_engine(
+        codes.into_iter(),
+        &engine,
+        &xrefs,
+        None as Option<&dyn TerminologyClient>,
+    );
     let snapshot = usage_handle.snapshot();
     Ok((results, dim_concepts, summary, snapshot))
 }
@@ -631,6 +661,7 @@ fn map_with_engine<I, L, V>(
     codes: I,
     engine: &MappingEngine<L, V>,
     xrefs: &std::collections::HashMap<(String, String), UmlsXref>,
+    client: Option<&dyn TerminologyClient>,
 ) -> (Vec<MappingResult>, MappingSummary)
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
@@ -659,14 +690,41 @@ where
                 MappingStrategy::Unmapped,
                 Some("missing_system_or_code".into()),
             ),
-            CodeKind::UnknownSystem => build_result_with_score(
-                &element,
-                None,
-                None,
-                0.0,
-                MappingStrategy::Unmapped,
-                Some("unknown_code_system".into()),
-            ),
+            CodeKind::UnknownSystem => {
+                let base = build_result_with_score(
+                    &element,
+                    None,
+                    None,
+                    0.0,
+                    MappingStrategy::Unmapped,
+                    Some("unknown_code_system".into()),
+                );
+                if let Some(client) = client {
+                    match external_lookup(client, &system_value, &code_value) {
+                        Ok(Some((cui, ncit_id))) => {
+                            summary.record_external_success();
+                            build_result_with_score(
+                                &element,
+                                cui,
+                                ncit_id,
+                                0.95,
+                                MappingStrategy::Rule,
+                                Some("external_terminology_lookup".into()),
+                            )
+                        }
+                        Ok(None) => {
+                            summary.record_external_miss();
+                            base
+                        }
+                        Err(_) => {
+                            summary.record_external_error();
+                            base
+                        }
+                    }
+                } else {
+                    base
+                }
+            }
             _ => {
                 if let Some(xref) = xrefs.get(&key) {
                     build_result_with_score(
@@ -690,10 +748,32 @@ where
     (results, summary)
 }
 
+fn external_lookup(
+    client: &dyn TerminologyClient,
+    system: &str,
+    code: &str,
+) -> TerminologyResult<Option<(Option<String>, Option<String>)>> {
+    let mut cui = None;
+    if let Some(record) = client.lookup_cui(system, code)? {
+        cui = Some(record.cui);
+    }
+
+    let ncit_id = client
+        .lookup_ncit(cui.as_deref().unwrap_or(code))?
+        .map(|record| record.ncit_id);
+
+    if cui.is_some() || ncit_id.is_some() {
+        Ok(Some((cui, ncit_id)))
+    } else {
+        Ok(None)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use dfps_core::staging::StgSrCodeExploded;
+    use dfps_terminology::{MockTerminologyClient, TerminologyClient};
     use dfps_vector_store::{MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig};
     use std::sync::Arc;
 
@@ -745,6 +825,42 @@ mod tests {
         assert_eq!(summary.by_code_kind.get("missing_system_or_code"), Some(&1));
         assert_eq!(summary.by_license_tier.get("licensed"), Some(&1));
         assert_eq!(summary.by_license_tier.get("unknown"), Some(&2));
+    }
+
+    #[test]
+    fn unknown_system_uses_external_client() {
+        let codes = vec![StgSrCodeExploded {
+            sr_id: "SR-1".into(),
+            system: Some("http://unknown.test/system".into()),
+            code: Some("X1".into()),
+            display: Some("Unknown".into()),
+        }];
+        let mut mock = MockTerminologyClient::default();
+        mock = mock.with_cui(
+            "http://unknown.test/system",
+            "X1",
+            dfps_terminology::CuiRecord {
+                cui: "CEXTERNAL".into(),
+                preferred_name: "External".into(),
+            },
+        );
+        mock = mock.with_ncit(
+            "C9999",
+            dfps_terminology::NcitRecord {
+                ncit_id: "C9999".into(),
+                preferred_name: "External NCIt".into(),
+                synonyms: vec![],
+            },
+        );
+        let (results, _dims, summary) =
+            map_staging_codes_with_summary_with_client(codes, Some(&mock));
+        assert_eq!(summary.extern_lookup_success, 1);
+        let result = &results[0];
+        assert_eq!(result.strategy, MappingStrategy::Rule);
+        assert_eq!(
+            result.reason.as_deref(),
+            Some("external_terminology_lookup")
+        );
     }
 
     #[test]

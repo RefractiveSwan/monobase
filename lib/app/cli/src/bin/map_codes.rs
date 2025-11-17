@@ -82,8 +82,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     eprintln!(
-        "mapping summary total={} by_code_kind={:?} by_license_tier={:?}",
-        summary.total, summary.by_code_kind, summary.by_license_tier
+        "mapping summary total={} by_code_kind={:?} by_license_tier={:?} extern_lookup_success={} extern_lookup_miss={} extern_lookup_error={}",
+        summary.total,
+        summary.by_code_kind,
+        summary.by_license_tier,
+        summary.extern_lookup_success,
+        summary.extern_lookup_miss,
+        summary.extern_lookup_error
     );
 
     Ok(())

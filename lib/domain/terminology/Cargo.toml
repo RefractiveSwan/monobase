@@ -3,6 +3,12 @@ name = "dfps_terminology"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+http-client = ["reqwest"]
+
 [dependencies]
 serde.workspace = true
 dfps_core = { path = '../core' }
+thiserror = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }

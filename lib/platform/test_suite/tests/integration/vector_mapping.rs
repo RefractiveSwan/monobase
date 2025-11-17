@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use dfps_core::{mapping::MappingState, staging::StgSrCodeExploded};
 use dfps_mapping::{
-    DeterministicEmbeddingProvider, map_staging_codes_with_summary, map_staging_codes_with_vector,
+    DeterministicEmbeddingProvider, map_staging_codes_with_summary,
+    map_staging_codes_with_summary_with_client, map_staging_codes_with_vector,
 };
+use dfps_terminology::MockTerminologyClient;
 use dfps_vector_store::{
     CapacityProxies, MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig,
 };
@@ -164,6 +166,42 @@ fn vector_backend_shows_uplift_vs_baseline() {
     );
     assert_eq!(usage.fallbacks, 0);
     assert!(usage.hits >= vector_auto);
+}
+
+#[test]
+fn external_terminology_lookup_resolves_unknown_system() {
+    let codes = vec![StgSrCodeExploded {
+        sr_id: "SR-term-1".into(),
+        system: Some("http://unknown.test/system".into()),
+        code: Some("X1".into()),
+        display: Some("Unknown".into()),
+    }];
+
+    let mut mock = MockTerminologyClient::default();
+    mock = mock.with_cui(
+        "http://unknown.test/system",
+        "X1",
+        dfps_terminology::CuiRecord {
+            cui: "CEXTERNAL".into(),
+            preferred_name: "External".into(),
+        },
+    );
+    mock = mock.with_ncit(
+        "CEXTERNAL",
+        dfps_terminology::NcitRecord {
+            ncit_id: "CEXTERNAL".into(),
+            preferred_name: "External NCIt".into(),
+            synonyms: vec![],
+        },
+    );
+
+    let (results, _, summary) = map_staging_codes_with_summary_with_client(codes, Some(&mock));
+    assert_eq!(summary.extern_lookup_success, 1);
+    assert!(
+        results
+            .iter()
+            .any(|r| r.ncit_id.as_deref() == Some("CEXTERNAL"))
+    );
 }
 
 #[test]
