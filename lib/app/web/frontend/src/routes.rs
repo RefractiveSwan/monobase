@@ -462,6 +462,7 @@ mod tests {
                 auto_mapped: 1,
                 needs_review: 0,
                 no_match: 0,
+                license_blocked: 0,
                 vector_queries: 0,
                 vector_hits: 0,
                 vector_fallbacks: 0,

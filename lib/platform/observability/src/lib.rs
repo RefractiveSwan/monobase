@@ -36,6 +36,8 @@ pub struct PipelineMetrics {
     pub needs_review: usize,
     pub no_match: usize,
     #[serde(default)]
+    pub license_blocked: usize,
+    #[serde(default)]
     pub vector_queries: usize,
     #[serde(default)]
     pub vector_hits: usize,
@@ -77,6 +79,9 @@ impl PipelineMetrics {
                 MappingState::AutoMapped => self.auto_mapped += 1,
                 MappingState::NeedsReview => self.needs_review += 1,
                 MappingState::NoMatch => self.no_match += 1,
+            }
+            if result.reason.as_deref() == Some("license_blocked") {
+                self.license_blocked += 1;
             }
         }
     }
@@ -121,12 +126,13 @@ pub fn log_pipeline_output(
         .unwrap_or_else(|| "vector_capacity=None".to_string());
     info!(
         target: "dfps_pipeline",
-        "bundle processed; flats={}, mappings={}, automap={}, review={}, nomatch={}, vector_queries={}, vector_fallbacks={}, vector_latency_ms_p95={:?}, {capacity_note}",
+        "bundle processed; flats={}, mappings={}, automap={}, review={}, nomatch={}, license_blocked={}, vector_queries={}, vector_fallbacks={}, vector_latency_ms_p95={:?}, {capacity_note}",
         flats.len(),
         mappings.len(),
         metrics.auto_mapped,
         metrics.needs_review,
         metrics.no_match,
+        metrics.license_blocked,
         metrics.vector_queries,
         metrics.vector_fallbacks,
         metrics.vector_latency_ms_p95,

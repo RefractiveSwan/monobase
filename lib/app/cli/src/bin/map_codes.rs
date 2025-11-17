@@ -24,6 +24,9 @@ struct Args {
     /// Number of candidates to include when explaining mappings
     #[arg(long, default_value_t = 5)]
     explain_top: usize,
+    /// Exit with error if any code is blocked by compliance policy
+    #[arg(long)]
+    fail_on_license_block: bool,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -88,6 +91,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .filter(|res| res.reason.as_deref() == Some("license_blocked"))
         .count();
+
+    if args.fail_on_license_block && license_blocked > 0 {
+        return Err(format!(
+            "{} code(s) blocked due to compliance mode {}; rerun with --fail-on-license-block disabled or adjust DFPS_COMPLIANCE_MODE",
+            license_blocked, policy.mode.as_str()
+        )
+        .into());
+    }
 
     eprintln!(
         "mapping summary total={} by_code_kind={:?} by_license_tier={:?} extern_lookup_success={} extern_lookup_miss={} extern_lookup_error={} license_blocked={} compliance_mode={}",

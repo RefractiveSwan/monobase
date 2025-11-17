@@ -24,9 +24,9 @@
 
 Apply the policy layer to the mapping flow without changing ranking logic from 013/017. Ensure observability lines up with vector metrics already present in `vector_mapping.rs`.
 
-  - [ ] Integrate `dfps_compliance` into mapping paths:
+  - [x] Integrate `dfps_compliance` into mapping paths:
 
-  - [ ] Before mapping codes:
+  - [x] Before mapping codes:
 
     - Check `EnrichedCode.license_tier` and current `ComplianceMode`.
     - If forbidden, produce `MappingResult` with:
@@ -36,12 +36,12 @@ Apply the policy layer to the mapping flow without changing ranking logic from 0
 
   - [x] Ensure this behavior is clearly logged and tagged in metrics.
 
-  - [ ] Define metric/log labels consistent with existing mapping observability (e.g., `license_blocked`, `license_mode`) so dashboards from 017 remain compatible.
+  - [x] Define metric/log labels consistent with existing mapping observability (e.g., `license_blocked`, `license_mode`) so dashboards from 017 remain compatible.
 
-  - [ ] Update `map_bundles` / `map_codes` CLIs to:
+  - [x] Update `map_bundles` / `map_codes` CLIs to:
 
   - [x] Print a summary of license-blocked codes.
-  - [ ] Optionally fail-fast in strict modes (`--fail-on-license-block`).
+  - [x] Optionally fail-fast in strict modes (`--fail-on-license-block`).
 
   - [ ] Keep CLI UX consistent with prior flags from epics 013/014; document interaction with `--explain` and eval flags (no breaking changes to defaults).
 
@@ -70,9 +70,9 @@ Apply the policy layer to the mapping flow without changing ranking logic from 0
 
 Provide guardrails for downstream warehouse/BI work (017) without redefining export schemas. Document operational modes alongside existing runbooks.
 
-  - [ ] Add helper APIs for downstream exporters (warehouse, BI):
+  - [x] Add helper APIs for downstream exporters (warehouse, BI):
 
-    - [ ] `dfps_compliance::assert_export_allowed(license_tiers: &[LicenseTier]) -> Result<(), ComplianceError>`.
+    - [x] `dfps_compliance::assert_export_allowed(license_tiers: &[LicenseTier]) -> Result<(), ComplianceError>`.
 
 - [ ] Document how to:
 
