@@ -1,7 +1,7 @@
 # Kanban - feature/license-compliance-layer (020)
 
 **Theme:** Licensing & compliance - enforcement & policy hooks  
-**Branch:** `feature/platform/license-compliance-layer`  
+**Branch:** `feature/platform/LIC-020-license-compliance-layer`  
 **Goal:** Turn the existing license metadata into enforceable policies that gate mapping, CLIs, and exports according to configured license modes.
 
 ### Columns
