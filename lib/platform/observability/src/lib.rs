@@ -36,6 +36,8 @@ pub struct PipelineMetrics {
     pub needs_review: usize,
     pub no_match: usize,
     #[serde(default)]
+    pub compliance_mode: Option<String>,
+    #[serde(default)]
     pub license_blocked: usize,
     #[serde(default)]
     pub vector_queries: usize,

@@ -580,6 +580,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     let mut response = MapBundlesResponse::default();
     let mut dims_seen: HashSet<String> = HashSet::new();
     let mut request_metrics = PipelineMetrics::default();
+    request_metrics.compliance_mode = Some(state.compliance_policy.mode.as_str().to_string());
 
     for bundle in bundles {
         let output = bundle_to_mapped_sr(&bundle).map_err(|err| match err {
@@ -627,6 +628,10 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         global.auto_mapped += request_metrics.auto_mapped;
         global.needs_review += request_metrics.needs_review;
         global.no_match += request_metrics.no_match;
+        global.compliance_mode = global
+            .compliance_mode
+            .clone()
+            .or_else(|| request_metrics.compliance_mode.clone());
         global.license_blocked += request_metrics.license_blocked;
         global.vector_queries += request_metrics.vector_queries;
         global.vector_hits += request_metrics.vector_hits;

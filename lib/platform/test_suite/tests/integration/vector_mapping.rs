@@ -7,6 +7,7 @@ use dfps_mapping::{
     map_staging_codes_with_summary_and_policy, map_staging_codes_with_summary_with_client,
     map_staging_codes_with_vector,
 };
+use dfps_observability::PipelineMetrics;
 use dfps_terminology::MockTerminologyClient;
 use dfps_vector_store::{
     CapacityProxies, MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig,
@@ -241,6 +242,23 @@ fn compliance_partner_mode_allows_licensed_codes() {
     let result = &results[0];
     // Partner mode permits licensed tiers; mapping can proceed beyond NoMatch.
     assert_ne!(result.reason.as_deref(), Some("license_blocked"));
+}
+
+#[test]
+fn pipeline_metrics_counts_license_blocked() {
+    let codes = vec![StgSrCodeExploded {
+        sr_id: "SR-lic-3".into(),
+        system: Some("http://www.ama-assn.org/go/cpt".into()),
+        code: Some("99215".into()),
+        display: Some("Office visit extended 2".into()),
+    }];
+
+    let policy = Policy::default_for_mode(ComplianceMode::OpenSource);
+    let (results, _, _summary) = map_staging_codes_with_summary_and_policy(codes, &policy);
+
+    let mut metrics = PipelineMetrics::default();
+    metrics.record(&[], &[], &results);
+    assert_eq!(metrics.license_blocked, 1);
 }
 
 #[test]

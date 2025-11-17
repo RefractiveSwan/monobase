@@ -52,6 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
     let mut metrics = PipelineMetrics::default();
+    metrics.compliance_mode = Some(policy.mode.as_str().to_string());
 
     for line in reader.lines() {
         let raw = line?;

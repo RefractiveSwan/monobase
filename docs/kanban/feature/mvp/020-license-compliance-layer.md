@@ -74,12 +74,12 @@ Provide guardrails for downstream warehouse/BI work (017) without redefining exp
 
     - [x] `dfps_compliance::assert_export_allowed(license_tiers: &[LicenseTier]) -> Result<(), ComplianceError>`.
 
-- [ ] Document how to:
+  - [x] Document how to:
 
-  - [ ] Run DFPS in `OpenSource` mode (no licensed vocabularies).
-  - [ ] Run DFPS in `Internal` mode (full mapping allowed).
+  - [x] Run DFPS in `OpenSource` mode (no licensed vocabularies).
+  - [x] Run DFPS in `Internal` mode (full mapping allowed).
 
-  - [ ] Add pointers to the relevant env templates (e.g., `data/environment/.env.platform.vector_store.dev`, `.env.domain.terminology.dev.example`) explaining compliance settings.
+  - [x] Add pointers to the relevant env templates (e.g., `data/environment/.env.platform.vector_store.dev`, `.env.domain.terminology.dev.example`) explaining compliance settings.
 
 #### Cross-Cohesion
 
