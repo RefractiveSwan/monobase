@@ -117,3 +117,31 @@ async fn bundle_respects_compliance_mode_open_source() {
 
     unsafe { std::env::remove_var("DFPS_COMPLIANCE_MODE") };
 }
+
+#[tokio::test]
+async fn bundle_allows_licensed_codes_in_partner_mode() {
+    let _lock = env_guard().lock().unwrap();
+    unsafe { std::env::set_var("DFPS_COMPLIANCE_MODE", "partner") };
+
+    let pool = SqlitePool::connect(":memory:")
+        .await
+        .expect("connect sqlite");
+    migrate(&pool).await.expect("apply migrations");
+
+    let bundle = regression::baseline_fhir_bundle();
+    let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps baseline bundle");
+    let blocked = output
+        .mapping_results
+        .iter()
+        .any(|m| m.reason.as_deref() == Some("license_blocked"));
+    assert!(
+        !blocked,
+        "partner mode should allow licensed tier mappings to proceed"
+    );
+
+    load_from_pipeline_output(&pool, &output)
+        .await
+        .expect("partner mode should permit warehouse load");
+
+    unsafe { std::env::remove_var("DFPS_COMPLIANCE_MODE") };
+}
