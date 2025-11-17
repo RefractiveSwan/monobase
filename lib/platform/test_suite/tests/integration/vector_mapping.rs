@@ -205,6 +205,43 @@ fn external_terminology_lookup_resolves_unknown_system() {
 }
 
 #[test]
+fn obo_synonyms_expand_lexical_matching() {
+    let codes = vec![StgSrCodeExploded {
+        sr_id: "SR-obo-lex".into(),
+        system: Some("http://loinc.org".into()),
+        code: Some("9999-9".into()),
+        display: Some("Positron emission tomography scan".into()),
+    }];
+
+    let (results, _, summary) = map_staging_codes_with_summary(codes);
+    assert_eq!(summary.total, 1);
+    let result = results.first().expect("one result");
+    assert_eq!(result.ncit_id.as_deref(), Some("NCIT:C19951"));
+    assert!(matches!(result.state, MappingState::AutoMapped));
+}
+
+#[test]
+fn obo_related_concepts_support_ct_variants() {
+    let codes = vec![StgSrCodeExploded {
+        sr_id: "SR-obo-related".into(),
+        system: Some("http://loinc.org".into()),
+        code: Some("8888-8".into()),
+        display: Some("Computed tomography fusion study".into()),
+    }];
+
+    let (results, _, _) = map_staging_codes_with_summary(codes);
+    let result = results.first().expect("one result");
+    assert_eq!(result.ncit_id.as_deref(), Some("NCIT:C19951"));
+    assert!(
+        matches!(
+            result.state,
+            MappingState::AutoMapped | MappingState::NeedsReview
+        ),
+        "related concept synonyms should not reduce mapping confidence"
+    );
+}
+
+#[test]
 fn capacity_proxy_is_carried_from_vector_store() {
     let codes = vec![StgSrCodeExploded {
         sr_id: "SR-cap".into(),

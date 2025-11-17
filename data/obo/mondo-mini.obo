@@ -1,0 +1,14 @@
+format-version: 1.2
+data-version: mondo-mini-0.1.1
+ontology: mondo-mini
+
+[Term]
+id: MONDO:0000001
+name: Example disease
+synonym: "Example Disorder" EXACT []
+xref: NCIT:C19951
+
+[Term]
+id: MONDO:0000002
+name: Derived example condition
+is_a: MONDO:0000001 ! Example disease

@@ -1,0 +1,28 @@
+format-version: 1.2
+data-version: ncit-mini-0.1.1
+ontology: ncit-mini
+
+[Term]
+id: NCIT:C19951
+name: Positron Emission Tomography
+synonym: "Positron Emission Tomography" EXACT []
+synonym: "PET" EXACT []
+synonym: "PET scan" EXACT []
+xref: NCIT:C19951
+
+[Term]
+id: NCIT:C80219
+name: CT Scan
+synonym: "Computed Tomography" EXACT []
+synonym: "CT" EXACT []
+xref: NCIT:C80219
+
+[Term]
+id: NCIT:C116746
+name: PET-CT Scan
+synonym: "PET/CT" EXACT []
+synonym: "PET CT" EXACT []
+synonym: "PET-CT Scan" EXACT []
+is_a: NCIT:C19951 ! Positron Emission Tomography
+is_a: NCIT:C80219 ! CT Scan
+xref: NCIT:C116746

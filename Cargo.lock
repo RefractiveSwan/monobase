@@ -1024,8 +1024,18 @@ dependencies = [
  "dfps_eval",
  "dfps_terminology",
  "dfps_vector_store",
+ "once_cell",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "dfps_obo_graph"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1062,6 +1072,8 @@ name = "dfps_terminology"
 version = "0.1.0"
 dependencies = [
  "dfps_core",
+ "dfps_obo_graph",
+ "once_cell",
  "reqwest",
  "serde",
  "thiserror 1.0.69",

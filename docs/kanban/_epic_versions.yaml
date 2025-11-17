@@ -20,3 +20,6 @@ epics:
   VEC-013:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0
+  TERM-019:
+    introduced_in: v0.1.0
+    last_updated_in: v0.1.0

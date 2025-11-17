@@ -17,6 +17,7 @@ members = [
     "lib/domain/fhir_profiles",
     "lib/domain/ingestion",
     "lib/domain/mapping",
+    "lib/domain/obo_graph",
     "lib/domain/pipeline",
     "lib/platform/configuration",
     "lib/platform/observability",

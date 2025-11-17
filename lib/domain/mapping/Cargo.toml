@@ -10,7 +10,9 @@ dfps_eval = { path = "../eval", features = ["eval-advanced"] }
 dfps_vector_store = { path = "../../platform/vector_store" }
 serde.workspace = true
 serde_json.workspace = true
+once_cell.workspace = true
 
 [features]
-default = ["eval-advanced"]
+default = ["eval-advanced", "obo-graph"]
 eval-advanced = ["dfps_eval/eval-advanced"]
+obo-graph = ["dfps_terminology/obo-graph"]
