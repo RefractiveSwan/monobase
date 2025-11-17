@@ -15,44 +15,6 @@
 
 ## TODO
 
-### TERM-API-01 – TerminologyClient abstraction
-
-- [x] Add a `client` module to `dfps_terminology`:
-
-  - [x] Define trait `TerminologyClient` with operations such as:
-    - [x] `lookup_cui(system, code) -> Result<Option<CuiRecord>>`
-    - [x] `lookup_ncit(cui_or_code) -> Result<Option<NcitRecord>>`
-    - [x] (Optional) `search_by_text(text) -> Result<Vec<NcitRecord>>`.
-
-  - [x] Define simple structs:
-
-    - `CuiRecord { cui: String, preferred_name: String }`
-    - `NcitRecord { ncit_id: String, preferred_name: String, synonyms: Vec<String> }`
-
-- [x] Introduce `TerminologyClientConfig` (env-driven):
-
-  - `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`.
-
-#### Cross-Cohesion
-
-- **Engineering Targets:** A1, B
-- **Crates & Paths:**
-  - `lib/domain/terminology` (`dfps_terminology`)
-  - `lib/domain/mapping` (`dfps_mapping`)
-- **Shared Metrics & Signals:**
-  - auto_mapped
-  - needs_review
-  - no_match
-- **Docs & Kanbans Touched:**
-  - `docs/system-design/clinical/ncit/architecture.md`
-  - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
-- **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
-  - Unit tests for terminology client
-- **Interfaces & Contracts:**
-  - Trait `TerminologyClient`
-  - Env: `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`, `DFPS_TERMINOLOGY_MODE`
-
 ### TERM-API-02 – HTTP client implementations
 
 - [ ] Implement `UmlsTerminologyClient` (behind feature flag `umls-http`):
@@ -126,12 +88,49 @@
   - `map_staging_codes_with_summary` optional terminology client
   - `MappingSummary` extern lookup counters
 
+### TERM-API-03 – Mapping integration & policy hooks
+
+- [ ] Extend `dfps_mapping::map_with_summary` to accept an optional `TerminologyClient`:
+
+  - [x] For `UnknownSystem` or low-scoring internal candidates:
+    - [x] Call `TerminologyClient::lookup_cui` / `lookup_ncit`.
+    - [x] Promote successful lookups to `MappingResult` with:
+      - `strategy = MappingStrategy::Rule` or `Composite`.
+      - `reason = Some("external_terminology_lookup")`.
+  - [x] Leave behavior unchanged when client is `None`.
+
+- [x] Ensure `MappingSummary` captures counts for:
+
+  - [x] `extern_lookup_success`, `extern_lookup_miss`, `extern_lookup_error`.
+
+- [ ] Respect license metadata from `dfps_terminology::LicenseTier` and future compliance rules
+  (epic 020) before making external calls (e.g., skip forbidden systems).
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** A1, B, D
+- **Crates & Paths:**
+  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/domain/terminology` (`dfps_terminology`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+- **Docs & Kanbans Touched:**
+  - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
+  - `docs/system-design/clinical/ncit/architecture.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+- **Interfaces & Contracts:**
+  - `map_staging_codes_with_summary` optional terminology client
+  - `MappingSummary` extern lookup counters
+
 ### TERM-API-04 – Local test doubles & fixtures
 
 - [x] Add a `MockTerminologyClient` in `dfps_terminology::client::testing`:
 
   - [x] Hard-code mappings for existing regression fixtures (`CPT 78815`, SNOMED PET, etc.).
-  - [ ] Simulate latency and error responses for robustness tests.
+  - [ ] Simulate latency and error responses for robustness tests (in progress).
 
 - [x] Add integration tests in `dfps_test_suite`:
 
@@ -155,6 +154,48 @@
 - **Interfaces & Contracts:**
   - `MockTerminologyClient`
   - `TerminologyClient` trait
+
+---
+
+## REVIEW
+
+### TERM-API-01 – TerminologyClient abstraction
+
+- [x] Add a `client` module to `dfps_terminology`:
+
+  - [x] Define trait `TerminologyClient` with operations such as:
+    - [x] `lookup_cui(system, code) -> Result<Option<CuiRecord>>`
+    - [x] `lookup_ncit(cui_or_code) -> Result<Option<NcitRecord>>`
+    - [x] (Optional) `search_by_text(text) -> Result<Vec<NcitRecord>>`.
+
+  - [x] Define simple structs:
+
+    - `CuiRecord { cui: String, preferred_name: String }`
+    - `NcitRecord { ncit_id: String, preferred_name: String, synonyms: Vec<String> }`
+
+- [x] Introduce `TerminologyClientConfig` (env-driven):
+
+  - `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`.
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** A1, B
+- **Crates & Paths:**
+  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/mapping` (`dfps_mapping`)
+- **Shared Metrics & Signals:**
+  - auto_mapped
+  - needs_review
+  - no_match
+- **Docs & Kanbans Touched:**
+  - `docs/system-design/clinical/ncit/architecture.md`
+  - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - Unit tests for terminology client
+- **Interfaces & Contracts:**
+  - Trait `TerminologyClient`
+  - Env: `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`, `DFPS_TERMINOLOGY_MODE`
 
 ### TERM-API-05 – Config, env, and docs
 

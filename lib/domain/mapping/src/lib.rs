@@ -691,38 +691,50 @@ where
                 Some("missing_system_or_code".into()),
             ),
             CodeKind::UnknownSystem => {
-                let base = build_result_with_score(
-                    &element,
-                    None,
-                    None,
-                    0.0,
-                    MappingStrategy::Unmapped,
-                    Some("unknown_code_system".into()),
-                );
-                if let Some(client) = client {
-                    match external_lookup(client, &system_value, &code_value) {
-                        Ok(Some((cui, ncit_id))) => {
-                            summary.record_external_success();
-                            build_result_with_score(
-                                &element,
-                                cui,
-                                ncit_id,
-                                0.95,
-                                MappingStrategy::Rule,
-                                Some("external_terminology_lookup".into()),
-                            )
-                        }
-                        Ok(None) => {
-                            summary.record_external_miss();
-                            base
-                        }
-                        Err(_) => {
-                            summary.record_external_error();
-                            base
-                        }
-                    }
+                if matches!(enriched.license_label(), Some(label) if label == "forbidden") {
+                    summary.record_external_miss();
+                    build_result_with_score(
+                        &element,
+                        None,
+                        None,
+                        0.0,
+                        MappingStrategy::Unmapped,
+                        Some("license_forbidden".into()),
+                    )
                 } else {
-                    base
+                    let base = build_result_with_score(
+                        &element,
+                        None,
+                        None,
+                        0.0,
+                        MappingStrategy::Unmapped,
+                        Some("unknown_code_system".into()),
+                    );
+                    if let Some(client) = client {
+                        match external_lookup(client, &system_value, &code_value) {
+                            Ok(Some((cui, ncit_id))) => {
+                                summary.record_external_success();
+                                build_result_with_score(
+                                    &element,
+                                    cui,
+                                    ncit_id,
+                                    0.95,
+                                    MappingStrategy::Rule,
+                                    Some("external_terminology_lookup".into()),
+                                )
+                            }
+                            Ok(None) => {
+                                summary.record_external_miss();
+                                base
+                            }
+                            Err(_) => {
+                                summary.record_external_error();
+                                base
+                            }
+                        }
+                    } else {
+                        base
+                    }
                 }
             }
             _ => {
