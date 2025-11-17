@@ -120,6 +120,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         metrics.license_blocked,
         policy.mode.as_str()
     );
+    if metrics.license_blocked > 0 {
+        warn!(
+            target: "dfps_compliance",
+            "audit compliance_blocked reason=license_blocked mode={} count={}",
+            policy.mode.as_str(),
+            metrics.license_blocked
+        );
+    }
     write_json(&mut handle, "metrics_summary", &metrics)?;
 
     if args.fail_on_license_block && metrics.license_blocked > 0 {

@@ -555,9 +555,10 @@ async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {
     let metrics = state.metrics.lock().await.clone();
     info!(
         target: "dfps_api",
-        "request_id={request_id} metrics_summary bundles={} mappings={}",
+        "request_id={request_id} metrics_summary bundles={} mappings={} compliance_mode={:?}",
         metrics.bundle_count,
-        metrics.mapping_count
+        metrics.mapping_count,
+        metrics.compliance_mode
     );
     Json(metrics)
 }
@@ -652,6 +653,14 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         request_metrics.license_blocked,
         state.compliance_policy.mode.as_str()
     );
+    if request_metrics.license_blocked > 0 {
+        warn!(
+            target: "dfps_compliance",
+            "request_id={request_id} compliance_blocked reason=license_blocked mode={} count={}",
+            state.compliance_policy.mode.as_str(),
+            request_metrics.license_blocked
+        );
+    }
 
     Ok(Json(response).into_response())
 }
