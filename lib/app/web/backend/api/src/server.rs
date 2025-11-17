@@ -14,6 +14,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::{DateTime, NaiveDate};
+use dfps_compliance::{assert_export_allowed, load_policy_from_env};
 use dfps_core::{
     fhir::Bundle,
     mapping::{DimNCITConcept, MappingResult, MappingState},
@@ -26,6 +27,7 @@ use dfps_datamart::{
 };
 use dfps_observability::{PipelineMetrics, log_no_match, log_pipeline_output};
 use dfps_pipeline::{PipelineError, PipelineOutput, bundle_to_mapped_sr};
+use dfps_terminology::codesystem::LicenseTier;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -286,21 +288,64 @@ impl AnalyticsState {
     }
 }
 
+fn license_tiers_from_output(output: &PipelineOutput) -> Vec<LicenseTier> {
+    let mut tiers = HashSet::new();
+    for mapping in &output.mapping_results {
+        if let Some(label) = mapping.license_tier.as_deref() {
+            if let Some(tier) = parse_license_tier(label) {
+                tiers.insert(tier);
+            }
+        }
+    }
+    tiers.into_iter().collect()
+}
+
+fn parse_license_tier(value: &str) -> Option<LicenseTier> {
+    match value.trim() {
+        "licensed" => Some(LicenseTier::Licensed),
+        "open" => Some(LicenseTier::Open),
+        "internal_only" => Some(LicenseTier::InternalOnly),
+        _ => None,
+    }
+}
+
+fn enforce_export_policy(
+    output: &PipelineOutput,
+    policy: &dfps_compliance::Policy,
+    request_id: Uuid,
+) -> Result<(), ApiError> {
+    let tiers = license_tiers_from_output(output);
+    assert_export_allowed(&tiers, policy).map_err(|err| {
+        ApiError::compliance(
+            format!(
+                "export blocked by compliance mode {}: {}",
+                policy.mode.as_str(),
+                err
+            ),
+            request_id,
+        )
+    })
+}
+
 #[derive(Clone)]
 pub struct ApiState {
     metrics: Arc<Mutex<PipelineMetrics>>,
     analytics: Arc<Mutex<AnalyticsState>>,
     analytics_persistence: AnalyticsPersistence,
     latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
+    compliance_policy: dfps_compliance::Policy,
 }
 
 impl ApiState {
     pub fn new() -> Self {
+        let compliance_policy = load_policy_from_env()
+            .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
         Self {
             metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
             analytics: Arc::new(Mutex::new(AnalyticsState::default())),
             analytics_persistence: AnalyticsPersistence::from_env(),
             latest_eval: Arc::new(Mutex::new(None)),
+            compliance_policy,
         }
     }
 }
@@ -541,6 +586,8 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             PipelineError::Ingestion(source) => ApiError::ingestion(source.to_string(), request_id),
         })?;
 
+        enforce_export_policy(&output, &state.compliance_policy, request_id)?;
+
         log_pipeline_output(
             &output.flats,
             &output.exploded_codes,
@@ -580,6 +627,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         global.auto_mapped += request_metrics.auto_mapped;
         global.needs_review += request_metrics.needs_review;
         global.no_match += request_metrics.no_match;
+        global.license_blocked += request_metrics.license_blocked;
         global.vector_queries += request_metrics.vector_queries;
         global.vector_hits += request_metrics.vector_hits;
         global.vector_fallbacks += request_metrics.vector_fallbacks;
@@ -589,13 +637,15 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     }
     info!(
         target: "dfps_api",
-        "request_id={request_id} map_bundles complete bundles={} flats={} mappings={} automap={} needs_review={} no_match={}",
+        "request_id={request_id} map_bundles complete bundles={} flats={} mappings={} automap={} needs_review={} no_match={} license_blocked={} compliance_mode={}",
         request_metrics.bundle_count,
         response.flats.len(),
         response.mapping_results.len(),
         request_metrics.auto_mapped,
         request_metrics.needs_review,
-        request_metrics.no_match
+        request_metrics.no_match,
+        request_metrics.license_blocked,
+        state.compliance_policy.mode.as_str()
     );
 
     Ok(Json(response).into_response())
@@ -639,6 +689,10 @@ enum ApiError {
         message: String,
         request_id: Uuid,
     },
+    Compliance {
+        message: String,
+        request_id: Uuid,
+    },
     #[allow(dead_code)]
     Internal {
         message: String,
@@ -678,6 +732,18 @@ impl ApiError {
             "request_id={request_id} invalid dataset: {message}"
         );
         Self::InvalidDataset {
+            message,
+            request_id,
+        }
+    }
+
+    fn compliance(message: impl Into<String>, request_id: Uuid) -> Self {
+        let message = message.into();
+        warn!(
+            target: "dfps_api",
+            "request_id={request_id} compliance blocked: {message}"
+        );
+        Self::Compliance {
             message,
             request_id,
         }
@@ -731,6 +797,18 @@ impl IntoResponse for ApiError {
                 StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
                     code: "invalid_dataset",
+                    message,
+                    request_id,
+                }),
+            )
+                .into_response(),
+            ApiError::Compliance {
+                message,
+                request_id,
+            } => (
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    code: "compliance_blocked",
                     message,
                     request_id,
                 }),

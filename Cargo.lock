@@ -903,6 +903,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "chrono",
+ "dfps_compliance",
  "dfps_configuration",
  "dfps_core",
  "dfps_datamart",
@@ -910,6 +911,7 @@ dependencies = [
  "dfps_mapping",
  "dfps_observability",
  "dfps_pipeline",
+ "dfps_terminology",
  "env_logger",
  "log",
  "serde",

@@ -19,6 +19,16 @@ export DFPS_TERMINOLOGY_MODE=http_fallback   # mock_only | http_fallback | http_
 - `dfps_mapping::map_staging_codes_with_summary_with_client(codes, Some(&client))` — enables external lookups for unknown systems.
 - `MappingSummary` now includes `extern_lookup_success/miss/error` counters; surface these in logs/CLI as needed.
 
+## Compliance modes (LIC-020)
+
+- Set `DFPS_COMPLIANCE_MODE` to `internal` (default), `partner`, or `open_source`; optional overrides via `DFPS_COMPLIANCE_POLICY_PATH` (JSON/YAML).
+- CLIs:
+  - `map_codes --fail-on-license-block` exits non-zero if any mapping is blocked; stderr prints `license_blocked` counts and mode.
+  - `map_bundles --fail-on-license-block` does the same for Bundle ingestion.
+- Export/warehouse:
+  - Datamart loader and API persistence call `dfps_compliance::assert_export_allowed(...)` before writing facts; adjust the mode or policy if licensed tiers should be permitted.
+- Env template: `data/environment/.env.platform.compliance.dev.example` documents the compliance settings.
+
 ## Local mock server (for tests/demos)
 - Provide endpoints:
   - `GET /lookup_cui?system=<url>&code=<code>` -> `{ "cui": "...", "preferred_name": "..." }`

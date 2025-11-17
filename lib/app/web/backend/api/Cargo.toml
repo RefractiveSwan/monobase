@@ -25,3 +25,5 @@ dfps_configuration = { path = "../../../../platform/configuration" }
 dfps_mapping = { path = "../../../../domain/mapping" }
 dfps_eval = { path = "../../../../domain/eval" }
 dfps_datamart = { path = "../datamart" }
+dfps_compliance = { path = "../../../../platform/compliance" }
+dfps_terminology = { path = "../../../../domain/terminology" }

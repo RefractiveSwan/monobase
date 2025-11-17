@@ -170,6 +170,11 @@ fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
                     (state_metric_card("No match", metrics.no_match, "bg-rose-100 text-rose-900", "No NCIt concept resolved even after mock UMLS crosswalks."))
                 }
                 div class="grid gap-4 md:grid-cols-3" {
+                    (metric_card("License blocked", metrics.license_blocked, "Mappings halted due to compliance mode tier restrictions.", "text-rose-700"))
+                    (metric_card("Vector queries", metrics.vector_queries, "Vector search requests issued (if enabled).", "text-slate-700"))
+                    (metric_card("Vector fallbacks", metrics.vector_fallbacks, "Times vector search was skipped/disabled.", "text-slate-700"))
+                }
+                div class="grid gap-4 md:grid-cols-3" {
                     (metric_card("Analytics requests", metrics.analytics_requests, "Count of calls to analytics endpoints.", "text-indigo-700"))
                     (metric_card("Cohort queries", metrics.cohort_queries, "Number of cohort filter requests processed.", "text-indigo-700"))
                     (metric_card_text("Avg cohort size", metrics.avg_cohort_size.map(|v| format!("{:.1}", v)).unwrap_or_else(|| "n/a".into()), "Mean rows returned per cohort query.", "text-indigo-700"))
