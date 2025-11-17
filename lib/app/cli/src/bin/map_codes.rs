@@ -69,8 +69,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let stdout = io::stdout();
     let mut handle = stdout.lock();
-    for result in results {
-        writeln!(handle, "{}", serde_json::to_string(&result)?)?;
+    for result in &results {
+        writeln!(handle, "{}", serde_json::to_string(result)?)?;
     }
 
     if args.explain {
