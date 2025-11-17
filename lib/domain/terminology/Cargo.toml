@@ -4,8 +4,10 @@ version.workspace = true
 edition.workspace = true
 
 [features]
-default = []
+default = ["http-client"]
 http-client = ["reqwest"]
+umls-http = ["http-client"]
+ncit-http = ["http-client"]
 
 [dependencies]
 serde.workspace = true

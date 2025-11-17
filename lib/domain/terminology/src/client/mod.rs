@@ -60,13 +60,13 @@ impl TerminologyMode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct CuiRecord {
     pub cui: String,
     pub preferred_name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct NcitRecord {
     pub ncit_id: String,
     pub preferred_name: String,
@@ -108,6 +108,13 @@ pub struct HttpTerminologyClient {
     api_key: Option<String>,
     client: HttpClient,
 }
+
+/// Alias for UMLS/NCIm HTTP client behind the `umls-http` feature.
+#[cfg(feature = "umls-http")]
+pub type UmlsTerminologyClient = HttpTerminologyClient;
+/// Alias for NCIt HTTP client behind the `ncit-http` feature.
+#[cfg(feature = "ncit-http")]
+pub type NcitTerminologyClient = HttpTerminologyClient;
 
 #[cfg(feature = "http-client")]
 impl HttpTerminologyClient {
@@ -239,7 +246,11 @@ impl MockTerminologyClient {
         self
     }
 
-    pub fn with_ncit_error(mut self, key: impl Into<String>, error: TerminologyClientError) -> Self {
+    pub fn with_ncit_error(
+        mut self,
+        key: impl Into<String>,
+        error: TerminologyClientError,
+    ) -> Self {
         self.ncit_errors.insert(key.into(), error);
         self
     }
@@ -374,9 +385,7 @@ mod tests {
             )
             .with_delay_ms(1);
         let start = std::time::Instant::now();
-        let err = mock
-            .lookup_cui("http://loinc.org", "24606-6")
-            .unwrap_err();
+        let err = mock.lookup_cui("http://loinc.org", "24606-6").unwrap_err();
         assert!(matches!(err, TerminologyClientError::Unavailable));
         assert!(start.elapsed() >= std::time::Duration::from_millis(1));
     }
