@@ -24,30 +24,7 @@
 ---
 
 ## INPROGRESS
-
-### LIC-04 – Tests & audit logging
-
-  - [x] Add audit log wording/fields that align with existing NoMatch reasons to avoid confusing downstream analytics.
-
-#### Cross-Cohesion
-
-- **Engineering Targets:** B, D
-- **Crates & Paths:**
-  - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/platform/test_suite` (`dfps_test_suite`)
-  - `lib/platform/observability` (`dfps_observability`)
-- **Shared Metrics & Signals:**
-  - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`, `mapping_f1`
-- **Docs & Kanbans Touched:**
-  - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
-  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
-  - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
-- **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs` (mode matrix)
-  - Compliance-mode log assertions in CI
-- **Interfaces & Contracts:**
-  - CLIs: `dfps_cli map_bundles`, `dfps_cli map_codes`
-  - Env: `DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`
+- _Empty_
 
 ---
 
@@ -188,6 +165,27 @@ Codify behavior so regression suites (especially vector_mapping.rs from 013) sta
     - [x] License mode.
     - [x] Counts of license-blocked codes.
 
+  - [x] Add audit log wording/fields that align with existing NoMatch reasons to avoid confusing downstream analytics.
+
+#### Cross-Cohesion
+
+- **Engineering Targets:** B, D
+- **Crates & Paths:**
+  - `lib/platform/compliance` (`dfps_compliance`)
+  - `lib/platform/test_suite` (`dfps_test_suite`)
+  - `lib/platform/observability` (`dfps_observability`)
+- **Shared Metrics & Signals:**
+  - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`, `mapping_f1`
+- **Docs & Kanbans Touched:**
+  - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
+  - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
+  - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
+- **Experiments / CI Hooks:**
+  - `dfps_test_suite/tests/integration/vector_mapping.rs` (mode matrix)
+  - Compliance-mode log assertions in CI
+- **Interfaces & Contracts:**
+  - CLIs: `dfps_cli map_bundles`, `dfps_cli map_codes`
+  - Env: `DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`
 
 ---
 
