@@ -1,7 +1,10 @@
+use dfps_compliance::{assert_export_allowed, load_policy_from_env};
 use dfps_configuration::load_env;
 use dfps_pipeline::PipelineOutput;
+use dfps_terminology::codesystem::LicenseTier;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Sqlite, SqlitePool, Transaction};
+use thiserror::Error;
 
 use crate::{DimCode, DimEncounter, DimNCIT, DimPatient, FactServiceRequest};
 
@@ -102,11 +105,24 @@ pub struct LoadSummary {
     pub facts: u64,
 }
 
+#[derive(Debug, Error)]
+pub enum LoadError {
+    #[error(transparent)]
+    Sql(#[from] sqlx::Error),
+    #[error("export blocked by compliance policy: {0}")]
+    Compliance(String),
+    #[error("failed to load compliance policy: {0}")]
+    CompliancePolicy(dfps_compliance::ComplianceError),
+}
+
 /// Load a PipelineOutput into the warehouse, upserting dims and inserting facts.
 pub async fn load_from_pipeline_output(
     pool: &Pool<Sqlite>,
     output: &PipelineOutput,
-) -> Result<LoadSummary, sqlx::Error> {
+) -> Result<LoadSummary, LoadError> {
+    let policy = load_policy_from_env().map_err(LoadError::CompliancePolicy)?;
+    enforce_export_policy(output, &policy)?;
+
     let (dims, facts) = crate::from_pipeline_output(output);
     let mut tx = pool.begin().await?;
     let mut summary = LoadSummary::default();
@@ -194,6 +210,30 @@ impl From<&DimNCIT> for DimNCITRow {
             preferred_name: dim.preferred_name.clone(),
             semantic_group: Some(dim.semantic_group.clone()),
         }
+    }
+}
+
+fn enforce_export_policy(
+    output: &PipelineOutput,
+    policy: &dfps_compliance::Policy,
+) -> Result<(), LoadError> {
+    let mut tiers = Vec::new();
+    for mapping in &output.mapping_results {
+        if let Some(label) = mapping.license_tier.as_deref() {
+            if let Some(tier) = parse_license_tier(label) {
+                tiers.push(tier);
+            }
+        }
+    }
+    assert_export_allowed(&tiers, policy).map_err(|err| LoadError::Compliance(err.to_string()))
+}
+
+fn parse_license_tier(value: &str) -> Option<LicenseTier> {
+    match value.trim() {
+        "licensed" => Some(LicenseTier::Licensed),
+        "open" => Some(LicenseTier::Open),
+        "internal_only" => Some(LicenseTier::InternalOnly),
+        _ => None,
     }
 }
 

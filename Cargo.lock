@@ -980,11 +980,14 @@ dependencies = [
 name = "dfps_datamart"
 version = "0.1.0"
 dependencies = [
+ "dfps_compliance",
  "dfps_configuration",
  "dfps_core",
  "dfps_pipeline",
+ "dfps_terminology",
  "serde",
  "sqlx",
+ "thiserror 2.0.17",
 ]
 
 [[package]]

@@ -156,7 +156,13 @@ fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
         section class="bg-white shadow-sm rounded-xl p-6 space-y-5" id="metrics-dashboard" {
             div class="flex items-center justify-between" {
                 h2 class="text-xl font-semibold" { "Pipeline metrics" }
-                span class="text-sm text-slate-500" { "Snapshot from GET /metrics/summary" }
+                span class="text-sm text-slate-500" {
+                    @if let Some(mode) = metrics.and_then(|m| m.compliance_mode.as_deref()) {
+                        { format!("Snapshot from GET /metrics/summary (compliance: {mode})") }
+                    } @else {
+                        "Snapshot from GET /metrics/summary"
+                    }
+                }
             }
             @if let Some(metrics) = metrics {
                 div class="grid gap-4 md:grid-cols-3" {

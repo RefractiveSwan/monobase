@@ -1,7 +1,8 @@
-use dfps_datamart::{load_from_pipeline_output, migrate};
+use dfps_datamart::{LoadError, load_from_pipeline_output, migrate};
 use dfps_pipeline::bundle_to_mapped_sr;
 use dfps_test_suite::regression;
 use sqlx::SqlitePool;
+use std::sync::{Mutex, OnceLock};
 
 async fn load_baseline(pool: &SqlitePool) {
     let bundle = regression::baseline_fhir_bundle();
@@ -17,6 +18,11 @@ async fn load_unknown(pool: &SqlitePool) {
     load_from_pipeline_output(pool, &output)
         .await
         .expect("load unknown into warehouse");
+}
+
+fn env_guard() -> &'static Mutex<()> {
+    static GUARD: OnceLock<Mutex<()>> = OnceLock::new();
+    GUARD.get_or_init(|| Mutex::new(()))
 }
 
 #[tokio::test]
@@ -79,4 +85,35 @@ async fn warehouse_loads_baseline_and_unknown_bundles() {
         fk_checks.2, facts,
         "all facts have ncit FK (including NO_MATCH)"
     );
+}
+
+#[tokio::test]
+async fn bundle_respects_compliance_mode_open_source() {
+    let _lock = env_guard().lock().unwrap();
+    unsafe { std::env::set_var("DFPS_COMPLIANCE_MODE", "open_source") };
+
+    let pool = SqlitePool::connect(":memory:")
+        .await
+        .expect("connect sqlite");
+    migrate(&pool).await.expect("apply migrations");
+
+    // Use baseline bundle (contains CPT) to trigger license-blocked path.
+    let bundle = regression::baseline_fhir_bundle();
+    let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps baseline bundle");
+    let blocked = output
+        .mapping_results
+        .iter()
+        .any(|m| m.reason.as_deref() == Some("license_blocked"));
+    assert!(
+        blocked,
+        "baseline bundle should be blocked under open_source"
+    );
+
+    let load_err = load_from_pipeline_output(&pool, &output).await;
+    assert!(
+        matches!(load_err, Err(LoadError::Compliance(_))),
+        "export should be denied by compliance policy"
+    );
+
+    unsafe { std::env::remove_var("DFPS_COMPLIANCE_MODE") };
 }
