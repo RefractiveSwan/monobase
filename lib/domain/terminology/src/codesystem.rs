@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// License classification for vocabularies/code systems.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LicenseTier {
     Licensed,

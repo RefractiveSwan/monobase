@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
+use dfps_compliance::{ComplianceAction, ComplianceMode, Policy, load_policy_from_env};
 use dfps_core::{
     mapping::{
         CodeElement, DimNCITConcept, MappingCandidate, MappingResult, MappingSourceVersion,
@@ -583,6 +584,10 @@ fn default_thresholds() -> MappingThresholds {
     MappingThresholds::default()
 }
 
+fn load_policy_or_default() -> Policy {
+    load_policy_from_env().unwrap_or_else(|_| Policy::default_for_mode(ComplianceMode::Internal))
+}
+
 fn classify(score: f32, thresholds: &MappingThresholds) -> MappingState {
     if score >= thresholds.auto_map_min {
         MappingState::AutoMapped
@@ -652,7 +657,29 @@ pub fn map_staging_codes_with_summary<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
-    map_staging_codes_with_summary_with_client(codes, None)
+    let policy = load_policy_or_default();
+    map_staging_codes_with_summary_with_policy(codes, None, &policy)
+}
+
+pub fn map_staging_codes_with_summary_and_policy<I>(
+    codes: I,
+    policy: &Policy,
+) -> (Vec<MappingResult>, Vec<DimNCITConcept>, MappingSummary)
+where
+    I: IntoIterator<Item = StgSrCodeExploded>,
+{
+    map_staging_codes_with_summary_with_policy(codes, None, policy)
+}
+
+pub fn map_staging_codes_with_summary_with_policy<I>(
+    codes: I,
+    client: Option<&dyn TerminologyClient>,
+    policy: &Policy,
+) -> (Vec<MappingResult>, Vec<DimNCITConcept>, MappingSummary)
+where
+    I: IntoIterator<Item = StgSrCodeExploded>,
+{
+    map_staging_codes_with_summary_with_client_and_policy(codes, client, policy)
 }
 
 pub fn map_staging_codes_with_summary_with_client<I>(
@@ -662,10 +689,22 @@ pub fn map_staging_codes_with_summary_with_client<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
+    let policy = load_policy_or_default();
+    map_staging_codes_with_summary_with_client_and_policy(codes, client, &policy)
+}
+
+pub fn map_staging_codes_with_summary_with_client_and_policy<I>(
+    codes: I,
+    client: Option<&dyn TerminologyClient>,
+    policy: &Policy,
+) -> (Vec<MappingResult>, Vec<DimNCITConcept>, MappingSummary)
+where
+    I: IntoIterator<Item = StgSrCodeExploded>,
+{
     let dim_concepts = dim_concepts();
     let xrefs = load_umls_xrefs();
     let engine = default_engine();
-    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs, client);
+    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs, client, policy);
     (results, dim_concepts, summary)
 }
 
@@ -675,6 +714,31 @@ pub fn map_staging_codes_with_vector<I, S, E>(
     config: VectorStoreConfig,
     embedding: E,
     top_k: usize,
+) -> Result<
+    (
+        Vec<MappingResult>,
+        Vec<DimNCITConcept>,
+        MappingSummary,
+        dfps_vector_store::VectorUsageSnapshot,
+    ),
+    VectorRankerError,
+>
+where
+    I: IntoIterator<Item = StgSrCodeExploded>,
+    S: VectorStore,
+    E: EmbeddingProvider<CodeElement>,
+{
+    let policy = load_policy_or_default();
+    map_staging_codes_with_vector_and_policy(codes, store, config, embedding, top_k, &policy)
+}
+
+pub fn map_staging_codes_with_vector_and_policy<I, S, E>(
+    codes: I,
+    store: Arc<S>,
+    config: VectorStoreConfig,
+    embedding: E,
+    top_k: usize,
+    policy: &Policy,
 ) -> Result<
     (
         Vec<MappingResult>,
@@ -699,6 +763,7 @@ where
         &engine,
         &xrefs,
         None as Option<&dyn TerminologyClient>,
+        policy,
     );
     let snapshot = usage_handle.snapshot();
     Ok((results, dim_concepts, summary, snapshot))
@@ -721,6 +786,7 @@ fn map_with_engine<I, L, V>(
     engine: &MappingEngine<L, V>,
     xrefs: &std::collections::HashMap<(String, String), UmlsXref>,
     client: Option<&dyn TerminologyClient>,
+    policy: &Policy,
 ) -> (Vec<MappingResult>, MappingSummary)
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
@@ -739,6 +805,22 @@ where
         let key = (system_value.clone(), code_value.clone());
 
         summary.record(code_kind, enriched.license_label());
+
+        if let Some(tier) = enriched.license_tier {
+            if !policy.is_allowed(ComplianceAction::Map, tier) {
+                let mut blocked = build_result_with_score(
+                    &element,
+                    None,
+                    None,
+                    0.0,
+                    MappingStrategy::Unmapped,
+                    Some("license_blocked".into()),
+                );
+                attach_license_metadata(&mut blocked, &enriched);
+                results.push(blocked);
+                continue;
+            }
+        }
 
         let mut result = match code_kind {
             CodeKind::MissingSystemOrCode => build_result_with_score(
@@ -932,6 +1014,26 @@ mod tests {
             result.reason.as_deref(),
             Some("external_terminology_lookup")
         );
+    }
+
+    #[test]
+    fn compliance_blocks_licensed_codes_in_open_source_mode() {
+        let codes = vec![StgSrCodeExploded {
+            sr_id: "SR-1".into(),
+            system: Some("http://www.ama-assn.org/go/cpt".into()),
+            code: Some("78815".into()),
+            display: None,
+        }];
+
+        let policy = Policy::default_for_mode(ComplianceMode::OpenSource);
+        let (results, _, summary) = map_staging_codes_with_summary_and_policy(codes, &policy);
+
+        assert_eq!(summary.total, 1);
+        assert_eq!(results.len(), 1);
+        let result = &results[0];
+        assert_eq!(result.state, MappingState::NoMatch);
+        assert_eq!(result.reason.as_deref(), Some("license_blocked"));
+        assert_eq!(result.ncit_id, None);
     }
 
     #[test]

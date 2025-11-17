@@ -22,6 +22,13 @@ DFPS keeps an explicit terminology layer between FHIR staging and NCIt mapping. 
    - surface license context on every `MappingResult` for downstream policy or observability.
 4. OBO-backed concepts (e.g., NCIt OBO, MONDO) are always treated as open.
 
+## Compliance policy layer
+
+- `lib/platform/compliance` (`dfps_compliance`) owns `ComplianceMode` (`internal`, `partner`, `open_source`) and `Policy` objects that describe which `LicenseTier` values are allowed for `ingest`, `map`, and `export` actions.
+- Defaults: `internal` allows `licensed`/`open`/`internal_only`; `partner` allows `licensed`/`open`; `open_source` allows `open` only. All actions are enabled unless overridden.
+- Configuration: `DFPS_COMPLIANCE_MODE` (default `internal`) and optional `DFPS_COMPLIANCE_POLICY_PATH` (JSON/YAML) to override actions or tier allowances per mode.
+- Mapping/export surfaces consume these policies in epic 020 while keeping ranking/vector behavior unchanged (see `docs/kanban/feature/mvp/020-license-compliance-layer.md`).
+
 > When updating the terminology layer, ensure the registries, helper enums, and bridge logic stay consistent with the kanban (TERM-01 � TERM-07) and that `MappingResult` metadata stays in sync with docs.
 
 ## Graph context & reasoning
@@ -34,7 +41,7 @@ DFPS keeps an explicit terminology layer between FHIR staging and NCIt mapping. 
 
 - `dfps_core::mapping::MappingResult` now carries `license_tier` and `source_kind` strings for every emitted row.
 - `dfps_mapping::map_staging_codes` and `map_staging_codes_with_summary` attach those labels using `EnrichedCode::license_label` / `source_label`.
-- `MappingResult.reason` explicitly reports `"missing_system_or_code"` and `"unknown_code_system"` when the terminology layer short-circuits a mapping attempt.
+- `MappingResult.reason` explicitly reports `"missing_system_or_code"`, `"unknown_code_system"`, and `"license_blocked"` (when compliance mode forbids mapping the license tier) when the terminology layer short-circuits a mapping attempt.
 
 ## Observability hooks
 

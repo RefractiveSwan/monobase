@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - FHIR-018 – “FHIR profiles crate + profile validation” (checkboxes: `dfps_fhir_profiles` embedded StructureDefinitions, `profile_requirement_links`, `validate_sr_profile` + profile-driven bundle validation paths, docs/runbook updates).
 - TERM-014 – Terminology client abstraction + optional HTTP/mock wiring (`dfps_terminology` client module, composite + mock client, mapping external lookup counters, env example, terminology APIs quickstart).
 - TERM-019 – “TERM-01 – OBO graph crate”, “TERM-02 – Reasoning utilities”, “TERM-03 – Integration with terminology & mapping”, “TERM-04 – Tests & fixtures”, “TERM-05 – Docs” (checkboxes completed; obo-graph feature flag, cached graph queries, fixtures/versions surfaced in terminology layer and mapping hooks).
+- LIC-020 – Compliance policy crate + mapping/CLI enforcement (mode-aware Policy loader, `license_blocked` NoMatch reason, CLI summaries, export guard helper).
 
 ### Planned
 - CLI application (`feature/app/cli-mvp` – 004): `dfps_cli` scaffold + `map-bundles` / `generate-fhir-bundles` subcommands, flags, tests, CI smoke.

@@ -3,11 +3,12 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
+use dfps_compliance::load_policy_from_env;
 use dfps_configuration::load_env;
 use dfps_core::staging::StgSrCodeExploded;
 use dfps_mapping::{
-    DeterministicEmbeddingProvider, explain_staging_code, map_staging_codes_with_summary,
-    map_staging_codes_with_vector,
+    DeterministicEmbeddingProvider, explain_staging_code,
+    map_staging_codes_with_summary_and_policy, map_staging_codes_with_vector_and_policy,
 };
 use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend, VectorStoreConfig};
 
@@ -44,7 +45,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         codes.push(code);
     }
 
-    let vector_mapping = try_vector_mapping(&codes);
+    let policy = load_policy_from_env()?;
+    let vector_mapping = try_vector_mapping(&codes, &policy);
     let (results, summary) = match vector_mapping {
         Ok((results, _dims, summary, usage)) => {
             if let Some(usage) = usage {
@@ -57,7 +59,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Err(err) => {
             log::warn!("vector mapping disabled or failed ({err}); using offline mock");
-            let (results, _, summary) = map_staging_codes_with_summary(codes.clone());
+            let (results, _, summary) =
+                map_staging_codes_with_summary_and_policy(codes.clone(), &policy);
             (results, summary)
         }
     };
@@ -81,14 +84,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    let license_blocked = results
+        .iter()
+        .filter(|res| res.reason.as_deref() == Some("license_blocked"))
+        .count();
+
     eprintln!(
-        "mapping summary total={} by_code_kind={:?} by_license_tier={:?} extern_lookup_success={} extern_lookup_miss={} extern_lookup_error={}",
+        "mapping summary total={} by_code_kind={:?} by_license_tier={:?} extern_lookup_success={} extern_lookup_miss={} extern_lookup_error={} license_blocked={} compliance_mode={}",
         summary.total,
         summary.by_code_kind,
         summary.by_license_tier,
         summary.extern_lookup_success,
         summary.extern_lookup_miss,
-        summary.extern_lookup_error
+        summary.extern_lookup_error,
+        license_blocked,
+        policy.mode.as_str()
     );
 
     Ok(())
@@ -96,6 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn try_vector_mapping(
     codes: &[StgSrCodeExploded],
+    policy: &dfps_compliance::Policy,
 ) -> Result<
     (
         Vec<dfps_core::mapping::MappingResult>,
@@ -115,12 +126,13 @@ fn try_vector_mapping(
             let client = QdrantVectorStore::from_config(&config)
                 .map_err(|err| format!("qdrant client: {err}"))?;
             let store = std::sync::Arc::new(client);
-            map_staging_codes_with_vector(
+            map_staging_codes_with_vector_and_policy(
                 codes.to_owned(),
                 store,
                 config,
                 DeterministicEmbeddingProvider::new(),
                 5,
+                policy,
             )
             .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
             .map_err(|err| format!("vector mapping error: {err}"))
@@ -131,12 +143,13 @@ fn try_vector_mapping(
                 let client = dfps_vector_store::PgVectorStore::from_config(&config)
                     .map_err(|err| format!("pgvector client: {err}"))?;
                 let store = std::sync::Arc::new(client);
-                map_staging_codes_with_vector(
+                map_staging_codes_with_vector_and_policy(
                     codes.to_owned(),
                     store,
                     config,
                     DeterministicEmbeddingProvider::new(),
                     5,
+                    policy,
                 )
                 .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
                 .map_err(|err| format!("vector mapping error: {err}"))
@@ -148,12 +161,13 @@ fn try_vector_mapping(
         }
         VectorBackend::Mock => {
             let store = std::sync::Arc::new(MockVectorStore::new(config.namespace.clone()));
-            map_staging_codes_with_vector(
+            map_staging_codes_with_vector_and_policy(
                 codes.to_owned(),
                 store,
                 config,
                 DeterministicEmbeddingProvider::new(),
                 5,
+                policy,
             )
             .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
             .map_err(|err| format!("vector mapping error: {err}"))
