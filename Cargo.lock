@@ -1062,7 +1062,9 @@ name = "dfps_terminology"
 version = "0.1.0"
 dependencies = [
  "dfps_core",
+ "reqwest",
  "serde",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1080,6 +1082,7 @@ dependencies = [
  "dfps_mapping",
  "dfps_observability",
  "dfps_pipeline",
+ "dfps_terminology",
  "dfps_vector_store",
  "http-body-util",
  "once_cell",

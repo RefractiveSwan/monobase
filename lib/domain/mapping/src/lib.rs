@@ -785,7 +785,7 @@ fn external_lookup(
 mod tests {
     use super::*;
     use dfps_core::staging::StgSrCodeExploded;
-    use dfps_terminology::{MockTerminologyClient, TerminologyClient};
+    use dfps_terminology::MockTerminologyClient;
     use dfps_vector_store::{MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig};
     use std::sync::Arc;
 

@@ -21,6 +21,7 @@ dfps_core = { path = "../../domain/core" }
 dfps_fake_data = { path = "../../domain/fake_data" }
 dfps_ingestion = { path = "../../domain/ingestion" }
 dfps_mapping = { path = "../../domain/mapping" }
+dfps_terminology= { path = "../../domain/terminology" }
 dfps_pipeline = { path = "../../domain/pipeline" }
 dfps_observability = { path = "../observability" }
 dfps_configuration = { path = "../configuration" }
