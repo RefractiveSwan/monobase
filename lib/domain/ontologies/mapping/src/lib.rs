@@ -1,14 +1,26 @@
 //! Mapping engine skeleton that composes lexical/vector heuristics with rule
 //! reranking to emit NCIt-aligned `MappingResult`s.
 //!
-//! This crate intentionally keeps the logic deterministic and self-contained so
-//! it can power golden/property tests without external services.
+//! Roles:
+//! - `Mapper`/`MappingEngine` orchestrate lexical + vector rankers with rule tweaks
+//! - `CandidateRanker` is the trait for rankers (`LexicalRanker`, `VectorRankerBackend`)
+//! - Compliance/policy is injected via `MappingConfig` (pure `Policy`, no env reads)
+//! - Terminology/vector backends are trait-based (`TerminologyClient`, `VectorStore`)
+//!
+//! See:
+//! - docs/system-design/clinical/ncit/architecture.md
+//! - docs/system-design/clinical/ncit/models/data-model-er.md
+//! - docs/system-design/clinical/fhir/overview.md
+//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-06--domain-mapping-engine--ncit-integration
+//!
+//! This crate stays deterministic and self-contained so golden/property tests can
+//! run without external services or environment configuration.
 
 use std::collections::{BTreeMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use dfps_compliance::{ComplianceAction, ComplianceMode, Policy, load_policy_from_env};
+use dfps_compliance::{ComplianceAction, ComplianceMode, Policy};
 use dfps_core::{
     mapping::{
         CodeElement, DimNCITConcept, MappingCandidate, MappingResult, MappingSourceVersion,
@@ -33,6 +45,32 @@ pub use data::{
 pub use dfps_eval::{EvalCase, EvalResult, EvalSummary};
 #[allow(deprecated)]
 pub use eval::run_eval;
+
+#[derive(Debug, Clone)]
+pub struct MappingConfig {
+    pub thresholds: MappingThresholds,
+    pub source_version: MappingSourceVersion,
+    pub policy: Policy,
+}
+
+impl Default for MappingConfig {
+    fn default() -> Self {
+        Self {
+            thresholds: MappingThresholds::default(),
+            source_version: MappingSourceVersion::new(NCIT_DATA_VERSION, UMLS_DATA_VERSION),
+            policy: Policy::default_for_mode(ComplianceMode::Internal),
+        }
+    }
+}
+
+impl MappingConfig {
+    pub fn with_policy(policy: Policy) -> Self {
+        Self {
+            policy,
+            ..Self::default()
+        }
+    }
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct MappingSummary {
@@ -510,6 +548,16 @@ where
     V: CandidateRanker,
 {
     fn map(&self, code: &CodeElement) -> MappingResult {
+        self.map_with_config(code, &MappingConfig::default())
+    }
+}
+
+impl<L, V> MappingEngine<L, V>
+where
+    L: CandidateRanker,
+    V: CandidateRanker,
+{
+    pub fn map_with_config(&self, code: &CodeElement, config: &MappingConfig) -> MappingResult {
         let candidates = self.collect_candidates(code);
         let top = candidates.first().cloned().unwrap_or(MappingCandidate {
             target_system: "NCIT".into(),
@@ -525,6 +573,7 @@ where
             top.score,
             MappingStrategy::Composite,
             None,
+            config,
         )
     }
 }
@@ -580,14 +629,6 @@ pub fn explain_staging_code(staging: &StgSrCodeExploded, top_n: usize) -> Mappin
     engine.explain(&code, top_n)
 }
 
-fn default_thresholds() -> MappingThresholds {
-    MappingThresholds::default()
-}
-
-fn load_policy_or_default() -> Policy {
-    load_policy_from_env().unwrap_or_else(|_| Policy::default_for_mode(ComplianceMode::Internal))
-}
-
 fn classify(score: f32, thresholds: &MappingThresholds) -> MappingState {
     if score >= thresholds.auto_map_min {
         MappingState::AutoMapped
@@ -598,10 +639,6 @@ fn classify(score: f32, thresholds: &MappingThresholds) -> MappingState {
     }
 }
 
-fn source_versions() -> MappingSourceVersion {
-    MappingSourceVersion::new(NCIT_DATA_VERSION, UMLS_DATA_VERSION)
-}
-
 fn build_result_with_score(
     code: &CodeElement,
     cui: Option<String>,
@@ -609,8 +646,9 @@ fn build_result_with_score(
     score: f32,
     strategy: MappingStrategy,
     reason: Option<String>,
+    config: &MappingConfig,
 ) -> MappingResult {
-    let thresholds = default_thresholds();
+    let thresholds = config.thresholds;
     let state = classify(score, &thresholds);
     let mut final_ncit = ncit_id;
     let final_reason = if state == MappingState::NoMatch {
@@ -627,7 +665,7 @@ fn build_result_with_score(
         strategy,
         state,
         thresholds,
-        source_version: source_versions(),
+        source_version: config.source_version.clone(),
         reason: final_reason,
         license_tier: None,
         source_kind: None,
@@ -657,8 +695,7 @@ pub fn map_staging_codes_with_summary<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
-    let policy = load_policy_or_default();
-    map_staging_codes_with_summary_with_policy(codes, None, &policy)
+    map_staging_codes_with_summary_with_config(codes, None, &MappingConfig::default())
 }
 
 pub fn map_staging_codes_with_summary_and_policy<I>(
@@ -668,7 +705,8 @@ pub fn map_staging_codes_with_summary_and_policy<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
-    map_staging_codes_with_summary_with_policy(codes, None, policy)
+    let config = MappingConfig::with_policy(policy.clone());
+    map_staging_codes_with_summary_with_config(codes, None, &config)
 }
 
 pub fn map_staging_codes_with_summary_with_policy<I>(
@@ -679,7 +717,8 @@ pub fn map_staging_codes_with_summary_with_policy<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
-    map_staging_codes_with_summary_with_client_and_policy(codes, client, policy)
+    let config = MappingConfig::with_policy(policy.clone());
+    map_staging_codes_with_summary_with_config(codes, client, &config)
 }
 
 pub fn map_staging_codes_with_summary_with_client<I>(
@@ -689,14 +728,13 @@ pub fn map_staging_codes_with_summary_with_client<I>(
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
 {
-    let policy = load_policy_or_default();
-    map_staging_codes_with_summary_with_client_and_policy(codes, client, &policy)
+    map_staging_codes_with_summary_with_config(codes, client, &MappingConfig::default())
 }
 
-pub fn map_staging_codes_with_summary_with_client_and_policy<I>(
+pub fn map_staging_codes_with_summary_with_config<I>(
     codes: I,
     client: Option<&dyn TerminologyClient>,
-    policy: &Policy,
+    config: &MappingConfig,
 ) -> (Vec<MappingResult>, Vec<DimNCITConcept>, MappingSummary)
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
@@ -704,14 +742,14 @@ where
     let dim_concepts = dim_concepts();
     let xrefs = load_umls_xrefs();
     let engine = default_engine();
-    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs, client, policy);
+    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs, client, config);
     (results, dim_concepts, summary)
 }
 
 pub fn map_staging_codes_with_vector<I, S, E>(
     codes: I,
     store: Arc<S>,
-    config: VectorStoreConfig,
+    vector_config: VectorStoreConfig,
     embedding: E,
     top_k: usize,
 ) -> Result<
@@ -728,14 +766,20 @@ where
     S: VectorStore,
     E: EmbeddingProvider<CodeElement>,
 {
-    let policy = load_policy_or_default();
-    map_staging_codes_with_vector_and_policy(codes, store, config, embedding, top_k, &policy)
+    map_staging_codes_with_vector_and_config(
+        codes,
+        store,
+        vector_config,
+        embedding,
+        top_k,
+        &MappingConfig::default(),
+    )
 }
 
 pub fn map_staging_codes_with_vector_and_policy<I, S, E>(
     codes: I,
     store: Arc<S>,
-    config: VectorStoreConfig,
+    vector_config: VectorStoreConfig,
     embedding: E,
     top_k: usize,
     policy: &Policy,
@@ -753,9 +797,41 @@ where
     S: VectorStore,
     E: EmbeddingProvider<CodeElement>,
 {
+    let mapping_config = MappingConfig::with_policy(policy.clone());
+    map_staging_codes_with_vector_and_config(
+        codes,
+        store,
+        vector_config,
+        embedding,
+        top_k,
+        &mapping_config,
+    )
+}
+
+pub fn map_staging_codes_with_vector_and_config<I, S, E>(
+    codes: I,
+    store: Arc<S>,
+    vector_config: VectorStoreConfig,
+    embedding: E,
+    top_k: usize,
+    mapping_config: &MappingConfig,
+) -> Result<
+    (
+        Vec<MappingResult>,
+        Vec<DimNCITConcept>,
+        MappingSummary,
+        dfps_vector_store::VectorUsageSnapshot,
+    ),
+    VectorRankerError,
+>
+where
+    I: IntoIterator<Item = StgSrCodeExploded>,
+    S: VectorStore,
+    E: EmbeddingProvider<CodeElement>,
+{
     let dim_concepts = dim_concepts();
     let xrefs = load_umls_xrefs();
-    let vector_ranker = VectorRankerBackend::from_config(store, embedding, config, top_k)?;
+    let vector_ranker = VectorRankerBackend::from_config(store, embedding, vector_config, top_k)?;
     let usage_handle = vector_ranker.usage_handle();
     let engine = MappingEngine::new(LexicalRanker, vector_ranker, RuleReranker);
     let (results, summary) = map_with_engine(
@@ -763,7 +839,7 @@ where
         &engine,
         &xrefs,
         None as Option<&dyn TerminologyClient>,
-        policy,
+        mapping_config,
     );
     let snapshot = usage_handle.snapshot();
     Ok((results, dim_concepts, summary, snapshot))
@@ -786,7 +862,7 @@ fn map_with_engine<I, L, V>(
     engine: &MappingEngine<L, V>,
     xrefs: &std::collections::HashMap<(String, String), UmlsXref>,
     client: Option<&dyn TerminologyClient>,
-    policy: &Policy,
+    config: &MappingConfig,
 ) -> (Vec<MappingResult>, MappingSummary)
 where
     I: IntoIterator<Item = StgSrCodeExploded>,
@@ -807,7 +883,7 @@ where
         summary.record(code_kind, enriched.license_label());
 
         if let Some(tier) = enriched.license_tier {
-            if !policy.is_allowed(ComplianceAction::Map, tier) {
+            if !config.policy.is_allowed(ComplianceAction::Map, tier) {
                 let mut blocked = build_result_with_score(
                     &element,
                     None,
@@ -815,6 +891,7 @@ where
                     0.0,
                     MappingStrategy::Unmapped,
                     Some("license_blocked".into()),
+                    config,
                 );
                 attach_license_metadata(&mut blocked, &enriched);
                 results.push(blocked);
@@ -830,6 +907,7 @@ where
                 0.0,
                 MappingStrategy::Unmapped,
                 Some("missing_system_or_code".into()),
+                config,
             ),
             CodeKind::UnknownSystem => {
                 if matches!(enriched.license_label(), Some(label) if label == "forbidden") {
@@ -841,6 +919,7 @@ where
                         0.0,
                         MappingStrategy::Unmapped,
                         Some("license_forbidden".into()),
+                        config,
                     )
                 } else {
                     let base = build_result_with_score(
@@ -850,6 +929,7 @@ where
                         0.0,
                         MappingStrategy::Unmapped,
                         Some("unknown_code_system".into()),
+                        config,
                     );
                     if let Some(client) = client {
                         match external_lookup(client, &system_value, &code_value) {
@@ -862,6 +942,7 @@ where
                                     0.95,
                                     MappingStrategy::Rule,
                                     Some("external_terminology_lookup".into()),
+                                    config,
                                 )
                             }
                             Ok(None) => {
@@ -887,9 +968,10 @@ where
                         0.99,
                         MappingStrategy::Rule,
                         Some("umls_direct_xref".into()),
+                        config,
                     )
                 } else {
-                    engine.map(&element)
+                    engine.map_with_config(&element, config)
                 }
             }
         };
