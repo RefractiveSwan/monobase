@@ -33,7 +33,7 @@ MVP powers the synthetic bundle generators and end-to-end ingestion tests.
 
 ```rust
 use dfps_ingestion::{
-    bundle_to_staging_with_validation,
+    bundle_to_staging_with_validation, ExternalValidationContext,
     validation::{ValidationMode, validate_bundle},
 };
 use dfps_pipeline::bundle_to_mapped_sr;
@@ -42,7 +42,11 @@ use serde_json::from_str;
 let bundle: dfps_core::fhir::Bundle =
     from_str(include_str!("../../lib/domain/fake_data/data/regression/fhir_bundle_sr.json"))?;
 
-let validated = bundle_to_staging_with_validation(&bundle, ValidationMode::Lenient)?;
+let validated = bundle_to_staging_with_validation(
+    &bundle,
+    ValidationMode::Lenient,
+    ExternalValidationContext::default(),
+)?;
 assert!(!validated.report.has_errors());
 let (flats, exploded) = validated.value;
 let mapped = bundle_to_mapped_sr(&bundle)?;
@@ -73,7 +77,11 @@ let issues = validate_sr(&sr);
 assert!(issues.is_empty());
 
 // Strict mode will block ingestion when issues are present.
-let lenient = dfps_ingestion::bundle_to_staging_with_validation(&bundle, ValidationMode::Lenient)?;
+let lenient = dfps_ingestion::bundle_to_staging_with_validation(
+    &bundle,
+    ValidationMode::Lenient,
+    dfps_ingestion::ExternalValidationContext::default(),
+)?;
 assert!(!lenient.report.has_errors());
 ```
 

@@ -120,10 +120,15 @@ Current structure:
 ```text
 code/lib/domain/
   core/
-  ingestion/
-  mapping/
   pipeline/
-  fake_data/
+  evaluation/
+    eval/
+    fake_data/
+  ontologies/
+    ingestion/
+    mapping/
+    obo_graph/
+    terminology/
 ```
 
 #### `core/` – Core models and kernel
@@ -144,9 +149,9 @@ code/lib/domain/
   * Bridges that consume another super-domain live under the **consumer** module’s `bridge/` folder (e.g., `semantics/mapping/bridge/from_staging.rs`).
   * `lib.rs` keeps back-compat re-exports so callers can still use `dfps_core::{patient, order, staging, mapping, value, fhir}` module paths.
 
-#### `ingestion/` – Getting data in
+#### `ontologies/ingestion/` – Getting data in
 
-* Crate: `dfps_ingestion` (intended)
+* Crate: `dfps_ingestion` (intended; embedded profiles live in `profiles/`)
 * Responsibilities:
 
   * Adapters that ingest data from external formats into `core` models.
@@ -157,7 +162,7 @@ code/lib/domain/
   * FHIR ServiceRequest -> internal “procedure request” models.
   * NCIt / UMLS loaders that emit `CodeElement` sets.
 
-#### `mapping/` – Semantic mapping engine
+#### `ontologies/mapping/` – Semantic mapping engine
 
 * Crate: `dfps_mapping`
 * Responsibilities:
@@ -184,7 +189,19 @@ code/lib/domain/
   * “Ingest FHIR ServiceRequests -> normalize -> map to NCIt -> emit structured results.”
   * Job definitions that can be scheduled / invoked from CLI or web.
 
-#### `fake_data/` – Domain-aware generators
+#### `evaluation/eval/` – Eval harness
+
+* Crate: `dfps_eval`
+* Responsibilities:
+
+  * Compute mapping eval metrics and calibration buckets from NDJSON datasets.
+  * Provide reusable runners that accept injected readers/writers.
+* Examples:
+
+  * `run_eval_with_mapper` used by CLI/API/web.
+  * Dataset manifests and baseline snapshots for regression gating.
+
+#### `evaluation/fake_data/` – Domain-aware generators
 
 * Crate: `dfps_fake_data`
 * Responsibilities:

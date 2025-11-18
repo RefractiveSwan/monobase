@@ -2,14 +2,15 @@ use axum::{Router, http::StatusCode, response::IntoResponse, routing::post};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::{
     IngestionError, bundle_to_staging_with_validation,
-    validation::{ValidationMode, ValidationReport},
+    validation::{
+        ExternalValidationContext, ValidationMode, ValidationReport,
+        external::{
+            ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
+        },
+    },
 };
-use once_cell::sync::Lazy;
 use serde_json::json;
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
 
 async fn mock_validate_handler(with_issue: Arc<bool>) -> impl IntoResponse {
@@ -60,32 +61,21 @@ async fn spawn_validator(with_issue: bool) -> (SocketAddr, oneshot::Sender<()>, 
     (addr, shutdown_tx, handle)
 }
 
-fn set_env_for(with_issue: bool) {
-    let _ = with_issue;
-    unsafe {
-        std::env::set_var("DFPS_FHIR_VALIDATOR_BASE_URL", "mock://validator");
-        std::env::set_var(
-            "DFPS_FHIR_VALIDATOR_MOCK",
-            if with_issue { "error" } else { "ok" },
-        );
-        std::env::set_var("DFPS_FHIR_VALIDATOR_TIMEOUT_SECS", "5");
-    }
-}
-
-static ENV_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
-
 #[tokio::test]
 async fn external_issues_merge_into_report() {
-    let _guard = ENV_LOCK.lock().unwrap();
     let (_addr, shutdown, handle) = spawn_validator(true).await;
-    set_env_for(true);
+    let validator = BlockingValidator::new(_addr.to_string());
 
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let ctx = ExternalValidationContext {
+        validator: Some(&validator),
+        profile_url: None,
+    };
     let report: ValidationReport =
         dfps_ingestion::validation::validate_bundle_with_external_profile(
             &bundle,
             ValidationMode::ExternalStrict,
-            None,
+            ctx,
         );
 
     assert!(report.has_errors(), "external error should surface");
@@ -102,13 +92,16 @@ async fn external_issues_merge_into_report() {
 
 #[tokio::test]
 async fn external_strict_blocks_ingestion_on_error() {
-    let _guard = ENV_LOCK.lock().unwrap();
     let (_addr, shutdown, handle) = spawn_validator(true).await;
-    set_env_for(true);
+    let validator = BlockingValidator::new(_addr.to_string());
 
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let ctx = ExternalValidationContext {
+        validator: Some(&validator),
+        profile_url: None,
+    };
     let outcome = tokio::task::spawn_blocking(move || {
-        bundle_to_staging_with_validation(&bundle, ValidationMode::ExternalStrict)
+        bundle_to_staging_with_validation(&bundle, ValidationMode::ExternalStrict, ctx)
     })
     .await
     .expect("join blocking");
@@ -130,16 +123,19 @@ async fn external_strict_blocks_ingestion_on_error() {
 
 #[tokio::test]
 async fn external_preferred_allows_pass_through_when_clean() {
-    let _guard = ENV_LOCK.lock().unwrap();
     let (_addr, shutdown, handle) = spawn_validator(false).await;
-    set_env_for(false);
+    let validator = BlockingValidator::new(_addr.to_string());
 
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let ctx = ExternalValidationContext {
+        validator: Some(&validator),
+        profile_url: None,
+    };
     let report = tokio::task::spawn_blocking(move || {
         dfps_ingestion::validation::validate_bundle_with_external_profile(
             &bundle,
             ValidationMode::ExternalPreferred,
-            None,
+            ctx,
         )
     })
     .await
@@ -148,4 +144,50 @@ async fn external_preferred_allows_pass_through_when_clean() {
 
     let _ = shutdown.send(());
     handle.await.expect("validator join");
+}
+
+#[derive(Clone)]
+struct BlockingValidator {
+    client: reqwest::blocking::Client,
+    base_url: String,
+}
+
+impl BlockingValidator {
+    fn new(base_url: String) -> Self {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build()
+            .expect("validator client");
+        Self { client, base_url }
+    }
+}
+
+impl ExternalValidator for BlockingValidator {
+    fn validate_bundle(
+        &self,
+        bundle: &Bundle,
+        profile_url: Option<&str>,
+    ) -> Result<ExternalValidationReport, ExternalValidationError> {
+        let mut url = self.base_url.clone();
+        if !url.ends_with("/$validate") {
+            if url.ends_with('/') {
+                url.push_str("$validate");
+            } else {
+                url.push_str("/$validate");
+            }
+        }
+        let mut request = self.client.post(url).json(bundle);
+        if let Some(profile) = profile_url {
+            request = request.query(&[("profile", profile)]);
+        }
+        let response = request
+            .send()
+            .map_err(|err| ExternalValidationError::Failed(err.to_string()))?;
+        let outcome: OperationOutcome = response
+            .json()
+            .map_err(|err| ExternalValidationError::Parse(err.to_string()))?;
+        Ok(ExternalValidationReport::from_operation_outcome(Some(
+            outcome,
+        )))
+    }
 }

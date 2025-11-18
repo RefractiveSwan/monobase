@@ -1,7 +1,4 @@
-use std::time::Duration;
-
 use dfps_core::fhir::Bundle;
-use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -81,85 +78,38 @@ impl ExternalValidationReport {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ExternalValidatorConfig {
-    pub base_url: String,
-    pub timeout: Duration,
-    pub default_profile: Option<String>,
-}
-
-impl ExternalValidatorConfig {
-    pub fn from_env() -> Result<Self, ExternalValidationError> {
-        let base_url = std::env::var("DFPS_FHIR_VALIDATOR_BASE_URL")
-            .map_err(|_| ExternalValidationError::MissingConfig("DFPS_FHIR_VALIDATOR_BASE_URL"))?;
-        let timeout_secs = std::env::var("DFPS_FHIR_VALIDATOR_TIMEOUT_SECS")
-            .ok()
-            .and_then(|raw| raw.parse::<u64>().ok())
-            .unwrap_or(10);
-        let default_profile = std::env::var("DFPS_FHIR_VALIDATOR_PROFILE").ok();
-        Ok(Self {
-            base_url,
-            timeout: Duration::from_secs(timeout_secs),
-            default_profile,
-        })
-    }
+pub trait ExternalValidator {
+    fn validate_bundle(
+        &self,
+        bundle: &Bundle,
+        profile_url: Option<&str>,
+    ) -> Result<ExternalValidationReport, ExternalValidationError>;
 }
 
 #[derive(Debug, Error)]
 pub enum ExternalValidationError {
-    #[error("missing config: {0}")]
-    MissingConfig(&'static str),
-    #[error("http error: {0}")]
-    Http(#[from] reqwest::Error),
+    #[error("external validator unavailable: {0}")]
+    Unavailable(String),
+    #[error("external validator failed: {0}")]
+    Failed(String),
     #[error("serialize bundle: {0}")]
     Serialize(#[from] serde_json::Error),
-    #[error("failed to parse operation outcome from validator response")]
-    ParseOutcome,
+    #[error("parse operation outcome: {0}")]
+    Parse(String),
 }
 
-/// Call an external FHIR `$validate` endpoint and map results back into ValidationIssues.
-pub fn validate_bundle_external(
-    bundle: &Bundle,
-    profile_url: Option<&str>,
-) -> Result<ExternalValidationReport, ExternalValidationError> {
-    if let Ok(mode) = std::env::var("DFPS_FHIR_VALIDATOR_MOCK") {
-        return Ok(match mode.as_str() {
-            "error" => ExternalValidationReport {
-                operation_outcome: None,
-                issues: vec![ValidationIssue::new(
-                    "VAL_EXTERNAL_MOCK",
-                    ValidationSeverity::Error,
-                    "Mock external validator reported an error",
-                    RequirementRef::RExternal,
-                )],
-            },
-            "ok" => ExternalValidationReport::default(),
-            _ => ExternalValidationReport::default(),
-        });
-    }
-    let cfg = ExternalValidatorConfig::from_env()?;
-    let client = Client::builder()
-        .timeout(cfg.timeout)
-        .build()
-        .map_err(ExternalValidationError::Http)?;
+/// No-op validator for test/default contexts when no external service is configured.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct NoopExternalValidator;
 
-    let mut url = cfg.base_url.trim_end_matches('/').to_string();
-    if !url.ends_with("/$validate") {
-        url.push_str("/$validate");
+impl ExternalValidator for NoopExternalValidator {
+    fn validate_bundle(
+        &self,
+        _bundle: &Bundle,
+        _profile_url: Option<&str>,
+    ) -> Result<ExternalValidationReport, ExternalValidationError> {
+        Ok(ExternalValidationReport::default())
     }
-
-    let mut request = client.post(url).json(bundle);
-    if let Some(profile) = profile_url.or_else(|| cfg.default_profile.as_deref()) {
-        request = request.query(&[("profile", profile)]);
-    }
-
-    let response = request.send()?;
-    let outcome: OperationOutcome = response
-        .json()
-        .map_err(|_| ExternalValidationError::ParseOutcome)?;
-    Ok(ExternalValidationReport::from_operation_outcome(Some(
-        outcome,
-    )))
 }
 
 #[cfg(test)]

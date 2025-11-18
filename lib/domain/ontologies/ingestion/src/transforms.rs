@@ -9,7 +9,8 @@ use serde_json::Error as SerdeError;
 use crate::{
     reference,
     validation::{
-        Validated, ValidationIssue, ValidationMode, validate_bundle, validate_bundle_with_external,
+        ExternalValidationContext, Validated, ValidationIssue, ValidationMode, validate_bundle,
+        validate_bundle_with_external,
     },
 };
 
@@ -150,19 +151,24 @@ pub fn sr_to_domain(sr: &fhir::ServiceRequest) -> Result<order::ServiceRequest, 
 pub fn bundle_to_staging(
     bundle: &fhir::Bundle,
 ) -> Result<(Vec<StgServiceRequestFlat>, Vec<StgSrCodeExploded>), IngestionError> {
-    bundle_to_staging_with_validation(bundle, ValidationMode::default())
-        .map(|validated| validated.value)
+    bundle_to_staging_with_validation(
+        bundle,
+        ValidationMode::default(),
+        ExternalValidationContext::default(),
+    )
+    .map(|validated| validated.value)
 }
 
 /// Convert a bundle into staging rows, returning validation metadata.
 pub fn bundle_to_staging_with_validation(
     bundle: &fhir::Bundle,
     mode: ValidationMode,
+    external: ExternalValidationContext<'_>,
 ) -> Result<Validated<(Vec<StgServiceRequestFlat>, Vec<StgSrCodeExploded>)>, IngestionError> {
     let report = match mode {
         ValidationMode::Strict | ValidationMode::Lenient => validate_bundle(bundle),
         ValidationMode::ExternalPreferred | ValidationMode::ExternalStrict => {
-            validate_bundle_with_external(bundle, mode)
+            validate_bundle_with_external(bundle, mode, external)
         }
     };
     if matches!(
@@ -196,19 +202,24 @@ fn bundle_to_staging_inner(
 pub fn bundle_to_domain(
     bundle: &fhir::Bundle,
 ) -> Result<Vec<order::ServiceRequest>, IngestionError> {
-    bundle_to_domain_with_validation(bundle, ValidationMode::default())
-        .map(|validated| validated.value)
+    bundle_to_domain_with_validation(
+        bundle,
+        ValidationMode::default(),
+        ExternalValidationContext::default(),
+    )
+    .map(|validated| validated.value)
 }
 
 /// Convert a bundle into domain ServiceRequest aggregates, returning validation metadata.
 pub fn bundle_to_domain_with_validation(
     bundle: &fhir::Bundle,
     mode: ValidationMode,
+    external: ExternalValidationContext<'_>,
 ) -> Result<Validated<Vec<order::ServiceRequest>>, IngestionError> {
     let report = match mode {
         ValidationMode::Strict | ValidationMode::Lenient => validate_bundle(bundle),
         ValidationMode::ExternalPreferred | ValidationMode::ExternalStrict => {
-            validate_bundle_with_external(bundle, mode)
+            validate_bundle_with_external(bundle, mode, external)
         }
     };
     if matches!(
@@ -367,20 +378,32 @@ mod tests {
     #[test]
     fn strict_validation_blocks_bundle_to_staging() {
         let bundle = bundle_missing_patient_resource();
-        let err = bundle_to_staging_with_validation(&bundle, ValidationMode::Strict)
-            .expect_err("strict validation should fail");
+        let err = bundle_to_staging_with_validation(
+            &bundle,
+            ValidationMode::Strict,
+            ExternalValidationContext::default(),
+        )
+        .expect_err("strict validation should fail");
         matches!(err, IngestionError::ValidationFailed(issues) if !issues.is_empty());
 
-        let validated = bundle_to_staging_with_validation(&bundle, ValidationMode::Lenient)
-            .expect("lenient mode");
+        let validated = bundle_to_staging_with_validation(
+            &bundle,
+            ValidationMode::Lenient,
+            ExternalValidationContext::default(),
+        )
+        .expect("lenient mode");
         assert!(validated.report.has_errors());
     }
 
     #[test]
     fn strict_validation_blocks_bundle_to_domain() {
         let bundle = bundle_missing_patient_resource();
-        let err = bundle_to_domain_with_validation(&bundle, ValidationMode::Strict)
-            .expect_err("strict validation should fail");
+        let err = bundle_to_domain_with_validation(
+            &bundle,
+            ValidationMode::Strict,
+            ExternalValidationContext::default(),
+        )
+        .expect_err("strict validation should fail");
         matches!(err, IngestionError::ValidationFailed(issues) if !issues.is_empty());
     }
 

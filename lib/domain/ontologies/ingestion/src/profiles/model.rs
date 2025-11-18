@@ -1,32 +1,5 @@
-//! Embedded FHIR StructureDefinition slices used for profile-aware validation.
-//! The goal is a lightweight representation of the DFPS-relevant profiles
-//! (Patient, Encounter, ServiceRequest) without pulling in a full FHIR engine.
-//! See:
-//! - docs/system-design/clinical/fhir/requirements/ingestion-requirements.md
-//! - docs/system-design/clinical/fhir/overview.md
-//! - docs/runbook/fhir-profiles-quickstart.md
-
-use once_cell::sync::Lazy;
+#![cfg(feature = "profile_validation")]
 use serde::{Deserialize, Serialize};
-
-pub const PATIENT_PROFILE_URL: &str = "http://hl7.org/fhir/StructureDefinition/Patient";
-pub const ENCOUNTER_PROFILE_URL: &str = "http://hl7.org/fhir/StructureDefinition/Encounter";
-pub const SERVICE_REQUEST_PROFILE_URL: &str =
-    "http://hl7.org/fhir/StructureDefinition/ServiceRequest";
-
-static PATIENT_RAW: &str = include_str!("../../../../data/fhir/profiles/Patient.json");
-static ENCOUNTER_RAW: &str = include_str!("../../../../data/fhir/profiles/Encounter.json");
-static SERVICE_REQUEST_RAW: &str =
-    include_str!("../../../../data/fhir/profiles/ServiceRequest.json");
-
-static PATIENT_PROFILE: Lazy<FhirProfile> =
-    Lazy::new(|| FhirProfile::from_json_str(PATIENT_RAW).expect("Patient profile should parse"));
-static ENCOUNTER_PROFILE: Lazy<FhirProfile> = Lazy::new(|| {
-    FhirProfile::from_json_str(ENCOUNTER_RAW).expect("Encounter profile should parse")
-});
-static SERVICE_REQUEST_PROFILE: Lazy<FhirProfile> = Lazy::new(|| {
-    FhirProfile::from_json_str(SERVICE_REQUEST_RAW).expect("ServiceRequest profile should parse")
-});
 
 /// Minimal metadata extracted from a StructureDefinition.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -139,52 +112,8 @@ impl ElementBinding {
     }
 }
 
-/// Return an embedded profile by URL (or shorthand resource type).
-pub fn load_profile(url: &str) -> Option<FhirProfile> {
-    match normalize_key(url) {
-        Some(ProfileKey::Patient) => Some(PATIENT_PROFILE.clone()),
-        Some(ProfileKey::Encounter) => Some(ENCOUNTER_PROFILE.clone()),
-        Some(ProfileKey::ServiceRequest) => Some(SERVICE_REQUEST_PROFILE.clone()),
-        None => None,
-    }
-}
-
-/// Known profile URLs keyed by resource type.
-pub fn known_profile_urls() -> &'static [&'static str] {
-    &[
-        PATIENT_PROFILE_URL,
-        ENCOUNTER_PROFILE_URL,
-        SERVICE_REQUEST_PROFILE_URL,
-    ]
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ProfileKey {
-    Patient,
-    Encounter,
-    ServiceRequest,
-}
-
-fn normalize_key(url: &str) -> Option<ProfileKey> {
-    let trimmed = url.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-    let lower = trimmed.to_ascii_lowercase();
-    match lower.as_str() {
-        "patient" | "http://hl7.org/fhir/structuredefinition/patient" => Some(ProfileKey::Patient),
-        "encounter" | "http://hl7.org/fhir/structuredefinition/encounter" => {
-            Some(ProfileKey::Encounter)
-        }
-        "servicerequest" | "http://hl7.org/fhir/structuredefinition/servicerequest" => {
-            Some(ProfileKey::ServiceRequest)
-        }
-        _ => None,
-    }
-}
-
 #[derive(Debug, Clone, Deserialize)]
-struct RawStructureDefinition {
+pub struct RawStructureDefinition {
     pub url: String,
     pub name: Option<String>,
     #[serde(rename = "type")]
@@ -195,13 +124,13 @@ struct RawStructureDefinition {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct RawSnapshot {
+pub struct RawSnapshot {
     #[serde(default)]
     pub element: Vec<RawElementDefinition>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct RawElementDefinition {
+pub struct RawElementDefinition {
     pub id: Option<String>,
     pub path: Option<String>,
     pub min: Option<u32>,
@@ -214,46 +143,13 @@ struct RawElementDefinition {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct RawElementType {
+pub struct RawElementType {
     pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct RawElementBinding {
+pub struct RawElementBinding {
     pub strength: Option<String>,
     #[serde(rename = "valueSet")]
     pub value_set: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn loads_known_profiles() {
-        assert!(load_profile(PATIENT_PROFILE_URL).is_some());
-        assert!(load_profile(ENCOUNTER_PROFILE_URL).is_some());
-        assert!(load_profile(SERVICE_REQUEST_PROFILE_URL).is_some());
-        assert!(load_profile("Unknown").is_none());
-    }
-
-    #[test]
-    fn parses_snapshot_elements() {
-        let profile = load_profile(SERVICE_REQUEST_PROFILE_URL).expect("profile");
-        let subject = profile.element_by_path("ServiceRequest.subject").unwrap();
-        assert_eq!(subject.min, Some(1));
-        assert!(subject.must_support);
-
-        let intent = profile.element_by_path("ServiceRequest.intent").unwrap();
-        assert_eq!(intent.min, Some(1));
-        assert_eq!(intent.path, "ServiceRequest.intent");
-        assert!(intent.binding.is_some());
-    }
-
-    #[test]
-    fn profile_meta_preserves_urls() {
-        let profile = load_profile(PATIENT_PROFILE_URL).unwrap();
-        assert_eq!(profile.meta.url, PATIENT_PROFILE_URL.to_string());
-        assert_eq!(profile.meta.resource_type, "Patient".to_string());
-    }
 }

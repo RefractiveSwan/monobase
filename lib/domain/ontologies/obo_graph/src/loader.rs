@@ -10,14 +10,14 @@ pub fn load_ontology_graph(id: &str) -> Result<OntologyGraph, OboError> {
             "ncit-mini",
             include_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../../data/obo/ncit-mini.obo"
+                "/../../../../data/clinical/ontologies/ncit-mini.obo"
             )),
         ),
         "mondo-mini" => parse_obo(
             "mondo-mini",
             include_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/../../../data/obo/mondo-mini.obo"
+                "/../../../../data/clinical/ontologies/mondo-mini.obo"
             )),
         ),
         other => Err(OboError::UnsupportedGraph(other.to_string())),

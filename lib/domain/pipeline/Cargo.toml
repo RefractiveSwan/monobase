@@ -4,8 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_ingestion = { path = "../ingestion" }
-dfps_mapping = { path = "../mapping" }
+dfps_ingestion = { path = "../ontologies/ingestion" }
+dfps_mapping = { path = "../ontologies/mapping" }
 dfps_core = { path = "../core" }
 dfps_observability = { path = "../../platform/observability" }
 serde = { workspace = true }

@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 ### Changed
 - REFR-022 – “Restructure dfps_core into super-domains (primitives/clinical/interop/semantics) with bridges under consumer modules” (checkbox completed).
 - REFR-022 – “Preserve legacy public API paths via lib.rs re-exports and prelude wiring” (checkbox completed).
+- REFR-05  – FHIR profiles folded into `dfps_ingestion::profiles` with crate README/docs, external validator port/context, and CLI/test adapters owning HTTP/env; workspace crate paths aligned to `evaluation/` + `ontologies/` layout.
 - REFR-022 – Domain core helpers and docs alignment (`dfps_core` README, `CodeElement::id_for`, MappingResult builders, staging/datagate alignment notes, staging serde tests, unit coverage).
 
 ### Planned

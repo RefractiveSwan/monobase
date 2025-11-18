@@ -3,17 +3,18 @@
 //! Each [`RequirementRef`] corresponds to an ID defined in
 //! `docs/system-design/clinical/fhir/requirements/ingestion-requirements.md`.
 //! When the `profile_validation` feature is enabled, profile cardinalities from
-//! `dfps_fhir_profiles` are applied alongside the hand-written checks to keep
+//! `crate::profiles` are applied alongside the hand-written checks to keep
 //! ingestion aligned with embedded StructureDefinitions.
 
 use std::collections::{HashMap, HashSet};
 
-use dfps_core::fhir;
 #[cfg(feature = "profile_validation")]
-use dfps_fhir_profiles::{self, ElementDefinition as ProfileElement, FhirProfile};
+use crate::profiles::{self, ElementDefinition as ProfileElement, FhirProfile};
+use dfps_core::fhir;
 use serde::{Deserialize, Serialize};
 
 use crate::reference::reference_id_from_str;
+use crate::validation::external::{ExternalValidationError, ExternalValidator};
 
 pub mod external;
 
@@ -235,6 +236,22 @@ impl ValidationReport {
     }
 }
 
+/// Context for optional external validation (validator + profile URL).
+#[derive(Clone, Copy, Default)]
+pub struct ExternalValidationContext<'a> {
+    pub validator: Option<&'a dyn ExternalValidator>,
+    pub profile_url: Option<&'a str>,
+}
+
+impl std::fmt::Debug for ExternalValidationContext<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExternalValidationContext")
+            .field("validator", &self.validator.is_some())
+            .field("profile_url", &self.profile_url)
+            .finish()
+    }
+}
+
 /// Output wrapper for functions that combine ingestion + validation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Validated<T> {
@@ -250,29 +267,36 @@ impl<T> Validated<T> {
 
 /// Validate an entire FHIR Bundle by walking ServiceRequests and referenced resources.
 pub fn validate_bundle(bundle: &fhir::Bundle) -> ValidationReport {
-    validate_bundle_with_external_profile(bundle, ValidationMode::Lenient, None)
+    validate_bundle_with_external_profile(
+        bundle,
+        ValidationMode::Lenient,
+        ExternalValidationContext::default(),
+    )
 }
 
 #[cfg(feature = "profile_validation")]
 fn load_service_request_profile(profile_url: Option<&str>) -> Option<FhirProfile> {
-    let url = profile_url.unwrap_or(dfps_fhir_profiles::SERVICE_REQUEST_PROFILE_URL);
-    dfps_fhir_profiles::load_profile(url)
+    let url = profile_url.unwrap_or(profiles::SERVICE_REQUEST_PROFILE_URL);
+    profiles::load_profile(url)
 }
 
 /// Validate a bundle and optionally merge external validator feedback.
 pub fn validate_bundle_with_external(
     bundle: &fhir::Bundle,
     mode: ValidationMode,
+    ctx: ExternalValidationContext<'_>,
 ) -> ValidationReport {
-    validate_bundle_with_external_profile(bundle, mode, None)
+    validate_bundle_with_external_profile(bundle, mode, ctx)
 }
 
 /// Validate a bundle and optionally merge external validator feedback with an explicit profile URL.
 pub fn validate_bundle_with_external_profile(
     bundle: &fhir::Bundle,
     mode: ValidationMode,
-    profile_url: Option<&str>,
+    ctx: ExternalValidationContext<'_>,
 ) -> ValidationReport {
+    #[cfg(feature = "profile_validation")]
+    let profile_url = ctx.profile_url;
     #[cfg(feature = "profile_validation")]
     let sr_profile = load_service_request_profile(profile_url);
 
@@ -307,26 +331,13 @@ pub fn validate_bundle_with_external_profile(
         mode,
         ValidationMode::ExternalPreferred | ValidationMode::ExternalStrict
     ) {
-        report = merge_external_report(
-            mode,
-            report,
-            crate::validation::external::validate_bundle_external(bundle, profile_url),
-        );
-        if matches!(mode, ValidationMode::ExternalPreferred)
-            && std::env::var("DFPS_FHIR_VALIDATOR_MOCK")
-                .as_deref()
-                .ok()
-                .map(|v| v == "ok")
-                .unwrap_or(false)
-        {
-            for issue in &mut report.issues {
-                if issue.requirement == RequirementRef::RExternal
-                    && issue.severity == ValidationSeverity::Error
-                {
-                    issue.severity = ValidationSeverity::Warning;
-                }
-            }
-        }
+        let external_result = match ctx.validator {
+            Some(validator) => validator.validate_bundle(bundle, ctx.profile_url),
+            None => Err(ExternalValidationError::Unavailable(
+                "no external validator provided".into(),
+            )),
+        };
+        report = merge_external_report(mode, report, external_result);
     }
 
     report
@@ -565,8 +576,8 @@ mod tests {
         let merged = merge_external_report(
             ValidationMode::ExternalPreferred,
             report,
-            Err(ExternalValidationError::MissingConfig(
-                "DFPS_FHIR_VALIDATOR_BASE_URL",
+            Err(ExternalValidationError::Unavailable(
+                "DFPS_FHIR_VALIDATOR_BASE_URL not set".into(),
             )),
         );
         assert_eq!(merged.issues.len(), 1);
@@ -623,8 +634,7 @@ mod tests {
     #[test]
     fn profile_requirement_links_return_expected_paths() {
         let profile =
-            dfps_fhir_profiles::load_profile(dfps_fhir_profiles::SERVICE_REQUEST_PROFILE_URL)
-                .unwrap();
+            crate::profiles::load_profile(crate::profiles::SERVICE_REQUEST_PROFILE_URL).unwrap();
         let mappings = profile_requirement_links(&profile);
         assert!(mappings.iter().any(|(req, el)| {
             *req == RequirementRef::RSubject && el.path == "ServiceRequest.subject"
@@ -639,8 +649,7 @@ mod tests {
     #[test]
     fn validate_sr_profile_flags_missing_intent() {
         let profile =
-            dfps_fhir_profiles::load_profile(dfps_fhir_profiles::SERVICE_REQUEST_PROFILE_URL)
-                .unwrap();
+            crate::profiles::load_profile(crate::profiles::SERVICE_REQUEST_PROFILE_URL).unwrap();
         let sr = fhir::ServiceRequest {
             resource_type: "ServiceRequest".into(),
             id: Some("SR-123".into()),

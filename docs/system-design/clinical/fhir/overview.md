@@ -24,7 +24,7 @@ DFPS treats the "FHIR terminology layer" node above as a license-aware registry:
 
 ## Profiles & conformance
 
-DFPS embeds thin StructureDefinition snapshots (`Patient`, `Encounter`, `ServiceRequest`) under `dfps_fhir_profiles`. Ingestion callers can enable the `profile_validation` feature to enforce required elements and cardinalities (e.g., `ServiceRequest.status`, `ServiceRequest.subject`, `ServiceRequest.intent`, `ServiceRequest.id`) alongside hand-written checks and optional external `$validate` calls. See `docs/runbook/fhir-profiles-quickstart.md` for updating embedded profiles.
+DFPS embeds thin StructureDefinition snapshots (`Patient`, `Encounter`, `ServiceRequest`) under `dfps_ingestion::profiles`. Ingestion callers can enable the `profile_validation` feature to enforce required elements and cardinalities (e.g., `ServiceRequest.status`, `ServiceRequest.subject`, `ServiceRequest.intent`, `ServiceRequest.id`) alongside hand-written checks and optional external `$validate` calls injected via an `ExternalValidator`. See `docs/runbook/fhir-profiles-quickstart.md` for updating embedded profiles.
 
 **Related diagrams**
 

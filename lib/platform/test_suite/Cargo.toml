@@ -18,17 +18,17 @@ tower = "0.5"
 dfps_api = { path = "../../app/web/backend/api" }
 dfps_datamart = { path = "../../app/web/backend/datamart" }
 dfps_core = { path = "../../domain/core" }
-dfps_fake_data = { path = "../../domain/fake_data" }
-dfps_ingestion = { path = "../../domain/ingestion" }
-dfps_mapping = { path = "../../domain/mapping" }
-dfps_terminology= { path = "../../domain/terminology" }
+dfps_fake_data = { path = "../../domain/evaluation/fake_data" }
+dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
+dfps_mapping = { path = "../../domain/ontologies/mapping" }
+dfps_terminology= { path = "../../domain/ontologies/terminology" }
 dfps_pipeline = { path = "../../domain/pipeline" }
 dfps_observability = { path = "../observability" }
 dfps_configuration = { path = "../configuration" }
 dfps_vector_store = { path = "../vector_store" }
 dfps_compliance = { path = "../compliance" }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
-dfps_eval = { path = "../../domain/eval" }
+dfps_eval = { path = "../../domain/evaluation/eval" }
 
 [features]
 backend-pgvector = ["dfps_vector_store/backend-pgvector"]

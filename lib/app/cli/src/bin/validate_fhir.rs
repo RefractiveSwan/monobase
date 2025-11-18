@@ -1,11 +1,17 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
+use std::time::Duration;
 
 use clap::{Parser, ValueEnum};
 use dfps_configuration::load_env;
 use dfps_core::fhir::Bundle;
-use dfps_ingestion::validation::{ValidationMode, ValidationSeverity};
+use dfps_ingestion::validation::{
+    ExternalValidationContext, ValidationMode, ValidationSeverity,
+    external::{
+        ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
+    },
+};
 use serde::Serialize;
 
 #[derive(Parser)]
@@ -67,6 +73,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
     let args = Args::parse();
     let mode: ValidationMode = args.mode.into();
+    let validator = match mode {
+        ValidationMode::ExternalPreferred | ValidationMode::ExternalStrict => {
+            Some(BlockingHttpValidator::try_new()?)
+        }
+        _ => None,
+    };
 
     let bundles = read_bundles(&args)?;
     if bundles.is_empty() {
@@ -79,11 +91,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut total_infos = 0usize;
 
     for (idx, bundle) in bundles.iter().enumerate() {
-        let report = dfps_ingestion::validation::validate_bundle_with_external_profile(
-            bundle,
-            mode,
-            args.profile.as_deref(),
-        );
+        let ctx = ExternalValidationContext {
+            validator: validator.as_ref().map(|v| v as &dyn ExternalValidator),
+            profile_url: args.profile.as_deref(),
+        };
+        let report =
+            dfps_ingestion::validation::validate_bundle_with_external_profile(bundle, mode, ctx);
         for issue in &report.issues {
             total_issues += 1;
             match issue.severity {
@@ -158,4 +171,61 @@ fn read_bundles(args: &Args) -> Result<Vec<Bundle>, Box<dyn std::error::Error>> 
         bundles.push(bundle);
     }
     Ok(bundles)
+}
+
+#[derive(Clone)]
+struct BlockingHttpValidator {
+    client: reqwest::blocking::Client,
+    base_url: String,
+    default_profile: Option<String>,
+}
+
+impl BlockingHttpValidator {
+    fn try_new() -> Result<Self, ExternalValidationError> {
+        let base_url = std::env::var("DFPS_FHIR_VALIDATOR_BASE_URL").map_err(|_| {
+            ExternalValidationError::Unavailable("DFPS_FHIR_VALIDATOR_BASE_URL not set".into())
+        })?;
+        let timeout_secs = std::env::var("DFPS_FHIR_VALIDATOR_TIMEOUT_SECS")
+            .ok()
+            .and_then(|raw| raw.parse::<u64>().ok())
+            .unwrap_or(10);
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(timeout_secs))
+            .build()
+            .map_err(|err| ExternalValidationError::Failed(err.to_string()))?;
+        let default_profile = std::env::var("DFPS_FHIR_VALIDATOR_PROFILE").ok();
+        Ok(Self {
+            client,
+            base_url,
+            default_profile,
+        })
+    }
+}
+
+impl ExternalValidator for BlockingHttpValidator {
+    fn validate_bundle(
+        &self,
+        bundle: &Bundle,
+        profile_url: Option<&str>,
+    ) -> Result<ExternalValidationReport, ExternalValidationError> {
+        let mut url = self.base_url.trim_end_matches('/').to_string();
+        if !url.ends_with("/$validate") {
+            url.push_str("/$validate");
+        }
+
+        let mut request = self.client.post(url).json(bundle);
+        if let Some(profile) = profile_url.or(self.default_profile.as_deref()) {
+            request = request.query(&[("profile", profile)]);
+        }
+
+        let response = request
+            .send()
+            .map_err(|err| ExternalValidationError::Failed(err.to_string()))?;
+        let outcome: OperationOutcome = response
+            .json()
+            .map_err(|err| ExternalValidationError::Parse(err.to_string()))?;
+        Ok(ExternalValidationReport::from_operation_outcome(Some(
+            outcome,
+        )))
+    }
 }

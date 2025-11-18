@@ -940,6 +940,7 @@ dependencies = [
  "dfps_vector_store",
  "env_logger",
  "log",
+ "reqwest",
  "serde",
  "serde_json",
  "sqlx",
@@ -1016,21 +1017,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "dfps_fhir_profiles"
-version = "0.1.0"
-dependencies = [
- "once_cell",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "dfps_ingestion"
 version = "0.1.0"
 dependencies = [
  "dfps_core",
- "dfps_fhir_profiles",
- "reqwest",
+ "once_cell",
  "serde",
  "serde_json",
  "thiserror 1.0.69",

@@ -33,7 +33,7 @@
 
 ### FHIR-PROF-01 – Profiles crate & data model
 
-- [x] Introduce a new domain crate `lib/domain/fhir_profiles` (`dfps_fhir_profiles`):
+- [x] Introduce embedded profile module under `dfps_ingestion::profiles` (replaces standalone `dfps_fhir_profiles` crate):
 
   - [x] Types mirroring a subset of FHIR `StructureDefinition`:
 
@@ -62,7 +62,7 @@
 
 ### FHIR-PROF-03 – Structural validation helpers
 
-- [x] Under `dfps_ingestion::validation`, add functions that use `dfps_fhir_profiles`:
+- [x] Under `dfps_ingestion::validation`, add functions that use `dfps_ingestion::profiles`:
 
   - [x] `validate_sr_profile(sr, profile: &FhirProfile) -> Vec<ValidationIssue>` checking:
 
@@ -77,7 +77,7 @@
 
 - [x] Add example `StructureDefinition` JSON files for the relevant profiles under `data/fhir/profiles/`.
 
-- [x] Tests in `dfps_fhir_profiles`:
+- [x] Tests in `dfps_ingestion::profiles`:
 
   - [x] Parse embedded profiles.
   - [x] Validate that key paths (`ServiceRequest.subject`, `status`, etc.) are present and mapped to `RequirementRef`.

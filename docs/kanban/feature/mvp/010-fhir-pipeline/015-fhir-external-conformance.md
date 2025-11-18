@@ -45,14 +45,7 @@
 
 ### FHIR-CONF-02 – HTTP client & configuration
 
-- [x] Implement `validate_bundle_external(bundle: &Bundle, profile_url: Option<&str>) -> Result<ExternalValidationReport, ExternalValidationError>`:
-
-  - [x] Use `reqwest` to hit a configured `$validate` endpoint.
-  - [x] Env-driven config:
-
-    - `DFPS_FHIR_VALIDATOR_BASE_URL`
-    - `DFPS_FHIR_VALIDATOR_TIMEOUT_SECS`
-    - `DFPS_FHIR_VALIDATOR_PROFILE` (default profile URL).
+- [x] Expose an `ExternalValidator` port (no env/HTTP inside `dfps_ingestion`), plus a CLI adapter using `reqwest` + env config to hit `$validate`.
 
 - [x] Add `.env.domain.fhir_validation.dev/example` documenting these keys.
 
@@ -64,16 +57,16 @@
 
 - [x] Update `validate_bundle` to:
 
-  - [x] Optionally call `validate_bundle_external` and merge results:
+  - [x] Optionally call an injected `ExternalValidator` and merge results:
 
     - External `OperationOutcome` issues mapped into `ValidationIssue` with a new `RequirementRef` variant (e.g., `RExternal`), or tagged via a `source` field.
     - Ensure that IDs/requirements from `ingestion-requirements.md` remain stable.
 
-  - [x] In `ExternalStrict` mode, treat any `OperationOutcomeIssue` with severity `error` or `fatal` as blocking.
+  - [x] In `ExternalStrict` mode, treat any `OperationOutcomeIssue` with severity `error` or `fatal` as blocking; treat a missing validator as an `RExternal` issue.
 
 - [x] Provide helpers:
 
-  - `validate_bundle_with_external(bundle, mode) -> ValidationReport`.
+- `validate_bundle_with_external(bundle, mode, ExternalValidationContext) -> ValidationReport`.
 
 ### FHIR-CONF-04 – CLI & developer ergonomics
 
@@ -82,7 +75,7 @@
   - `validate-fhir`:
 
     - [x] Reads Bundle JSON/NDJSON from stdin or file.
-    - [x] Calls `validate_bundle_with_external`.
+    - [x] Calls `validate_bundle_with_external_profile` with an injected validator context.
     - [x] Emits NDJSON `ValidationIssue` rows plus a summary line (counts by severity and source).
 
 - [x] Update `docs/system-design/clinical/fhir/index.md` with:

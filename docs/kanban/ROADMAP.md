@@ -183,7 +183,7 @@ flowchart LR
 * **015** External FHIR conformance: `$validate` client, blending with internal validation, CLI, fixtures.
 * **016** Warehouse SQL: DDL/migrations, loader, CLI, integration tests, quickstart.
 * **017** Analytics surfaces: backend endpoints, frontend views, BI integration, tests/metrics.
-* **018** FHIR profiles: `dfps_fhir_profiles`, profile‑linked validation, fixtures, docs.
+* **018** FHIR profiles: `dfps_ingestion::profiles`, profile‑linked validation, fixtures, docs.
 * **019** OBO graph: import minimal OBO, reasoning utilities, mapping boosts, fixtures.
 * **020** License compliance: policy model, gating, exporters, logs/tests/docs.
 * **021** Docs hosting/search: mdBook search, theming, publish pipeline, frontend link.

@@ -55,19 +55,18 @@
       - [ ] Add a `MappingResult` builder/constructor to standardize reason/state handling instead of duplicating logic in downstream crates.
       - [ ] Expose a helper for constructing stable `CodeElement` IDs so ingestion/mapping/datamart share the same format.
       - [ ] Add a crate README tying modules to system-design docs and clarifying staging vs mapping vs order invariants.
-    - [ ] `lib/domain/eval` (`dfps_eval`)
+    - [ ] `lib/domain/evaluation/eval` (`dfps_eval`)
       - [ ] Replace raw `std::env` dataset root resolution with a config struct built via `dfps_configuration` (still honoring DFPS_EVAL_DATA_ROOT).
       - [ ] Split IO/parsing from scoring so eval functions accept injected readers/writers instead of reading files directly.
       - [ ] Add determinism/benchmark tests for fingerprint computation across chunk sizes and `top_k` settings.
-    - [ ] `lib/domain/fake_data` (`dfps_fake_data`)
+    - [ ] `lib/domain/evaluation/fake_data` (`dfps_fake_data`)
       - [ ] Add a crate README describing generator outputs/seed controls and link it from `data/eval/README.md`.
       - [ ] Centralize RNG seeding helpers to keep fixtures deterministic across modules and CLI bins.
       - [ ] Provide a thin config wrapper over `dfps_configuration` for the generators instead of ad-hoc env access.
-    - [ ] `lib/domain/fhir_profiles` (`dfps_fhir_profiles`)
-      - [ ] Add tests ensuring embedded profiles contain required snapshot elements (subject/encounter) and match documented URLs.
-      - [ ] Surface profile version/metadata accessors so ingestion/external validation consumers don’t duplicate include paths.
     - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
-      - [ ] Extract an async-friendly external validator client/trait to replace the current blocking `reqwest` path for web stacks.
+      - [x] Embed FHIR profiles under `dfps_ingestion::profiles` with tests for required snapshot elements and documented URLs.
+      - [x] Add a crate README and crate-level docs describing the Bundle → staging/domain flow and profile hook.
+      - [x] Extract a validator port (`ExternalValidator` + `ExternalValidationContext`) so app/platform layers own HTTP clients; keep transforms/profile loading pure.
       - [ ] Introduce a validated-bundle type that carries the `ValidationReport` to callers to avoid double validation in CLI/pipeline.
       - [ ] Return typed status/intent enums from parsing helpers (instead of strings) to reduce downstream re-parsing.
     - [ ] `lib/domain/mapping` (`dfps_mapping`)
@@ -140,23 +139,20 @@
 
 ---
 
-### REFR-05 – Domain ingestion & FHIR profiles (`dfps_ingestion`, `dfps_fhir_profiles`)
+### REFR-05 – Domain ingestion & FHIR profiles (`dfps_ingestion`)
 
 **Goal:** Keep ingestion/FHIR-profile logic as a pure domain service that transforms Bundles into staging/domain types and structured validation results, leaving HTTP/env concerns to app/platform layers.
 
-- [ ] `dfps_ingestion`
-  - [ ] Document the ingestion flow from `fhir::Bundle` → `StgServiceRequestFlat` / `StgSrCodeExploded` → `order::ServiceRequest` in a crate-level `//!` header and README.
-  - [ ] Review `IngestionError` and `ValidationIssue`/`ValidationReport` usage and:
-    - [ ] Ensure error types don’t encode HTTP/env assumptions.
-    - [ ] Clarify when validation failures vs decode errors vs external validator failures are returned.
+- [x] `dfps_ingestion`
+  - [x] Document the ingestion flow from `fhir::Bundle` → `StgServiceRequestFlat` / `StgSrCodeExploded` → `order::ServiceRequest` in a crate-level `//!` header and README.
+  - [x] Review `IngestionError` and `ValidationIssue`/`ValidationReport` usage and:
+    - [x] Ensure error types don’t encode HTTP/env assumptions.
+    - [x] Clarify when validation failures vs decode errors vs external validator failures are returned.
   - [ ] Separate pure transforms (`sr_to_staging`, `sr_to_domain`) from validation orchestration (`bundle_to_*_with_validation`) so callers can compose them independently.
-  - [ ] Introduce a small, testable trait/port for external validation (currently `validate_bundle_external` uses blocking `reqwest`) so app/platform layers can own HTTP clients.
-- [ ] `dfps_fhir_profiles`
-  - [ ] Add a README describing which StructureDefinitions are embedded, where they come from, and how they align with FHIR requirements docs.
-  - [ ] Ensure profile include paths under `data/fhir/profiles/*.json` are documented and match the constants (`PATIENT_PROFILE_URL`, etc.).
-  - [ ] Add tests that:
-    - [ ] Verify required elements (id/status/intent/subject/encounter) exist and have the expected cardinalities.
-    - [ ] Ensure `known_profile_urls()` remains in sync with the embedded profiles and ingestion requirements.
+  - [x] Introduce a small, testable trait/port for external validation so app/platform layers can own HTTP clients.
+  - [x] Embed FHIR profiles under `profiles/`, document include paths, and test cardinalities/known URLs.
+  - [ ] Add a validated-bundle type to carry `ValidationReport` without double validation.
+  - [ ] Return typed status/intent enums from parsing helpers instead of strings to reduce downstream re-parsing.
 
 ### REFR-06 – Domain mapping engine & NCIt integration (`dfps_mapping`)
 

@@ -22,8 +22,8 @@ dfps_core = { path = "../../../../domain/core" }
 dfps_pipeline = { path = "../../../../domain/pipeline" }
 dfps_observability = { path = "../../../../platform/observability" }
 dfps_configuration = { path = "../../../../platform/configuration" }
-dfps_mapping = { path = "../../../../domain/mapping" }
-dfps_eval = { path = "../../../../domain/eval" }
+dfps_mapping = { path = "../../../../domain/ontologies/mapping" }
+dfps_eval = { path = "../../../../domain/evaluation/eval" }
 dfps_datamart = { path = "../datamart" }
 dfps_compliance = { path = "../../../../platform/compliance" }
-dfps_terminology = { path = "../../../../domain/terminology" }
+dfps_terminology = { path = "../../../../domain/ontologies/terminology" }

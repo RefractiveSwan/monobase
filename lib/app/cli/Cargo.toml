@@ -30,17 +30,18 @@ path = "src/bin/build_vector_index.rs"
 [dependencies]
 dfps_core = { path = "../../domain/core" }
 dfps_pipeline = { path = "../../domain/pipeline" }
-dfps_mapping = { path = "../../domain/mapping" }
-dfps_ingestion = { path = "../../domain/ingestion" }
+dfps_mapping = { path = "../../domain/ontologies/mapping" }
+dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
 dfps_observability = { path = "../../platform/observability" }
 dfps_configuration = { path = "../../platform/configuration" }
-dfps_eval = { path = "../../domain/eval" }
+dfps_eval = { path = "../../domain/evaluation/eval" }
 dfps_datamart = { path = "../web/backend/datamart" }
 dfps_vector_store = { path = "../../platform/vector_store" }
 dfps_compliance = { path = "../../platform/compliance" }
-dfps_terminology = { path = "../../domain/terminology" }
+dfps_terminology = { path = "../../domain/ontologies/terminology" }
 serde.workspace = true
 serde_json.workspace = true 
+reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls-tls"] }
 env_logger = "0.11"
 log = "0.4"
 clap.workspace = true

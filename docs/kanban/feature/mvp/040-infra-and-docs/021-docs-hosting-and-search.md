@@ -74,7 +74,7 @@
   - [ ] `lib/domain/core` (`dfps_core`)
   - [ ] `lib/domain/eval` (`dfps_eval`)
   - [ ] `lib/domain/fake_data` (`dfps_fake_data`)
-  - [ ] `lib/domain/fhir_profiles` (`dfps_fhir_profiles`)
+  - [ ] `lib/domain/ingestion::profiles` (embedded FHIR profiles)
   - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
   - [ ] `lib/domain/mapping` (`dfps_mapping`)
   - [ ] `lib/domain/obo_graph` (`dfps_obo_graph`)
