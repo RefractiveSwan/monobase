@@ -138,6 +138,11 @@ code/lib/domain/
 
   * `Graph`, `Partition`, `CodeElement`, `MappingResult`, etc.
   * Port traits for algorithms or IO (e.g. `MappingEnginePort`, `GraphBuilderPort`).
+* Internal layout (REFR-04):
+
+  * `primitives/` (IDs), `clinical/` (patient/encounter/order), `interop/` (FHIR + staging landing rows), `semantics/` (mapping concepts/results).
+  * Bridges that consume another super-domain live under the **consumer** module’s `bridge/` folder (e.g., `semantics/mapping/bridge/from_staging.rs`).
+  * `lib.rs` keeps back-compat re-exports so callers can still use `dfps_core::{patient, order, staging, mapping, value, fhir}` module paths.
 
 #### `ingestion/` – Getting data in
 

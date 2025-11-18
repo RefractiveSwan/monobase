@@ -4,6 +4,11 @@
 **Branch:** `feature/meta/REFR-022-codebase-refactor`  
 **Goal:** Turn the local mdBook into a searchable, themed, publicly hosted documentation site, integrated with `/docs` in the frontend.
 
+> Status: **INPROGRESS**  
+> Branch target version: `v0.1.0`  
+> Introduced in: `v0.1.0`  
+> Last updated in: `v0.1.0`
+
 ### Columns
 * **TODO** – Not started yet  
 * **INPROGRESS** – In progress  
@@ -134,25 +139,6 @@
 - [ ] Document error taxonomies per surface (CLI exit codes, API status codes, frontend user messages) and map them back to domain errors (ingestion, mapping, compliance).
 
 ---
-
-### REFR-04 – Domain core & staging (`dfps_core`)
-
-**Goal:** Make `dfps_core` the canonical source of truth for domain entities, IDs, staging rows, and mapping result types, with no IO/env/platform coupling.
-
-- [ ] Add `lib/domain/core/README.md` that:
-  - [ ] Explains the split between `encounter`, `order`, `patient`, `staging`, `mapping`, `value`, and `fhir` modules.
-  - [ ] Links each module back to the relevant system-design diagrams (FHIR class/model, NCIt architecture, staging tables).
-- [ ] Review `dfps_core::mapping` types (`CodeElement`, `MappingResult`, `MappingThresholds`, `MappingSourceVersion`, `NCItConcept`, `DimNCITConcept`) and:
-  - [ ] Identify any duplicate mapping/result structs in other crates and plan to unify them on `dfps_core::mapping`.
-  - [ ] Add helper constructors/builders for common result patterns (AutoMapped / NeedsReview / NoMatch).
-- [ ] Confirm staging structs (`StgServiceRequestFlat`, `StgSrCodeExploded`) match:
-  - [ ] Ingestion transforms (dfps_ingestion),
-  - [ ] Pipeline outputs (dfps_pipeline),
-  - [ ] Datamart schema (dim/fact tables), and document any intentional differences.
-- [ ] Ensure `dfps_core` has:
-  - [ ] No direct `std::env` or file IO,
-  - [ ] Only serialization and optional `fake`/`Dummy` derives as dependencies.
-- [ ] Add doc-tests or small unit tests in core modules (value/order/encounter/patient/staging) that mirror the canonical ServiceRequest journey.
 
 ### REFR-05 – Domain ingestion & FHIR profiles (`dfps_ingestion`, `dfps_fhir_profiles`)
 
@@ -420,7 +406,27 @@
 ---
 
 ## REVIEW
-- _Empty_
+
+### REFR-04 – Domain core & staging (`dfps_core`)
+
+**Goal:** Make `dfps_core` the canonical source of truth for domain entities, IDs, staging rows, and mapping result types, with no IO/env/platform coupling.
+
+- [x] Add `lib/domain/core/README.md` that:
+  - [x] Explains the split between `encounter`, `order`, `patient`, `staging`, `mapping`, `value`, and `fhir` modules.
+  - [x] Links each module back to the relevant system-design diagrams (FHIR class/model, NCIt architecture, staging tables).
+- [x] Restructure `dfps_core` into super-domains (`primitives`, `clinical`, `interop`, `semantics`) with bridges placed under the consumer (`bridge/`) modules.
+- [x] Preserve legacy public API paths via `lib.rs` re-exports and `prelude` wiring so `dfps_core::{patient, order, staging, mapping, value, fhir}` continue to work.
+- [ ] Review `dfps_core::mapping` types (`CodeElement`, `MappingResult`, `MappingThresholds`, `MappingSourceVersion`, `NCItConcept`, `DimNCITConcept`) and:
+  - [x] Identify any duplicate mapping/result structs in other crates and plan to unify them on `dfps_core::mapping`.
+  - [x] Add helper constructors/builders for common result patterns (AutoMapped / NeedsReview / NoMatch).
+- [ ] Confirm staging structs (`StgServiceRequestFlat`, `StgSrCodeExploded`) match:
+  - [x] Ingestion transforms (dfps_ingestion),
+  - [x] Pipeline outputs (dfps_pipeline),
+  - [x] Datamart schema (dim/fact tables), and document any intentional differences.
+- [ ] Ensure `dfps_core` has:
+  - [x] No direct `std::env` or file IO,
+  - [x] Only serialization and optional `fake`/`Dummy` derives as dependencies.
+- [x] Add doc-tests or small unit tests in core modules (value/order/encounter/patient/staging) that mirror the canonical ServiceRequest journey.
 
 ---
 

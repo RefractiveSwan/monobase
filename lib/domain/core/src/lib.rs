@@ -1,12 +1,30 @@
 //! Core domain model for DFPS (depth_forward_ontology_clinical_model).
+//! Keeps staging/order/mapping value objects together with `serde` support.
 //!
-//! This crate holds the functional domain model types (value objects,
-//! entities, aggregates) with `serde` support.
+//! Super-domains: primitives, clinical, interop, semantics.
+//!
+//! See:
+//! - docs/system-design/base/directory-architecture.md
+//! - docs/system-design/fhir/models/class-model.md
+//! - docs/system-design/ncit/models/class-model.md
+//! - docs/system-design/fhir/behavior/sequence-servicerequest.md
+//! - docs/system-design/ncit/behavior/sequence-servicerequest.md
+//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-04--domain-core--staging
+//!
+//! Card: REFR-04 (Domain core & staging). This crate stays pure domain—
+//! no IO or environment access. Apps/pipeline inject policies and configs.
 
-pub mod encounter;
-pub mod fhir;
-pub mod mapping;
-pub mod order;
-pub mod patient;
-pub mod staging;
-pub mod value;
+pub mod clinical;
+pub mod interop;
+pub mod prelude;
+pub mod primitives;
+pub mod semantics;
+
+// Back-compat module aliases (so dfps_core::<module> keeps working).
+pub use clinical::encounter;
+pub use clinical::order;
+pub use clinical::patient;
+pub use interop::fhir;
+pub use interop::staging;
+pub use primitives::value;
+pub use semantics::mapping;

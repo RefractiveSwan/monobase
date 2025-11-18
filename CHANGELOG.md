@@ -15,6 +15,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - LIC-020 – Compliance policy crate + mapping/CLI enforcement (mode-aware Policy loader, `license_blocked` NoMatch reason, CLI summaries, export guard helper).
 - LIC-020 – Compliance metrics + API/warehouse guardrails (pipeline metrics track `license_blocked` + compliance mode, map_bundles fail-fast, API export compliance blocks writes, runbook documents modes and env flags).
 
+### Changed
+- REFR-022 – “Restructure dfps_core into super-domains (primitives/clinical/interop/semantics) with bridges under consumer modules” (checkbox completed).
+- REFR-022 – “Preserve legacy public API paths via lib.rs re-exports and prelude wiring” (checkbox completed).
+- REFR-022 – Domain core helpers and docs alignment (`dfps_core` README, `CodeElement::id_for`, MappingResult builders, staging/datagate alignment notes, staging serde tests, unit coverage).
+
 ### Planned
 - CLI application (`feature/app/cli-mvp` – 004): `dfps_cli` scaffold + `map-bundles` / `generate-fhir-bundles` subcommands, flags, tests, CI smoke.
 - Desktop application (`feature/app/desktop-mvp` – 006): shell scaffold, pipeline wiring, minimal UI, export, logging, docs.
