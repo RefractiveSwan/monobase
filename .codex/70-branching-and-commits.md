@@ -1,4 +1,4 @@
-# Branching & Commit Conventions
+ # Branching & Commit Conventions
 
 ## Branching
 - Base: `main`; prefer **one card -> one feature branch**.
