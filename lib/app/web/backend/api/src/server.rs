@@ -2,6 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     env,
     net::{IpAddr, SocketAddr},
+    path::PathBuf,
     sync::Arc,
 };
 
@@ -334,6 +335,7 @@ pub struct ApiState {
     analytics_persistence: AnalyticsPersistence,
     latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
     compliance_policy: dfps_compliance::Policy,
+    dataset_store: Arc<dfps_eval::FileDatasetStore>,
 }
 
 impl ApiState {
@@ -343,12 +345,14 @@ impl ApiState {
         let compliance_policy = compliance_config
             .load_policy()
             .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
+        let dataset_store = Arc::new(eval_dataset_store_from_env());
         Self {
             metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
             analytics: Arc::new(Mutex::new(AnalyticsState::default())),
             analytics_persistence: AnalyticsPersistence::from_env(),
             latest_eval: Arc::new(Mutex::new(None)),
             compliance_policy,
+            dataset_store,
         }
     }
 }
@@ -470,18 +474,25 @@ async fn analytics_cohort(
     Ok(Json(response).into_response())
 }
 
-async fn eval_summary(Query(query): Query<EvalQuery>) -> Result<Response, ApiError> {
+async fn eval_summary(
+    State(state): State<ApiState>,
+    Query(query): Query<EvalQuery>,
+) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
     let dataset = query.dataset;
     info!(target: "dfps_api", "request_id={request_id} eval_summary dataset={dataset}");
-    let cases = dfps_eval::load_dataset(&dataset)
+    let cases = state
+        .dataset_store
+        .load_dataset(&dataset)
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), request_id))?;
     let summary = run_eval_internal(&cases, query.top_k);
     Ok(Json(summary).into_response())
 }
 
-async fn list_eval_datasets() -> Result<Response, ApiError> {
-    let manifests = dfps_eval::list_manifests()
+async fn list_eval_datasets(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    let manifests = state
+        .dataset_store
+        .list_manifests()
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), Uuid::new_v4()))?;
     Ok(Json(manifests).into_response())
 }
@@ -497,7 +508,9 @@ async fn run_eval(
         body.dataset,
         body.top_k
     );
-    let outcome = dfps_eval::load_dataset_with_manifest(&body.dataset)
+    let outcome = state
+        .dataset_store
+        .load_dataset_with_manifest(&body.dataset)
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), request_id))?;
     let summary = run_eval_internal(&outcome.cases, body.top_k);
     let response = EvalRunResponse {
@@ -551,6 +564,13 @@ fn normalize_date(value: &Option<String>) -> Option<String> {
             .map(|date| date.to_string())
             .ok()
     })
+}
+
+fn eval_dataset_store_from_env() -> dfps_eval::FileDatasetStore {
+    let root = env::var("DFPS_EVAL_DATA_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| dfps_eval::default_data_root());
+    dfps_eval::FileDatasetStore::new(root)
 }
 
 async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {

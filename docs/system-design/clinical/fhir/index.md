@@ -40,7 +40,7 @@ use dfps_pipeline::bundle_to_mapped_sr;
 use serde_json::from_str;
 
 let bundle: dfps_core::fhir::Bundle =
-    from_str(include_str!("../../lib/domain/fake_data/data/regression/fhir_bundle_sr.json"))?;
+    from_str(include_str!("../../lib/domain/evaluation/fake_data/data/regression/fhir_bundle_sr.json"))?;
 
 let validated = bundle_to_staging_with_validation(
     &bundle,
@@ -61,7 +61,7 @@ assert_eq!(exploded.len(), mapped.exploded_codes.len());
 use dfps_ingestion::validation::{validate_bundle, validate_sr, ValidationMode};
 
 let bundle: dfps_core::fhir::Bundle =
-    serde_json::from_str(include_str!("../../lib/domain/fake_data/data/regression/fhir_bundle_sr.json"))?;
+    serde_json::from_str(include_str!("../../lib/domain/evaluation/fake_data/data/regression/fhir_bundle_sr.json"))?;
 
 // Validate the whole bundle before ingestion.
 let report = validate_bundle(&bundle);

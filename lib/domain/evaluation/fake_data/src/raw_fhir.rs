@@ -1,12 +1,15 @@
-use crate::value::{
-    fake_encounter_id_with_rng, fake_patient_id_with_rng, fake_service_request_id_with_rng,
-    fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
+use crate::{
+    rng,
+    value::{
+        fake_encounter_id_with_rng, fake_patient_id_with_rng, fake_service_request_id_with_rng,
+        fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
+    },
 };
 use dfps_core::{
     fhir,
     order::{ServiceRequestIntent, ServiceRequestStatus},
 };
-use rand::{Rng, SeedableRng, rng, rngs::StdRng, seq::IndexedRandom};
+use rand::{Rng, seq::IndexedRandom};
 use serde_json::to_value;
 
 #[derive(Debug, Clone)]
@@ -77,12 +80,11 @@ pub struct FhirBundleScenario {
 }
 
 pub fn fake_fhir_patient() -> fhir::Patient {
-    let mut rng = rng();
-    fake_fhir_patient_with_rng(&mut rng)
+    rng::with_global_rng(fake_fhir_patient_with_rng)
 }
 
 pub fn fake_fhir_patient_with_seed(seed: u64) -> fhir::Patient {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_fhir_patient_with_rng(&mut rng)
 }
 
@@ -95,12 +97,11 @@ fn fake_fhir_patient_with_rng<R: Rng + ?Sized>(rng: &mut R) -> fhir::Patient {
 }
 
 pub fn fake_fhir_encounter_for(patient: &fhir::Patient) -> fhir::Encounter {
-    let mut rng = rng();
-    fake_fhir_encounter_for_with_rng(patient, &mut rng)
+    rng::with_global_rng(|rng| fake_fhir_encounter_for_with_rng(patient, rng))
 }
 
 pub fn fake_fhir_encounter_for_with_seed(seed: u64, patient: &fhir::Patient) -> fhir::Encounter {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_fhir_encounter_for_with_rng(patient, &mut rng)
 }
 
@@ -119,8 +120,7 @@ pub fn fake_fhir_servicerequest(
     patient: &fhir::Patient,
     encounter: Option<&fhir::Encounter>,
 ) -> fhir::ServiceRequest {
-    let mut rng = rng();
-    fake_fhir_servicerequest_with_rng(patient, encounter, &mut rng)
+    rng::with_global_rng(|rng| fake_fhir_servicerequest_with_rng(patient, encounter, rng))
 }
 
 pub fn fake_fhir_servicerequest_with_seed(
@@ -128,7 +128,7 @@ pub fn fake_fhir_servicerequest_with_seed(
     patient: &fhir::Patient,
     encounter: Option<&fhir::Encounter>,
 ) -> fhir::ServiceRequest {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_fhir_servicerequest_with_rng(patient, encounter, &mut rng)
 }
 
@@ -177,12 +177,11 @@ fn fake_fhir_servicerequest_with_rng<R: Rng + ?Sized>(
 }
 
 pub fn fake_fhir_bundle_scenario() -> FhirBundleScenario {
-    let mut rng = rng();
-    fake_fhir_bundle_scenario_with_rng(&mut rng)
+    rng::with_global_rng(fake_fhir_bundle_scenario_with_rng)
 }
 
 pub fn fake_fhir_bundle_scenario_with_seed(seed: u64) -> FhirBundleScenario {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_fhir_bundle_scenario_with_rng(&mut rng)
 }
 

@@ -9,6 +9,7 @@ use actix_web::{App, HttpServer, web};
 use client::BackendClient;
 use config::AppConfig;
 use state::AppState;
+use std::{env, path::PathBuf};
 
 pub async fn run() -> std::io::Result<()> {
     if let Err(err) = dfps_configuration::load_env("app.web.frontend") {
@@ -30,7 +31,8 @@ pub async fn run() -> std::io::Result<()> {
         )
     })?;
     let listen_addr = config.listen_addr.clone();
-    let state = AppState::new(config, client);
+    let dataset_store = dataset_store_from_env();
+    let state = AppState::new(config, client, dataset_store);
 
     HttpServer::new(move || {
         App::new()
@@ -40,4 +42,11 @@ pub async fn run() -> std::io::Result<()> {
     .bind(&listen_addr)?
     .run()
     .await
+}
+
+fn dataset_store_from_env() -> dfps_eval::FileDatasetStore {
+    let root = env::var("DFPS_EVAL_DATA_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| dfps_eval::default_data_root());
+    dfps_eval::FileDatasetStore::new(root)
 }

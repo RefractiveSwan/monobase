@@ -16,19 +16,6 @@ pub use regression::*;
 static TEST_SUITE_ENV: Lazy<()> = Lazy::new(|| {
     dfps_configuration::load_env("platform.test_suite")
         .unwrap_or_else(|err| panic!("dfps_test_suite env error: {err}"));
-
-    // Ensure eval datasets resolve regardless of the current working directory.
-    if std::env::var("DFPS_EVAL_DATA_ROOT").is_err() {
-        let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let eval_root = manifest_dir
-            .ancestors()
-            .nth(3)
-            .expect("workspace root")
-            .join("lib/domain/fake_data/data/eval");
-        unsafe {
-            std::env::set_var("DFPS_EVAL_DATA_ROOT", eval_root);
-        }
-    }
 });
 
 /// Ensure the platform test suite env file is loaded (idempotent).

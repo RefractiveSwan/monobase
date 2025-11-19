@@ -34,5 +34,5 @@ requirementDiagram
 ```
 
 ## Verification notes
-- MAP_ACCURACY → `dfps_cli eval_mapping --dataset pet_ct_small --thresholds lib/domain/fake_data/data/meta/eval_thresholds.json` (datasets under `lib/domain/fake_data/data/eval/`).
+- MAP_ACCURACY → `dfps_cli eval_mapping --dataset pet_ct_small --thresholds lib/domain/evaluation/fake_data/data/meta/eval_thresholds.json` (datasets under `lib/domain/evaluation/fake_data/data/eval/`).
 - MAP_TRACE → Schema/tests ensure each `MappingResult` stores provenance (`source_version`, `strategy`, `reason`).

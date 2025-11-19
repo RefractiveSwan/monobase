@@ -64,19 +64,21 @@ async fn spawn_validator(with_issue: bool) -> (SocketAddr, oneshot::Sender<()>, 
 #[tokio::test]
 async fn external_issues_merge_into_report() {
     let (_addr, shutdown, handle) = spawn_validator(true).await;
-    let validator = BlockingValidator::new(_addr.to_string());
-
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
-    let ctx = ExternalValidationContext {
-        validator: Some(&validator),
-        profile_url: None,
-    };
-    let report: ValidationReport =
+    let report: ValidationReport = tokio::task::spawn_blocking(move || {
+        let validator = BlockingValidator::new(_addr.to_string());
+        let ctx = ExternalValidationContext {
+            validator: Some(&validator),
+            profile_url: None,
+        };
         dfps_ingestion::validation::validate_bundle_with_external_profile(
             &bundle,
             ValidationMode::ExternalStrict,
             ctx,
-        );
+        )
+    })
+    .await
+    .expect("blocking eval");
 
     assert!(report.has_errors(), "external error should surface");
     assert!(
@@ -93,14 +95,13 @@ async fn external_issues_merge_into_report() {
 #[tokio::test]
 async fn external_strict_blocks_ingestion_on_error() {
     let (_addr, shutdown, handle) = spawn_validator(true).await;
-    let validator = BlockingValidator::new(_addr.to_string());
-
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
-    let ctx = ExternalValidationContext {
-        validator: Some(&validator),
-        profile_url: None,
-    };
     let outcome = tokio::task::spawn_blocking(move || {
+        let validator = BlockingValidator::new(_addr.to_string());
+        let ctx = ExternalValidationContext {
+            validator: Some(&validator),
+            profile_url: None,
+        };
         bundle_to_staging_with_validation(&bundle, ValidationMode::ExternalStrict, ctx)
     })
     .await
@@ -124,14 +125,13 @@ async fn external_strict_blocks_ingestion_on_error() {
 #[tokio::test]
 async fn external_preferred_allows_pass_through_when_clean() {
     let (_addr, shutdown, handle) = spawn_validator(false).await;
-    let validator = BlockingValidator::new(_addr.to_string());
-
     let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
-    let ctx = ExternalValidationContext {
-        validator: Some(&validator),
-        profile_url: None,
-    };
     let report = tokio::task::spawn_blocking(move || {
+        let validator = BlockingValidator::new(_addr.to_string());
+        let ctx = ExternalValidationContext {
+            validator: Some(&validator),
+            profile_url: None,
+        };
         dfps_ingestion::validation::validate_bundle_with_external_profile(
             &bundle,
             ValidationMode::ExternalPreferred,

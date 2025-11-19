@@ -1,4 +1,9 @@
 //! Evaluation types and dataset helpers for NCIt mapping harnesses.
+//!
+//! See:
+//! - docs/system-design/clinical/ncit/architecture.md
+//! - docs/runbook/030-mapping-and-terminology/mapping-eval-quickstart.md
+//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md (REFR-07)
 
 use dfps_core::{
     mapping::{MappingResult, MappingState},
@@ -10,18 +15,158 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
-    env,
     fs::File,
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
 };
 
-pub const DEFAULT_DATA_ROOT: &str = "lib/domain/fake_data/data/eval";
+pub const DEFAULT_DATA_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../fake_data/data/eval");
 
 pub mod io;
 pub mod report;
 
 pub const DEFAULT_CHUNK_SIZE: usize = 1_000;
+
+/// Default on-disk dataset root bundled with the workspace.
+pub fn default_data_root() -> PathBuf {
+    PathBuf::from(DEFAULT_DATA_ROOT)
+}
+
+/// File-backed dataset/catalog implementation.
+#[derive(Debug, Clone)]
+pub struct FileDatasetStore {
+    root: PathBuf,
+}
+
+impl Default for FileDatasetStore {
+    fn default() -> Self {
+        Self::new(default_data_root())
+    }
+}
+
+impl FileDatasetStore {
+    /// Create a store rooted at the provided directory.
+    pub fn new(root: impl Into<PathBuf>) -> Self {
+        Self { root: root.into() }
+    }
+
+    /// Absolute path to the root directory.
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    /// Path to the NDJSON for a dataset.
+    pub fn dataset_path(&self, name: &str) -> PathBuf {
+        self.root.join(format!("{name}.ndjson"))
+    }
+
+    /// Path to the manifest JSON for a dataset.
+    pub fn manifest_path(&self, name: &str) -> PathBuf {
+        self.root.join(format!("{name}.manifest.json"))
+    }
+
+    /// Path to the baseline snapshot JSON for a dataset.
+    pub fn baseline_path(&self, dataset: &str) -> PathBuf {
+        self.root.join(format!("{dataset}.baseline.json"))
+    }
+
+    /// Open a buffered reader over the NDJSON rows for a dataset.
+    pub fn open_dataset_reader(&self, name: &str) -> Result<BufReader<File>, DatasetError> {
+        let path = self.dataset_path(name);
+        let file = File::open(&path).map_err(|source| DatasetError::Io {
+            source,
+            path: path.clone(),
+        })?;
+        Ok(BufReader::new(file))
+    }
+
+    /// Load a dataset alongside its manifest/metadata.
+    pub fn load_dataset_with_manifest(
+        &self,
+        name: &str,
+    ) -> Result<DatasetLoadOutcome, DatasetError> {
+        let manifest = load_manifest_from_path(&self.manifest_path(name))?;
+        let path = self.dataset_path(&manifest.name);
+        let cases = load_cases_from_path(&path)?;
+        let computed_sha = compute_sha256(&path)?;
+        if manifest.n_cases != cases.len() {
+            eprintln!(
+                "warning: dataset {} manifest n_cases={} but file contains {} rows",
+                manifest.name,
+                manifest.n_cases,
+                cases.len()
+            );
+        }
+        if manifest
+            .license
+            .as_deref()
+            .map(|value| value.trim().is_empty())
+            .unwrap_or(true)
+        {
+            eprintln!(
+                "warning: dataset {} manifest missing license attribution",
+                manifest.name
+            );
+        }
+        let checksum_ok = manifest.sha256.eq_ignore_ascii_case(computed_sha.as_str());
+
+        Ok(DatasetLoadOutcome {
+            manifest,
+            data_path: path,
+            cases,
+            checksum_ok,
+            computed_sha256: computed_sha,
+        })
+    }
+
+    /// Load a dataset, discarding the manifest metadata.
+    pub fn load_dataset(&self, name: &str) -> Result<Vec<EvalCase>, DatasetError> {
+        self.load_dataset_with_manifest(name)
+            .map(|outcome| outcome.cases)
+    }
+
+    /// Enumerate manifests under the root directory.
+    pub fn list_manifests(&self) -> Result<Vec<DatasetManifest>, DatasetError> {
+        let mut manifests = Vec::new();
+        let entries = std::fs::read_dir(&self.root).map_err(|source| DatasetError::Io {
+            source,
+            path: self.root.clone(),
+        })?;
+        for entry in entries {
+            let entry = entry.map_err(|source| DatasetError::Io {
+                source,
+                path: self.root.clone(),
+            })?;
+            let path = entry.path();
+            if let Some(name) = path.file_name().and_then(|f| f.to_str())
+                && name.ends_with(".manifest.json")
+            {
+                let file = File::open(&path).map_err(|source| DatasetError::Io {
+                    source,
+                    path: path.clone(),
+                })?;
+                let manifest: DatasetManifest =
+                    serde_json::from_reader(file).map_err(|source| {
+                        DatasetError::ManifestParse {
+                            path: path.clone(),
+                            source,
+                        }
+                    })?;
+                manifests.push(manifest);
+            }
+        }
+        manifests.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(manifests)
+    }
+
+    /// Load a baseline snapshot when one lives under the same root.
+    pub fn load_baseline_snapshot(
+        &self,
+        dataset: &str,
+    ) -> Result<crate::report::BaselineSnapshot, crate::report::BaselineError> {
+        crate::report::load_baseline_snapshot_from(self.root(), dataset)
+    }
+}
 
 #[cfg(all(test, feature = "eval-advanced"))]
 mod advanced_tests {
@@ -106,22 +251,6 @@ impl std::error::Error for DatasetError {
     }
 }
 
-pub fn dataset_root() -> PathBuf {
-    if let Ok(value) = env::var("DFPS_EVAL_DATA_ROOT") {
-        PathBuf::from(value)
-    } else {
-        PathBuf::from(DEFAULT_DATA_ROOT)
-    }
-}
-
-pub fn dataset_path(name: &str) -> PathBuf {
-    dataset_root().join(format!("{}.ndjson", name))
-}
-
-fn manifest_path(name: &str) -> PathBuf {
-    dataset_root().join(format!("{}.manifest.json", name))
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetManifest {
     pub name: String,
@@ -144,85 +273,26 @@ pub struct DatasetLoadOutcome {
 }
 
 pub fn load_dataset_with_manifest(name: &str) -> Result<DatasetLoadOutcome, DatasetError> {
-    let manifest = load_manifest(name)?;
-    let path = dataset_path(&manifest.name);
-    let cases = load_cases_from_path(&path)?;
-    let computed_sha = compute_sha256(&path)?;
-    if manifest.n_cases != cases.len() {
-        eprintln!(
-            "warning: dataset {} manifest n_cases={} but file contains {} rows",
-            manifest.name,
-            manifest.n_cases,
-            cases.len()
-        );
-    }
-    if manifest
-        .license
-        .as_deref()
-        .map(|value| value.trim().is_empty())
-        .unwrap_or(true)
-    {
-        eprintln!(
-            "warning: dataset {} manifest missing license attribution",
-            manifest.name
-        );
-    }
-    let checksum_ok = manifest.sha256.eq_ignore_ascii_case(computed_sha.as_str());
-
-    Ok(DatasetLoadOutcome {
-        manifest,
-        data_path: path,
-        cases,
-        checksum_ok,
-        computed_sha256: computed_sha,
-    })
+    FileDatasetStore::default().load_dataset_with_manifest(name)
 }
 
 pub fn load_dataset(name: &str) -> Result<Vec<EvalCase>, DatasetError> {
-    load_dataset_with_manifest(name).map(|outcome| outcome.cases)
+    FileDatasetStore::default().load_dataset(name)
 }
 
 pub fn list_manifests() -> Result<Vec<DatasetManifest>, DatasetError> {
-    let mut manifests = Vec::new();
-    let root = dataset_root();
-    let entries = std::fs::read_dir(&root).map_err(|source| DatasetError::Io {
-        source,
-        path: root.clone(),
-    })?;
-    for entry in entries {
-        let entry = entry.map_err(|source| DatasetError::Io {
-            source,
-            path: root.clone(),
-        })?;
-        let path = entry.path();
-        if let Some(name) = path.file_name().and_then(|f| f.to_str()) {
-            if name.ends_with(".manifest.json") {
-                let file = File::open(&path).map_err(|source| DatasetError::Io {
-                    source,
-                    path: path.clone(),
-                })?;
-                let manifest: DatasetManifest =
-                    serde_json::from_reader(file).map_err(|source| {
-                        DatasetError::ManifestParse {
-                            path: path.clone(),
-                            source,
-                        }
-                    })?;
-                manifests.push(manifest);
-            }
-        }
-    }
-    manifests.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(manifests)
+    FileDatasetStore::default().list_manifests()
 }
 
-fn load_manifest(name: &str) -> Result<DatasetManifest, DatasetError> {
-    let path = manifest_path(name);
-    let file = File::open(&path).map_err(|source| DatasetError::Io {
+fn load_manifest_from_path(path: &Path) -> Result<DatasetManifest, DatasetError> {
+    let file = File::open(path).map_err(|source| DatasetError::Io {
         source,
-        path: path.clone(),
+        path: path.to_path_buf(),
     })?;
-    serde_json::from_reader(file).map_err(|source| DatasetError::ManifestParse { path, source })
+    serde_json::from_reader(file).map_err(|source| DatasetError::ManifestParse {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 fn compute_sha256(path: &Path) -> Result<String, DatasetError> {
@@ -373,8 +443,8 @@ pub struct StratifiedMetrics {
     pub f1: f32,
 }
 
-impl StratifiedMetrics {
-    pub fn new() -> Self {
+impl Default for StratifiedMetrics {
+    fn default() -> Self {
         Self {
             total_cases: 0,
             predicted_cases: 0,
@@ -383,6 +453,12 @@ impl StratifiedMetrics {
             recall: 0.0,
             f1: 0.0,
         }
+    }
+}
+
+impl StratifiedMetrics {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn record(&mut self, predicted: bool, correct: bool) {
@@ -524,7 +600,7 @@ where
         if chunk.is_empty() {
             break;
         }
-        let summary = run_eval_with_mapper(&chunk, |rows| mapper(rows));
+        let summary = run_eval_with_mapper(&chunk, &mut mapper);
         aggregate_summaries(&mut aggregated, summary);
     }
     Ok(aggregated)
@@ -546,20 +622,14 @@ pub fn aggregate_summaries(base: &mut EvalSummary, chunk: EvalSummary) {
         *base.reason_counts.entry(reason).or_default() += count;
     }
     for (system, mut metrics) in chunk.by_system {
-        let entry = base
-            .by_system
-            .entry(system)
-            .or_insert_with(StratifiedMetrics::new);
+        let entry = base.by_system.entry(system).or_default();
         entry.total_cases += metrics.total_cases;
         entry.predicted_cases += metrics.predicted_cases;
         entry.correct += metrics.correct;
         metrics.finalize();
     }
     for (tier, mut metrics) in chunk.by_license_tier {
-        let entry = base
-            .by_license_tier
-            .entry(tier)
-            .or_insert_with(StratifiedMetrics::new);
+        let entry = base.by_license_tier.entry(tier).or_default();
         entry.total_cases += metrics.total_cases;
         entry.predicted_cases += metrics.predicted_cases;
         entry.correct += metrics.correct;
@@ -787,9 +857,7 @@ fn record_stratified(
     predicted: bool,
     correct: bool,
 ) {
-    map.entry(key)
-        .or_insert_with(StratifiedMetrics::new)
-        .record(predicted, correct);
+    map.entry(key).or_default().record(predicted, correct);
 }
 
 fn finalize_stratified(
@@ -893,31 +961,9 @@ fn finalize_confusion(
 mod tests {
     use super::*;
     use dfps_core::mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds};
-    use std::path::PathBuf;
-    use std::sync::Once;
-
-    static INIT: Once = Once::new();
-
-    fn ensure_dataset_env() {
-        INIT.call_once(|| {
-            let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-            let root = manifest_dir
-                .ancestors()
-                .nth(3)
-                .expect("workspace root")
-                .to_path_buf();
-            unsafe {
-                std::env::set_var(
-                    "DFPS_EVAL_DATA_ROOT",
-                    root.join("lib/domain/fake_data/data/eval"),
-                );
-            }
-        });
-    }
 
     #[test]
     fn load_sample_datasets() {
-        ensure_dataset_env();
         for dataset in [
             "pet_ct_small",
             "bronze_pet_ct_small",

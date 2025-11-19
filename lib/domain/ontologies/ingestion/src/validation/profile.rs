@@ -48,24 +48,25 @@ pub fn validate_sr_profile(
                 requirement,
             ));
         }
-        if let Some(max) = element.max.as_deref() {
-            if max == "0" && sr_field_present(sr, &element.path) {
-                let requirement = requirement_lookup
-                    .get(element.path.as_str())
-                    .copied()
-                    .unwrap_or(RequirementRef::RTrace);
-                let id = profile_issue_id(&element.path, "NOT_ALLOWED");
-                let message = format!(
-                    "{} is not permitted by profile {}.",
-                    element.path, profile.meta.url
-                );
-                issues.push(ValidationIssue::new(
-                    id,
-                    ValidationSeverity::Error,
-                    message,
-                    requirement,
-                ));
-            }
+        if let Some(max) = element.max.as_deref()
+            && max == "0"
+            && sr_field_present(sr, &element.path)
+        {
+            let requirement = requirement_lookup
+                .get(element.path.as_str())
+                .copied()
+                .unwrap_or(RequirementRef::RTrace);
+            let id = profile_issue_id(&element.path, "NOT_ALLOWED");
+            let message = format!(
+                "{} is not permitted by profile {}.",
+                element.path, profile.meta.url
+            );
+            issues.push(ValidationIssue::new(
+                id,
+                ValidationSeverity::Error,
+                message,
+                requirement,
+            ));
         }
     }
 

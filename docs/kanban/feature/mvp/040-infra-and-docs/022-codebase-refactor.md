@@ -7,7 +7,7 @@
 > Status: **INPROGRESS**  
 > Branch target version: `v0.1.0`  
 > Introduced in: `v0.1.0`  
-> Last updated in: `v0.1.0`
+> Last updated in: `Unreleased`
 
 ### Columns
 * **TODO** – Not started yet  
@@ -139,56 +139,6 @@
 
 ---
 
-### REFR-05 – Domain ingestion & FHIR profiles (`dfps_ingestion`)
-
-**Goal:** Keep ingestion/FHIR-profile logic as a pure domain service that transforms Bundles into staging/domain types and structured validation results, leaving HTTP/env concerns to app/platform layers.
-
-- [x] `dfps_ingestion`
-  - [x] Document the ingestion flow from `fhir::Bundle` → `StgServiceRequestFlat` / `StgSrCodeExploded` → `order::ServiceRequest` in a crate-level `//!` header and README.
-  - [x] Review `IngestionError` and `ValidationIssue`/`ValidationReport` usage and:
-    - [x] Ensure error types don’t encode HTTP/env assumptions.
-    - [x] Clarify when validation failures vs decode errors vs external validator failures are returned.
-  - [ ] Separate pure transforms (`sr_to_staging`, `sr_to_domain`) from validation orchestration (`bundle_to_*_with_validation`) so callers can compose them independently.
-  - [x] Introduce a small, testable trait/port for external validation so app/platform layers can own HTTP clients.
-  - [x] Embed FHIR profiles under `profiles/`, document include paths, and test cardinalities/known URLs.
-  - [ ] Add a validated-bundle type to carry `ValidationReport` without double validation.
-  - [ ] Return typed status/intent enums from parsing helpers instead of strings to reduce downstream re-parsing.
-
-### REFR-06 – Domain mapping engine & NCIt integration (`dfps_mapping`)
-
-**Goal:** Keep the mapping engine deterministic and domain-centric, while factoring out policy/vector/terminology wiring so platform/app layers can compose backends cleanly.
-
-- [ ] Document the mapping pipeline in a crate-level `//!` header and README:
-  - [x] Clarify roles of `Mapper`, `CandidateRanker`, `MappingEngine`, and policy/vector/terminology integration points.
-  - [x] Link to NCIt/obo-graph system-design docs and evaluation epics (mapping/eval harness).
-- [ ] Identify places where `dfps_mapping` directly reads env or config (e.g., `load_policy_from_env`):
-  - [x] Introduce an explicit `MappingConfig` / policy parameter so mapping functions can be called without reading env.
-  - [x] Plan to move env parsing for policies into `dfps_compliance` / `dfps_configuration` (`ComplianceConfig::from_env` now encapsulates `DFPS_COMPLIANCE_*` reads and feeds policies into mapping via injected config/policy).
-  - [x] Wire CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_api`), and datamart loaders to construct `ComplianceConfig` once at startup and pass the resulting policy through mapping/pipeline/datamart paths instead of calling `load_policy_from_env` repeatedly.
-- [ ] Review vector-related wiring:
-  - [x] Ensure `VectorRankerBackend` and `DeterministicEmbeddingProvider` are pure domain constructs that operate purely on traits (`VectorStore`, `EmbeddingProvider`).
-  - [x] Avoid coupling mapping to specific backends (Qdrant/pgvector) beyond the trait layer.
-- [ ] Align mapping result semantics:
-  - [x] Confirm `build_result_with_score` uses a single source of truth for thresholds and `MappingState` transitions.
-  - [x] Add refactor tasks for reusing `MappingThresholds`/`MappingSourceVersion` from `dfps_core` consistently.
-- [x] Evaluate whether deprecated `eval::run_eval` can be removed or wrapped behind a clearer “mapping eval port” that just delegates to `dfps_eval` (`dfps_mapping::eval` shim deleted; callers use `dfps_eval::run_eval_with_mapper` directly).
-
-### REFR-07 – Domain eval harness & fake data fixtures (`dfps_eval`, `dfps_fake_data`)
-
-**Goal:** Treat eval and fake-data crates as domain-aligned data/eval providers with deterministic behavior and clear boundaries to IO/config, ready to be driven by CLI/web/platform tooling.
-
-- [ ] `dfps_eval`
-  - [ ] Add a crate README explaining the role of EvalCase/EvalSummary, dataset manifests, and baseline snapshots.
-  - [ ] Separate dataset discovery/loading concerns from scoring/aggregation:
-    - [ ] Keep file/NDJSON IO behind small helpers that can later be replaced with alternative sources (e.g., HTTP, DB).
-    - [ ] Clarify how `DEFAULT_DATA_ROOT` and `DFPS_EVAL_DATA_ROOT` interact with future configuration layers.
-  - [ ] Identify any places where eval depends on CLI/web/platform behavior (env, logging) and plan to push those concerns outward.
-- [ ] `dfps_fake_data`
-  - [ ] Document the structure of `data/` (eval/meta/regression) and how it maps to `fixtures::*` and generator modules.
-  - [ ] Centralize RNG seeding and ID generation helpers so CLI bins and tests share deterministic behavior.
-  - [ ] Ensure value generators (`fake_*_id`, `fake_order_description`, etc.) are thin over core types from `dfps_core` and do not embed app/platform assumptions (URLs, ports, etc.).
-  - [ ] Cross-check fixture schemas with `dfps_eval::EvalCase` and ingestion/mapping expectations; add small tests that load each tier (bronze/silver/gold) to catch drift.
-
 ### REFR-08 – Domain terminology & ontology graph (`dfps_terminology`, `dfps_obo_graph`)
 
 **Goal:** Provide a clean, domain-level terminology layer (code systems, value sets, OBO graphs) that exposes stable APIs for mapping/compliance, with HTTP/env responsibilities clearly separated.
@@ -306,7 +256,7 @@
   - [ ] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
   - [ ] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
 - [ ] Clarify fixture ownership:
-  - [ ] Ensure all regression/eval fixtures live under `lib/domain/fake_data/data/**` and are accessed via `dfps_fake_data::fixtures::Registry` helpers.
+  - [ ] Ensure all regression/eval fixtures live under `lib/domain/evaluation/fake_data/data/**` and are accessed via `dfps_fake_data::fixtures::Registry` helpers.
   - [ ] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
 - [ ] Harden test surfaces:
   - [ ] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).
@@ -424,6 +374,56 @@
   - [x] No direct `std::env` or file IO,
   - [x] Only serialization and optional `fake`/`Dummy` derives as dependencies.
 - [x] Add doc-tests or small unit tests in core modules (value/order/encounter/patient/staging) that mirror the canonical ServiceRequest journey.
+
+### REFR-05 – Domain ingestion & FHIR profiles (`dfps_ingestion`)
+
+**Goal:** Keep ingestion/FHIR-profile logic as a pure domain service that transforms Bundles into staging/domain types and structured validation results, leaving HTTP/env concerns to app/platform layers.
+
+- [x] `dfps_ingestion`
+  - [x] Document the ingestion flow from `fhir::Bundle` → `StgServiceRequestFlat` / `StgSrCodeExploded` → `order::ServiceRequest` in a crate-level `//!` header and README.
+  - [x] Review `IngestionError` and `ValidationIssue`/`ValidationReport` usage and:
+    - [x] Ensure error types don’t encode HTTP/env assumptions.
+    - [x] Clarify when validation failures vs decode errors vs external validator failures are returned.
+  - [ ] Separate pure transforms (`sr_to_staging`, `sr_to_domain`) from validation orchestration (`bundle_to_*_with_validation`) so callers can compose them independently.
+  - [x] Introduce a small, testable trait/port for external validation so app/platform layers can own HTTP clients.
+  - [x] Embed FHIR profiles under `profiles/`, document include paths, and test cardinalities/known URLs.
+  - [ ] Add a validated-bundle type to carry `ValidationReport` without double validation.
+  - [ ] Return typed status/intent enums from parsing helpers instead of strings to reduce downstream re-parsing.
+
+### REFR-06 – Domain mapping engine & NCIt integration (`dfps_mapping`)
+
+**Goal:** Keep the mapping engine deterministic and domain-centric, while factoring out policy/vector/terminology wiring so platform/app layers can compose backends cleanly.
+
+- [ ] Document the mapping pipeline in a crate-level `//!` header and README:
+  - [x] Clarify roles of `Mapper`, `CandidateRanker`, `MappingEngine`, and policy/vector/terminology integration points.
+  - [x] Link to NCIt/obo-graph system-design docs and evaluation epics (mapping/eval harness).
+- [ ] Identify places where `dfps_mapping` directly reads env or config (e.g., `load_policy_from_env`):
+  - [x] Introduce an explicit `MappingConfig` / policy parameter so mapping functions can be called without reading env.
+  - [x] Plan to move env parsing for policies into `dfps_compliance` / `dfps_configuration` (`ComplianceConfig::from_env` now encapsulates `DFPS_COMPLIANCE_*` reads and feeds policies into mapping via injected config/policy).
+  - [x] Wire CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_api`), and datamart loaders to construct `ComplianceConfig` once at startup and pass the resulting policy through mapping/pipeline/datamart paths instead of calling `load_policy_from_env` repeatedly.
+- [ ] Review vector-related wiring:
+  - [x] Ensure `VectorRankerBackend` and `DeterministicEmbeddingProvider` are pure domain constructs that operate purely on traits (`VectorStore`, `EmbeddingProvider`).
+  - [x] Avoid coupling mapping to specific backends (Qdrant/pgvector) beyond the trait layer.
+- [ ] Align mapping result semantics:
+  - [x] Confirm `build_result_with_score` uses a single source of truth for thresholds and `MappingState` transitions.
+  - [x] Add refactor tasks for reusing `MappingThresholds`/`MappingSourceVersion` from `dfps_core` consistently.
+- [x] Evaluate whether deprecated `eval::run_eval` can be removed or wrapped behind a clearer “mapping eval port” that just delegates to `dfps_eval` (`dfps_mapping::eval` shim deleted; callers use `dfps_eval::run_eval_with_mapper` directly).
+
+### REFR-07 – Domain eval harness & fake data fixtures (`dfps_eval`, `dfps_fake_data`)
+
+**Goal:** Treat eval and fake-data crates as domain-aligned data/eval providers with deterministic behavior and clear boundaries to IO/config, ready to be driven by CLI/web/platform tooling.
+
+- [x] `dfps_eval`
+  - [x] Add a crate README explaining the role of EvalCase/EvalSummary, dataset manifests, and baseline snapshots.
+  - [x] Separate dataset discovery/loading concerns from scoring/aggregation:
+    - [x] Keep file/NDJSON IO behind small helpers that can later be replaced with alternative sources (e.g., HTTP, DB).
+    - [x] Clarify how `DEFAULT_DATA_ROOT` and `DFPS_EVAL_DATA_ROOT` interact with future configuration layers.
+  - [x] Identify any places where eval depends on CLI/web/platform behavior (env, logging) and plan to push those concerns outward.
+- [x] `dfps_fake_data`
+  - [x] Document the structure of `data/` (eval/meta/regression) and how it maps to `fixtures::*` and generator modules.
+  - [x] Centralize RNG seeding and ID generation helpers so CLI bins and tests share deterministic behavior.
+  - [x] Ensure value generators (`fake_*_id`, `fake_order_description`, etc.) are thin over core types from `dfps_core` and do not embed app/platform assumptions (URLs, ports, etc.).
+  - [x] Cross-check fixture schemas with `dfps_eval::EvalCase` and ingestion/mapping expectations; add small tests that load each tier (bronze/silver/gold) to catch drift.
 
 ---
 

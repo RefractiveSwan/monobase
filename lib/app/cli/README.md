@@ -33,7 +33,7 @@ cargo run -p dfps_cli --bin eval_mapping -- --dataset pet_ct_small --dump-detail
 # Gate CI with thresholds
 cargo run -p dfps_cli --bin eval_mapping -- \
   --dataset pet_ct_small \
-  --thresholds lib/domain/fake_data/data/meta/eval_thresholds.json
+  --thresholds lib/domain/evaluation/fake_data/data/meta/eval_thresholds.json
 
 # Persist machine-readable artifacts (summary/results) and markdown report
 cargo run -p dfps_cli --bin eval_mapping -- \

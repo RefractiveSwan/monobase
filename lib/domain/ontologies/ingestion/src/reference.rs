@@ -7,10 +7,7 @@ pub fn reference_id_from_str(reference: &str) -> Option<&str> {
         return None;
     }
 
-    trimmed
-        .split('/')
-        .filter(|segment| !segment.is_empty())
-        .last()
+    trimmed.split('/').rev().find(|segment| !segment.is_empty())
 }
 
 /// Convenience helper to extract the ID from a FHIR `Reference`.

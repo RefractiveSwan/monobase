@@ -1,9 +1,9 @@
 use crate::{
     encounter::fake_encounter_for_patient_with_rng, order::fake_service_request_for_with_rng,
-    patient::fake_patient_with_rng,
+    patient::fake_patient_with_rng, rng,
 };
 use dfps_core::{encounter::Encounter, order::ServiceRequest, patient::Patient};
-use rand::{Rng, SeedableRng, rng, rngs::StdRng};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,12 +14,11 @@ pub struct ServiceRequestScenario {
 }
 
 pub fn fake_service_request_scenario() -> ServiceRequestScenario {
-    let mut rng = rng();
-    fake_service_request_scenario_with_rng(&mut rng)
+    rng::with_global_rng(fake_service_request_scenario_with_rng)
 }
 
 pub fn fake_service_request_scenario_with_seed(seed: u64) -> ServiceRequestScenario {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_service_request_scenario_with_rng(&mut rng)
 }
 

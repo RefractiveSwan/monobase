@@ -42,7 +42,7 @@ fn dedup_and_sort(values: &mut Vec<String>) {
             set.insert(value);
         }
     }
-    values.extend(set.into_iter());
+    values.extend(set);
 }
 
 pub fn parse_obo(id: &str, source: &str) -> Result<OntologyGraph, OboError> {
@@ -105,29 +105,27 @@ pub fn parse_obo(id: &str, source: &str) -> Result<OntologyGraph, OboError> {
             continue;
         }
 
-        if let Some(rest) = line.strip_prefix("is_a:") {
-            if let Some(target) = parse_edge_target(rest) {
-                if let Some(source_id) = current.id.clone() {
-                    edges.push(Edge {
-                        from: source_id,
-                        to: target,
-                        relation: Relation::IsA,
-                    });
-                }
-            }
+        if let Some(rest) = line.strip_prefix("is_a:")
+            && let Some(target) = parse_edge_target(rest)
+            && let Some(source_id) = current.id.clone()
+        {
+            edges.push(Edge {
+                from: source_id,
+                to: target,
+                relation: Relation::IsA,
+            });
             continue;
         }
 
-        if let Some(rest) = line.strip_prefix("relationship:") {
-            if let Some((relation, target)) = parse_relationship(rest) {
-                if let Some(source_id) = current.id.clone() {
-                    edges.push(Edge {
-                        from: source_id,
-                        to: target,
-                        relation,
-                    });
-                }
-            }
+        if let Some(rest) = line.strip_prefix("relationship:")
+            && let Some((relation, target)) = parse_relationship(rest)
+            && let Some(source_id) = current.id.clone()
+        {
+            edges.push(Edge {
+                from: source_id,
+                to: target,
+                relation,
+            });
             continue;
         }
     }
@@ -164,12 +162,12 @@ fn parse_synonym(line: &str) -> Option<String> {
 }
 
 fn parse_edge_target(line: &str) -> Option<String> {
-    let mut parts = line.trim().split_whitespace();
+    let mut parts = line.split_whitespace();
     parts.next().map(|token| token.to_string())
 }
 
 fn parse_relationship(line: &str) -> Option<(Relation, String)> {
-    let mut parts = line.trim().split_whitespace();
+    let mut parts = line.split_whitespace();
     let relation = parts.next()?;
     let target = parts.next()?;
     let relation = match relation {
@@ -181,7 +179,7 @@ fn parse_relationship(line: &str) -> Option<(Relation, String)> {
 }
 
 fn parse_ncit_xref(line: &str) -> Option<String> {
-    let token = line.trim().split_whitespace().next()?;
+    let token = line.split_whitespace().next()?;
     if let Some(stripped) = token.strip_prefix("NCIT:") {
         return Some(stripped.trim().to_string());
     }

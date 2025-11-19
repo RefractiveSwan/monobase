@@ -1,9 +1,10 @@
+use crate::rng;
 use dfps_core::{
     order::{ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId, ServiceRequestId},
 };
 use fake::{Fake, Faker};
-use rand::{Rng, SeedableRng, prelude::IndexedRandom, rng, rngs::StdRng};
+use rand::{Rng, prelude::IndexedRandom};
 
 const ORDER_DESCRIPTIONS: &[&str] = &[
     "PET/CT for staging",
@@ -23,12 +24,11 @@ fn format_id(prefix: &str, value: u32) -> String {
 }
 
 pub fn fake_patient_id() -> PatientId {
-    let mut rng = rng();
-    fake_patient_id_with_rng(&mut rng)
+    rng::with_global_rng(fake_patient_id_with_rng)
 }
 
 pub fn fake_patient_id_with_seed(seed: u64) -> PatientId {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_patient_id_with_rng(&mut rng)
 }
 
@@ -37,12 +37,11 @@ pub fn fake_patient_id_with_rng<R: Rng + ?Sized>(rng: &mut R) -> PatientId {
 }
 
 pub fn fake_encounter_id() -> EncounterId {
-    let mut rng = rng();
-    fake_encounter_id_with_rng(&mut rng)
+    rng::with_global_rng(fake_encounter_id_with_rng)
 }
 
 pub fn fake_encounter_id_with_seed(seed: u64) -> EncounterId {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_encounter_id_with_rng(&mut rng)
 }
 
@@ -51,12 +50,11 @@ pub fn fake_encounter_id_with_rng<R: Rng + ?Sized>(rng: &mut R) -> EncounterId {
 }
 
 pub fn fake_service_request_id() -> ServiceRequestId {
-    let mut rng = rng();
-    fake_service_request_id_with_rng(&mut rng)
+    rng::with_global_rng(fake_service_request_id_with_rng)
 }
 
 pub fn fake_service_request_id_with_seed(seed: u64) -> ServiceRequestId {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_service_request_id_with_rng(&mut rng)
 }
 
@@ -65,12 +63,11 @@ pub fn fake_service_request_id_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Service
 }
 
 pub fn fake_service_request_status() -> ServiceRequestStatus {
-    let mut rng = rng();
-    fake_service_request_status_with_rng(&mut rng)
+    rng::with_global_rng(fake_service_request_status_with_rng)
 }
 
 pub fn fake_service_request_status_with_seed(seed: u64) -> ServiceRequestStatus {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_service_request_status_with_rng(&mut rng)
 }
 
@@ -79,12 +76,11 @@ pub fn fake_service_request_status_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Ser
 }
 
 pub fn fake_service_request_intent() -> ServiceRequestIntent {
-    let mut rng = rng();
-    fake_service_request_intent_with_rng(&mut rng)
+    rng::with_global_rng(fake_service_request_intent_with_rng)
 }
 
 pub fn fake_service_request_intent_with_seed(seed: u64) -> ServiceRequestIntent {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_service_request_intent_with_rng(&mut rng)
 }
 
@@ -93,12 +89,11 @@ pub fn fake_service_request_intent_with_rng<R: Rng + ?Sized>(rng: &mut R) -> Ser
 }
 
 pub fn fake_order_description() -> String {
-    let mut rng = rng();
-    fake_order_description_with_rng(&mut rng)
+    rng::with_global_rng(fake_order_description_with_rng)
 }
 
 pub fn fake_order_description_with_seed(seed: u64) -> String {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_order_description_with_rng(&mut rng)
 }
 

@@ -7,16 +7,13 @@ use crate::validation::{
     ExternalValidationContext, validate_bundle, validate_bundle_with_external,
 };
 
+type StagingRows = (
+    Vec<dfps_core::staging::StgServiceRequestFlat>,
+    Vec<StgSrCodeExploded>,
+);
+
 /// Convert a bundle into staging row collections.
-pub fn bundle_to_staging(
-    bundle: &fhir::Bundle,
-) -> Result<
-    (
-        Vec<dfps_core::staging::StgServiceRequestFlat>,
-        Vec<StgSrCodeExploded>,
-    ),
-    IngestionError,
-> {
+pub fn bundle_to_staging(bundle: &fhir::Bundle) -> Result<StagingRows, IngestionError> {
     bundle_to_staging_with_validation(
         bundle,
         ValidationMode::default(),
@@ -30,13 +27,7 @@ pub fn bundle_to_staging_with_validation(
     bundle: &fhir::Bundle,
     mode: ValidationMode,
     external: ExternalValidationContext<'_>,
-) -> Result<
-    Validated<(
-        Vec<dfps_core::staging::StgServiceRequestFlat>,
-        Vec<StgSrCodeExploded>,
-    )>,
-    IngestionError,
-> {
+) -> Result<Validated<StagingRows>, IngestionError> {
     let report = match mode {
         ValidationMode::Strict | ValidationMode::Lenient => validate_bundle(bundle),
         ValidationMode::ExternalPreferred | ValidationMode::ExternalStrict => {
@@ -54,15 +45,7 @@ pub fn bundle_to_staging_with_validation(
     Ok(Validated::new((flats, exploded), report))
 }
 
-fn bundle_to_staging_inner(
-    bundle: &fhir::Bundle,
-) -> Result<
-    (
-        Vec<dfps_core::staging::StgServiceRequestFlat>,
-        Vec<StgSrCodeExploded>,
-    ),
-    IngestionError,
-> {
+fn bundle_to_staging_inner(bundle: &fhir::Bundle) -> Result<StagingRows, IngestionError> {
     let mut flats = Vec::new();
     let mut exploded = Vec::new();
 

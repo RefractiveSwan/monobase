@@ -1,10 +1,10 @@
-use crate::{EvalSummary, dataset_root};
+use crate::{EvalSummary, default_data_root};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Write,
     fs::File,
     io::{self, Read},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 /// Render a Markdown report for dashboards or CLI consumers.
@@ -255,12 +255,15 @@ impl std::error::Error for BaselineError {
     }
 }
 
-pub fn baseline_path(dataset: &str) -> PathBuf {
-    dataset_root().join(format!("{dataset}.baseline.json"))
+pub fn baseline_path(root: impl AsRef<Path>, dataset: &str) -> PathBuf {
+    root.as_ref().join(format!("{dataset}.baseline.json"))
 }
 
-pub fn load_baseline_snapshot(dataset: &str) -> Result<BaselineSnapshot, BaselineError> {
-    let path = baseline_path(dataset);
+pub fn load_baseline_snapshot_from(
+    root: impl AsRef<Path>,
+    dataset: &str,
+) -> Result<BaselineSnapshot, BaselineError> {
+    let path = baseline_path(root, dataset);
     let mut file = File::open(&path).map_err(|source| BaselineError::Io {
         source,
         path: path.clone(),
@@ -272,6 +275,10 @@ pub fn load_baseline_snapshot(dataset: &str) -> Result<BaselineSnapshot, Baselin
             path: path.clone(),
         })?;
     serde_json::from_str(&buf).map_err(|source| BaselineError::Parse { source, path })
+}
+
+pub fn load_baseline_snapshot(dataset: &str) -> Result<BaselineSnapshot, BaselineError> {
+    load_baseline_snapshot_from(default_data_root(), dataset)
 }
 
 fn comparison_rows<'a>(

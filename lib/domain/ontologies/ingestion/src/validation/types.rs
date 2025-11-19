@@ -68,18 +68,13 @@ impl ValidationIssue {
 }
 
 /// Aggregated validation mode for bundle ingestion.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ValidationMode {
     Strict,
+    #[default]
     Lenient,
     ExternalPreferred,
     ExternalStrict,
-}
-
-impl Default for ValidationMode {
-    fn default() -> Self {
-        ValidationMode::Lenient
-    }
 }
 
 /// Aggregated report returned by `validate_bundle`.

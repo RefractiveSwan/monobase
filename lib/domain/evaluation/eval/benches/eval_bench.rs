@@ -1,10 +1,10 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use dfps_core::mapping::{MappingResult, MappingState, MappingStrategy, MappingThresholds};
-use dfps_eval::{self, DEFAULT_CHUNK_SIZE};
+use dfps_eval::{self, DEFAULT_CHUNK_SIZE, FileDatasetStore};
 use std::io::BufReader;
 
-fn bench_dataset(c: &mut Criterion, dataset: &str) {
-    let path = dfps_eval::dataset_path(dataset);
+fn bench_dataset(c: &mut Criterion, store: &FileDatasetStore, dataset: &str) {
+    let path = store.dataset_path(dataset);
     let file = std::fs::File::open(&path).expect("open dataset");
     c.bench_function(&format!("eval_{dataset}"), |b| {
         b.iter(|| {
@@ -37,8 +37,9 @@ fn map_stub(rows: Vec<dfps_core::staging::StgSrCodeExploded>) -> Vec<MappingResu
 }
 
 fn benchmarks(c: &mut Criterion) {
-    bench_dataset(c, "pet_ct_small");
-    bench_dataset(c, "pet_ct_extended");
+    let store = FileDatasetStore::default();
+    bench_dataset(c, &store, "pet_ct_small");
+    bench_dataset(c, &store, "pet_ct_extended");
 }
 
 criterion_group!(benches, benchmarks);

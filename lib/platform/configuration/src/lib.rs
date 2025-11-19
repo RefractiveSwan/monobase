@@ -124,10 +124,10 @@ fn env_search_dirs(workspace_root: &Path) -> Vec<PathBuf> {
     if let Ok(dir) = env::var("DFPS_ENV_DIR") {
         vec![resolve_relative(workspace_root, &dir)]
     } else {
-        let mut dirs = Vec::new();
-        dirs.push(workspace_root.join("data").join("environment"));
-        dirs.push(workspace_root.to_path_buf());
-        dirs
+        vec![
+            workspace_root.join("data").join("environment"),
+            workspace_root.to_path_buf(),
+        ]
     }
 }
 

@@ -74,7 +74,7 @@ _All paths relative to `code/`._
 4) **Implement**
    - Respect bounded contexts:
      - Domain invariants ? `lib/domain/core`
-     - Generators ? `lib/domain/fake_data`
+    - Generators ? `lib/domain/evaluation/fake_data`
      - FHIR transforms ? `lib/domain/ingestion`
      - Mapping engine ? `lib/domain/mapping`
      - Orchestration ? `lib/domain/pipeline`
@@ -82,7 +82,7 @@ _All paths relative to `code/`._
 5) **Update tests**
    - Unit tests (per crate)
    - Integration & e2e in `lib/platform/test_suite/tests/**`
-   - Regression fixtures under `lib/domain/fake_data/data/regression/`
+   - Regression fixtures under `lib/domain/evaluation/fake_data/data/regression/`
 
 6) **Run standard checks**
    - `cargo make fmt` � `cargo make clippy` � `cargo make test`
@@ -171,7 +171,7 @@ Every time you change a checklist line from `- [ ]` to `- [x]` in `docs/kanban/*
 ### FP-07 � Validatio& & error surface
 - [ ] Add `IngestionError` in `lib/domain/ingestion/src/transforms.rs`
 - [ ] Update FHIR semantics in `docs/system-design/fhir/behavior/sequence-servicerequest.md`
-- [ ] Add regression fixtures under `lib/domain/fake_data/data/regression/`
+- [ ] Add regression fixtures under `lib/domain/evaluation/fake_data/data/regression/`
 - [ ] Document error codes in `docs/reference-terminology/semantic-relationships.yaml`
 ```
 
@@ -514,7 +514,7 @@ Small CLIs for local ingestion + mapping workflows.
     cargo run -p dfps_cli --bin eval_mapping -- --dataset pet_ct_small --dump-details
     ```
   - Runbook: `docs/runbook/mapping-eval-quickstart.md`; requirements trace: `MAP_ACCURACY` in `docs/system-design/clinical/ncit/requirements/ingestion-requirements.md`.
-  - Dataset tiers: bronze/silver/gold splits (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) are documented in `lib/domain/fake_data/data/eval/README.md`.
+  - Dataset tiers: bronze/silver/gold splits (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) are documented in `lib/domain/evaluation/fake_data/data/eval/README.md`.
 
 
 # Crate: lib/app/web/backend/api — `dfps_api`
@@ -648,9 +648,9 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Prefer deterministic seeds when using `#[cfg(feature = "dummy")]` generators.
 
 
-# Crate: lib/domain/fake_data - `dfps_fake_data`
+# Crate: lib/domain/evaluation/fake_data - `dfps_fake_data`
 
-**Path:** `code/lib/domain/fake_data`  
+**Path:** `code/lib/domain/evaluation/fake_data`  
 **Depends on:** `dfps_core` (with `dummy`), `rand`, `fake`, `serde(_json)`, `dfps_configuration`.
 
 ## Responsibilities
@@ -953,6 +953,6 @@ cargo test -p dfps_test_suite
 Owns the reusable evaluation types (`EvalCase`, `EvalSummary`, etc.) and dataset loaders.
 
 **Responsibilities**
-- Load NDJSON gold datasets from `DFPS_EVAL_DATA_ROOT` (default `lib/domain/fake_data/data/eval`).
+- Load NDJSON gold datasets from `DFPS_EVAL_DATA_ROOT` (default `lib/domain/evaluation/fake_data/data/eval`).
 - Provide stratified metric helpers (`StratifiedMetrics`) used by `dfps_eval::run_eval_with_mapper`.
 - Surface `compute_metrics` for CLI/test consumers.

@@ -309,10 +309,10 @@ impl CompositeTerminologyClient {
 
 impl TerminologyClient for CompositeTerminologyClient {
     fn lookup_cui(&self, system: &str, code: &str) -> TerminologyResult<Option<CuiRecord>> {
-        if let Some(mock) = &self.mock {
-            if let Some(hit) = mock.lookup_cui(system, code)? {
-                return Ok(Some(hit));
-            }
+        if let Some(mock) = &self.mock
+            && let Some(hit) = mock.lookup_cui(system, code)?
+        {
+            return Ok(Some(hit));
         }
         if let Some(remote) = &self.remote {
             return remote.lookup_cui(system, code);
@@ -321,10 +321,10 @@ impl TerminologyClient for CompositeTerminologyClient {
     }
 
     fn lookup_ncit(&self, cui_or_code: &str) -> TerminologyResult<Option<NcitRecord>> {
-        if let Some(mock) = &self.mock {
-            if let Some(hit) = mock.lookup_ncit(cui_or_code)? {
-                return Ok(Some(hit));
-            }
+        if let Some(mock) = &self.mock
+            && let Some(hit) = mock.lookup_ncit(cui_or_code)?
+        {
+            return Ok(Some(hit));
         }
         if let Some(remote) = &self.remote {
             return remote.lookup_ncit(cui_or_code);

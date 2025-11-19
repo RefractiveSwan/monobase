@@ -1,4 +1,3 @@
-#![cfg(feature = "profile_validation")]
 //! Embedded FHIR StructureDefinition slices used for profile-aware validation.
 //!
 //! Kept lightweight to avoid pulling in a full FHIR engine. Profiles stay

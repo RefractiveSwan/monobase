@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::{File, create_dir_all};
 use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -90,10 +91,12 @@ struct ThresholdConfig {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
     let args = Args::parse();
+    let dataset_store = dataset_store_from_env();
 
     let chunk_size = args.chunk_size as usize;
     let summary = if let Some(name) = &args.dataset {
-        let outcome = dfps_eval::load_dataset_with_manifest(name)
+        let outcome = dataset_store
+            .load_dataset_with_manifest(name)
             .map_err(|err| format!("failed to load dataset {name}: {err}"))?;
         if !outcome.checksum_ok {
             eprintln!(
@@ -101,7 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 outcome.manifest.sha256, outcome.computed_sha256
             );
         }
-        let file = File::open(dfps_eval::dataset_path(name))?;
+        let file = File::open(&outcome.data_path)?;
         let reader = BufReader::new(file);
         dfps_eval::run_eval_streaming_with_mapper(
             reader,
@@ -168,7 +171,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(report_path) = &args.report {
-        write_report(report_path, &summary_view, args.dataset.as_deref())?;
+        write_report(
+            report_path,
+            &summary_view,
+            args.dataset.as_deref(),
+            &dataset_store,
+        )?;
     }
 
     if args.top_k > 1 && summary.top3_accuracy == summary.top1_accuracy {
@@ -376,6 +384,7 @@ fn write_report(
     path: &Path,
     summary: &SummaryView,
     dataset: Option<&str>,
+    store: &dfps_eval::FileDatasetStore,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut summary_owned = dfps_eval::EvalSummary::default();
     summary_owned.total_cases = summary.total_cases;
@@ -392,19 +401,26 @@ fn write_report(
     summary_owned.score_buckets = summary.buckets.to_vec();
     summary_owned.reason_counts = summary.reasons.clone();
     summary_owned.advanced = summary.advanced.clone();
-    let baseline = dataset.and_then(
-        |name| match dfps_eval::report::load_baseline_snapshot(name) {
+    let baseline = dataset.and_then(|name| {
+        match dfps_eval::report::load_baseline_snapshot_from(store.root(), name) {
             Ok(snapshot) => Some(snapshot),
             Err(err) => {
                 eprintln!("warning: could not load baseline for {name}: {err}");
                 None
             }
-        },
-    );
+        }
+    });
     let markdown = dfps_eval::report::render_markdown_with_baseline(
         &summary_owned,
         baseline.as_ref().map(|snap| &snap.summary),
     );
     std::fs::write(path, markdown)?;
     Ok(())
+}
+
+fn dataset_store_from_env() -> dfps_eval::FileDatasetStore {
+    let root = env::var("DFPS_EVAL_DATA_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| dfps_eval::default_data_root());
+    dfps_eval::FileDatasetStore::new(root)
 }

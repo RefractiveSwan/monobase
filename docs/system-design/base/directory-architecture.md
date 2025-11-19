@@ -196,23 +196,28 @@ code/lib/domain/
 
   * Compute mapping eval metrics and calibration buckets from NDJSON datasets.
   * Provide reusable runners that accept injected readers/writers.
+  * Surface a `FileDatasetStore` seam so file/HTTP/DB sources can back `EvalCase`
+    streams without leaking env/IO concerns into domain code.
 * Examples:
 
   * `run_eval_with_mapper` used by CLI/API/web.
-  * Dataset manifests and baseline snapshots for regression gating.
+  * Dataset manifests and baseline snapshots for regression gating, loaded via
+    `FileDatasetStore` and `report::load_baseline_snapshot_from(root, name)`.
 
 #### `evaluation/fake_data/` – Domain-aware generators
 
 * Crate: `dfps_fake_data`
 * Responsibilities:
 
-  * Generate realistic fake data that mirrors domain models.
+  * Generate realistic fake data that mirrors domain models with deterministic RNGs.
   * Provide fixtures for FHIR-like payloads, NCIt-like vocab sets, graphs, etc.
 * Examples:
 
   * Random FHIR ServiceRequests with plausible combinations of fields.
   * Fake NCIt concept hierarchies for development and tests.
   * Graph generators to test community detection / mapping flows.
+  * `fixtures::Registry` + `rng::SeedSequence` ensure CLIs/tests share seeds and
+    data roots supplied by the app/platform config layer.
 
 **Principle:**
 If it encodes business rules, semantics, or domain invariants, it goes under `domain/`.

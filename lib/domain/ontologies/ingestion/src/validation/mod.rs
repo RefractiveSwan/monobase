@@ -210,32 +210,30 @@ fn validate_bundle_relationships(
     encounter_ids: &HashSet<String>,
     issues: &mut Vec<ValidationIssue>,
 ) {
-    if let Some(reference) = sr.subject.as_ref().and_then(|r| r.reference.as_deref()) {
-        if let Some(id) = reference_id_from_str(reference) {
-            if !patient_ids.contains(id) {
-                issues.push(ValidationIssue::new(
-                    "VAL_SR_SUBJECT_PATIENT_NOT_FOUND",
-                    ValidationSeverity::Error,
-                    format!("ServiceRequest.subject references Patient/{id}, which is not present in the Bundle."),
-                    RequirementRef::RSubject,
-                ));
-            }
-        }
+    if let Some(reference) = sr.subject.as_ref().and_then(|r| r.reference.as_deref())
+        && let Some(id) = reference_id_from_str(reference)
+        && !patient_ids.contains(id)
+    {
+        issues.push(ValidationIssue::new(
+            "VAL_SR_SUBJECT_PATIENT_NOT_FOUND",
+            ValidationSeverity::Error,
+            format!("ServiceRequest.subject references Patient/{id}, which is not present in the Bundle."),
+            RequirementRef::RSubject,
+        ));
     }
 
-    if let Some(reference) = sr.encounter.as_ref().and_then(|r| r.reference.as_deref()) {
-        if let Some(id) = reference_id_from_str(reference) {
-            if !encounter_ids.contains(id) {
-                issues.push(ValidationIssue::new(
-                    "VAL_SR_ENCOUNTER_NOT_FOUND",
-                    ValidationSeverity::Warning,
-                    format!(
-                        "ServiceRequest.encounter references Encounter/{id}, which is not present in the Bundle."
-                    ),
-                    RequirementRef::RTrace,
-                ));
-            }
-        }
+    if let Some(reference) = sr.encounter.as_ref().and_then(|r| r.reference.as_deref())
+        && let Some(id) = reference_id_from_str(reference)
+        && !encounter_ids.contains(id)
+    {
+        issues.push(ValidationIssue::new(
+            "VAL_SR_ENCOUNTER_NOT_FOUND",
+            ValidationSeverity::Warning,
+            format!(
+                "ServiceRequest.encounter references Encounter/{id}, which is not present in the Bundle."
+            ),
+            RequirementRef::RTrace,
+        ));
     }
 }
 

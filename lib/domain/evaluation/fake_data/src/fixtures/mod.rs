@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use std::{
-    env,
     fs::File,
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
@@ -10,11 +9,8 @@ pub mod bundles;
 pub mod eval;
 pub mod mapping;
 
-/// Resolve the root directory for fixture files.
+/// Resolve the root directory for fixture files (relative to the crate).
 fn fixtures_root() -> PathBuf {
-    if let Ok(root) = env::var("DFPS_FAKE_DATA_ROOT") {
-        return PathBuf::from(root);
-    }
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("data")
 }
 
@@ -81,4 +77,44 @@ where
         let line = line.map_err(serde_json::Error::io)?;
         serde_json::from_str(&line)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dfps_eval::EvalCase;
+
+    #[test]
+    fn eval_fixtures_match_evalcase_schema() {
+        let registry = Registry::default();
+        for dataset in [
+            "bronze_pet_ct_small",
+            "bronze_pet_ct_unknowns",
+            "silver_pet_ct_small",
+            "gold_pet_ct_small",
+        ] {
+            let iter = super::eval::iter(&registry, dataset)
+                .unwrap_or_else(|err| panic!("open {dataset}: {err}"));
+            let mut count = 0usize;
+            for row in iter {
+                let row = row.unwrap_or_else(|err| panic!("parse {dataset}: {err}"));
+                let case = EvalCase {
+                    system: row.system.clone(),
+                    code: row.code.clone(),
+                    display: row.display.clone(),
+                    expected_ncit_id: row.expected_ncit_id.clone(),
+                };
+                assert!(
+                    !case.system.is_empty() && !case.code.is_empty(),
+                    "{dataset} rows must include system/code"
+                );
+                assert!(
+                    case.expected_ncit_id.starts_with("NCIT:"),
+                    "{dataset} expected_ncit_id should look like NCIT:Cxxxx"
+                );
+                count += 1;
+            }
+            assert!(count > 0, "{dataset} should contain rows");
+        }
+    }
 }

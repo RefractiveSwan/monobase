@@ -22,6 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - REFR-06  – Mapping engine docs/config cleanup (`MappingConfig` injects policy/thresholds/versions, env reads removed; README + crate docs added; vector ranker remains trait-based).
 - REFR-06  – Compliance policy env parsing now centralized in `dfps_compliance::ComplianceConfig` (using `dfps_configuration` namespace loading); CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_api`), and datamart loaders now build the policy once per process instead of calling `load_policy_from_env` per request; and the deprecated `dfps_mapping::eval::run_eval` shim has been removed in favor of `dfps_eval::run_eval_with_mapper`.
 - REFR-022 – Domain core helpers and docs alignment (`dfps_core` README, `CodeElement::id_for`, MappingResult builders, staging/datagate alignment notes, staging serde tests, unit coverage).
+- REFR-07  – `dfps_eval` now exposes a `FileDatasetStore` seam + README, CLI/API/frontend inject `DFPS_EVAL_DATA_ROOT`, fake-data RNGs/ID helpers were centralized with new docs/tests, and eval fixtures/regression docs now live under `lib/domain/evaluation/fake_data`.
 
 ### Planned
 - CLI application (`feature/app/cli-mvp` – 004): `dfps_cli` scaffold + `map-bundles` / `generate-fhir-bundles` subcommands, flags, tests, CI smoke.
@@ -40,12 +41,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - EVAL-012 – “EVAL-03 – Test harness integration” (dfps_test_suite fixture loader + `mapping_eval` integration tests asserting precision + NoMatch coverage).
 - EVAL-012 – “EVAL-04 – CLI wrapper” (`dfps_cli eval_mapping` reads gold NDJSON and prints summary + optional EvalResult lines).
 - EVAL-012 – “EVAL-05 – Docs & requirements link” (`mapping-eval-quickstart` runbook + MAP_ACCURACY verification update).
-- EVAL-022 – “EVAL-PLAT-01 – Eval crate & datasets” (`dfps_eval` crate, `DFPS_EVAL_DATA_ROOT`, datasets now in `lib/domain/fake_data/data/eval/`, CLI/test suite wired to named datasets).
+- EVAL-022 – “EVAL-PLAT-01 – Eval crate & datasets” (`dfps_eval` crate, `DFPS_EVAL_DATA_ROOT`, datasets now in `lib/domain/evaluation/fake_data/data/eval/`, CLI/test suite wired to named datasets).
 - EVAL-022 – “EVAL-PLAT-02/03 – Advanced metrics & CI guard” (EvalSummary adds F1 + stratified metrics; `dfps_cli eval_mapping` supports `--dataset` + `--thresholds` for regression gates).
 - EVAL-022 – “EVAL-PLAT-04/05 – Artifacts + tiered datasets” (`dfps_cli eval_mapping --out-dir/--report` writes summary/results/report artifacts; nine bronze/silver/gold datasets with updated runbooks/docs/tests; `/api/eval/summary` exposed in `dfps_api`).
 - EVAL-022 – “EVAL-PLAT-02 – Calibration buckets” (`EvalSummary.score_buckets` now capture deterministic 0.1 score bands with accuracy per bucket; Markdown report/runbook document the calibration view).
 - EVAL-022 – “EVAL-PLAT-03 – CI regression gate” (`EvalSummary` tracks overall accuracy and AutoMapped precision; CLI thresholds/CI workflow enforce regression guards on the `gold_pet_ct_small` dataset).
-- EVAL-022 – “EVAL-PLAT-04 – Dashboards & reporting” (`dfps_eval::report` loads baseline snapshots and renders Markdown + HTML fragments; `dfps_web_frontend` exposes an HTMX dataset picker backed by `/eval/report`; baseline fixtures documented in `lib/domain/fake_data/data/eval/README.md`).
+- EVAL-022 – “EVAL-PLAT-04 – Dashboards & reporting” (`dfps_eval::report` loads baseline snapshots and renders Markdown + HTML fragments; `dfps_web_frontend` exposes an HTMX dataset picker backed by `/eval/report`; baseline fixtures documented in `lib/domain/evaluation/fake_data/data/eval/README.md`).
 - EVAL-022 – “EVAL-PLAT-06 – Eval harness migration” (`dfps_eval::run_eval_with_mapper` owns the harness + streaming NDJSON reader; `dfps_mapping::eval` now exposes a deprecated shim, and CLI/API/test suites call the new surface).
 - EVAL-022 – “EVAL-PLAT-07 – Dataset manifests & licensing” (all corpora ship with `<dataset>.manifest.json`; `dfps_eval::load_dataset_with_manifest` validates SHA-256 + row counts, `pet_ct_extended.ndjson` joins the catalog, and CLI runs warn when manifest checksums drift).
 - EVAL-022 – “EVAL-PLAT-08/09 – Determinism & top-k coverage” (`EvalSummary` adds coverage/top-k and per-system confusion; CLI gains `--deterministic` guard and `--top-k` flag; runbook updated for fingerprint-based stability checks).

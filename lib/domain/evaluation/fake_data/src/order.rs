@@ -1,19 +1,21 @@
-use crate::value::{
-    fake_order_description_with_rng, fake_service_request_id_with_rng,
-    fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
+use crate::{
+    rng,
+    value::{
+        fake_order_description_with_rng, fake_service_request_id_with_rng,
+        fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
+    },
 };
 use dfps_core::{
     order::{ServiceRequest, ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId},
 };
-use rand::{Rng, SeedableRng, rng, rngs::StdRng};
+use rand::Rng;
 
 pub fn fake_service_request_for(
     patient_id: &PatientId,
     encounter_id: Option<&EncounterId>,
 ) -> ServiceRequest {
-    let mut rng = rng();
-    fake_service_request_for_with_rng(patient_id, encounter_id, &mut rng)
+    rng::with_global_rng(|rng| fake_service_request_for_with_rng(patient_id, encounter_id, rng))
 }
 
 pub fn fake_service_request_for_with_seed(
@@ -21,7 +23,7 @@ pub fn fake_service_request_for_with_seed(
     patient_id: &PatientId,
     encounter_id: Option<&EncounterId>,
 ) -> ServiceRequest {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_service_request_for_with_rng(patient_id, encounter_id, &mut rng)
 }
 

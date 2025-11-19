@@ -9,6 +9,7 @@ use std::{
     collections::HashMap,
     env,
     hash::{Hash, Hasher},
+    str::FromStr,
     sync::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -31,14 +32,16 @@ pub enum VectorBackend {
     Mock,
 }
 
-impl VectorBackend {
-    pub fn from_str(raw: &str) -> Option<Self> {
+impl FromStr for VectorBackend {
+    type Err = ();
+
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
         match raw.to_ascii_lowercase().as_str() {
-            "qdrant" => Some(Self::Qdrant),
-            "pgvector" => Some(Self::PgVector),
-            "milvus" => Some(Self::Milvus),
-            "mock" => Some(Self::Mock),
-            _ => None,
+            "qdrant" => Ok(Self::Qdrant),
+            "pgvector" => Ok(Self::PgVector),
+            "milvus" => Ok(Self::Milvus),
+            "mock" => Ok(Self::Mock),
+            _ => Err(()),
         }
     }
 }
@@ -62,7 +65,7 @@ impl VectorStoreConfig {
         let enabled = env_flag("DFPS_VECTOR_ENABLED", false);
         let backend = env::var("DFPS_VECTOR_BACKEND")
             .ok()
-            .and_then(|value| VectorBackend::from_str(&value))
+            .and_then(|value| value.parse().ok())
             .unwrap_or(VectorBackend::Mock);
         let url = env::var("DFPS_VECTOR_URL").ok();
         let namespace = env::var("DFPS_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
@@ -110,10 +113,8 @@ fn env_flag(name: &str, default: bool) -> bool {
             let lowered = value.trim().to_ascii_lowercase();
             if lowered.is_empty() {
                 true
-            } else if matches!(lowered.as_str(), "false" | "0" | "off") {
-                false
             } else {
-                true
+                !matches!(lowered.as_str(), "false" | "0" | "off")
             }
         })
         .unwrap_or(default)

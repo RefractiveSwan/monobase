@@ -57,10 +57,10 @@ impl ExternalValidationReport {
                         .to_ascii_uppercase()
                 );
                 let mut msg = message;
-                if let Some(exprs) = &issue.expression {
-                    if !exprs.is_empty() {
-                        msg.push_str(&format!(" (expression: {})", exprs.join(", ")));
-                    }
+                if let Some(exprs) = &issue.expression
+                    && !exprs.is_empty()
+                {
+                    msg.push_str(&format!(" (expression: {})", exprs.join(", ")));
                 }
                 issues.push(ValidationIssue::new(
                     id,
@@ -153,7 +153,7 @@ pub fn validate_bundle_external(
     }
 
     let mut request = client.post(url).json(bundle);
-    if let Some(profile) = ctx.profile_url.or_else(|| cfg.default_profile.as_deref()) {
+    if let Some(profile) = ctx.profile_url.or(cfg.default_profile.as_deref()) {
         request = request.query(&[("profile", profile)]);
     }
 

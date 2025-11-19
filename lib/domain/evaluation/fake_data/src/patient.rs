@@ -1,14 +1,13 @@
-use crate::value::fake_patient_id_with_rng;
+use crate::{rng, value::fake_patient_id_with_rng};
 use dfps_core::patient::Patient;
-use rand::{Rng, SeedableRng, rng, rngs::StdRng};
+use rand::Rng;
 
 pub fn fake_patient() -> Patient {
-    let mut rng = rng();
-    fake_patient_with_rng(&mut rng)
+    rng::with_global_rng(fake_patient_with_rng)
 }
 
 pub fn fake_patient_with_seed(seed: u64) -> Patient {
-    let mut rng = StdRng::seed_from_u64(seed);
+    let mut rng = rng::rng_from_seed(seed);
     fake_patient_with_rng(&mut rng)
 }
 

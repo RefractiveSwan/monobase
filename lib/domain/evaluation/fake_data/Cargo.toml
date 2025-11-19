@@ -12,3 +12,7 @@ serde.workspace = true
 serde_json.workspace = true
 clap.workspace = true
 dfps_configuration = { path = "../../../platform/configuration" }
+once_cell.workspace = true
+
+[dev-dependencies]
+dfps_eval = { path = "../eval" }

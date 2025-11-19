@@ -13,7 +13,7 @@ Field meanings:
 - `display` – human-friendly label shown in fixtures
 - `expected_ncit_id` – NCIt concept ID the mapping engine should return for the code
 
-Set `DFPS_EVAL_DATA_ROOT` to override the default (`lib/domain/fake_data/data/eval/`) when loading datasets. Each NDJSON is paired with `<dataset>.manifest.json`, which records version, license, row count, and a SHA-256 checksum validated by `dfps_eval`.
+Set `DFPS_EVAL_DATA_ROOT` to override the default (`lib/domain/evaluation/fake_data/data/eval/`) when loading datasets. Each NDJSON is paired with `<dataset>.manifest.json`, which records version, license, row count, and a SHA-256 checksum validated by `dfps_eval`.
 
 ## Available datasets
 

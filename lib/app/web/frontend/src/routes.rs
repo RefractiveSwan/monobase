@@ -29,7 +29,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 }
 
 async fn index(state: web::Data<AppState>) -> Result<HttpResponse> {
-    let ctx = build_base_context(&state.client).await;
+    let ctx = build_base_context(&state.client, &state.dataset_store).await;
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(views::render_page(&ctx)))
@@ -40,7 +40,7 @@ async fn analytics_dashboard(
     query: Option<web::Query<CohortFilters>>,
 ) -> Result<HttpResponse> {
     let mut filters = query.map(|q| q.into_inner()).unwrap_or_default();
-    let mut ctx = build_base_context(&state.client).await;
+    let mut ctx = build_base_context(&state.client, &state.dataset_store).await;
     match state.client.analytics_summary().await {
         Ok(summary) => ctx.analytics_summary = Some(AnalyticsSummaryView::from_response(&summary)),
         Err(err) => {
@@ -82,7 +82,7 @@ async fn map_from_paste(
     form: web::Form<BundleForm>,
 ) -> Result<HttpResponse> {
     let hx = is_htmx(&req);
-    let mut ctx = build_base_context(&state.client).await;
+    let mut ctx = build_base_context(&state.client, &state.dataset_store).await;
     let trimmed = form.bundle_text.trim();
     if trimmed.is_empty() {
         ctx.alert = Some(AlertMessage {
@@ -110,7 +110,7 @@ async fn map_from_upload(
     mut payload: Multipart,
 ) -> Result<HttpResponse> {
     let hx = is_htmx(&req);
-    let mut ctx = build_base_context(&state.client).await;
+    let mut ctx = build_base_context(&state.client, &state.dataset_store).await;
     match read_bundle_file(&mut payload).await {
         Ok(Some(text)) => match serde_json::from_str::<serde_json::Value>(&text) {
             Ok(value) => handle_mapping(value, state, ctx, hx).await,
@@ -173,7 +173,10 @@ async fn handle_mapping(
     }
 }
 
-async fn build_base_context(client: &BackendClient) -> PageContext {
+async fn build_base_context(
+    client: &BackendClient,
+    store: &dfps_eval::FileDatasetStore,
+) -> PageContext {
     let mut ctx = PageContext::default();
     ctx.datasets = client.eval_datasets().await.unwrap_or_default();
     if let Some(first) = ctx.datasets.first() {
@@ -204,7 +207,7 @@ async fn build_base_context(client: &BackendClient) -> PageContext {
         .first()
         .map(|m| m.name.as_str())
         .unwrap_or(DEFAULT_EVAL_DATASET);
-    match build_eval_report_fragment(client, selected_dataset).await {
+    match build_eval_report_fragment(client, store, selected_dataset).await {
         Ok(html) => {
             ctx.eval_report_html = Some(html);
             ctx.selected_eval_dataset = selected_dataset.to_string();
@@ -261,7 +264,7 @@ async fn eval_report(
         .as_deref()
         .unwrap_or(DEFAULT_EVAL_DATASET)
         .to_string();
-    match build_eval_report_fragment(&state.client, &dataset).await {
+    match build_eval_report_fragment(&state.client, &state.dataset_store, &dataset).await {
         Ok(html) => Ok(HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
             .body(html)),
@@ -288,13 +291,14 @@ async fn eval_run(
 
 async fn build_eval_report_fragment(
     client: &BackendClient,
+    store: &dfps_eval::FileDatasetStore,
     dataset: &str,
 ) -> Result<String, String> {
     let summary = client
         .eval_summary(dataset)
         .await
         .map_err(|err| format!("Backend eval error: {err}"))?;
-    let baseline = match report::load_baseline_snapshot(dataset) {
+    let baseline = match report::load_baseline_snapshot_from(store.root(), dataset) {
         Ok(snapshot) => Some(snapshot),
         Err(err) => {
             eprintln!("warning: baseline load failed for {dataset}: {err}");
@@ -497,7 +501,8 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let state = web::Data::new(AppState::new(config.clone(), client));
+        let dataset_store = dfps_eval::FileDatasetStore::default();
+        let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(App::new().app_data(state.clone()).configure(configure)).await;
 
         let payload = json!({ "resourceType": "Bundle", "type": "collection" }).to_string();
@@ -583,7 +588,8 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let state = web::Data::new(AppState::new(config.clone(), client));
+        let dataset_store = dfps_eval::FileDatasetStore::default();
+        let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(App::new().app_data(state.clone()).configure(configure)).await;
 
         let request = test::TestRequest::get().uri("/analytics").to_request();
