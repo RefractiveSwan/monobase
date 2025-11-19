@@ -228,6 +228,8 @@ pub enum ComplianceError {
     InvalidMode { value: String },
     #[error("failed to load compliance env: {0}")]
     Env(dfps_configuration::EnvLoadError),
+    #[error("invalid compliance env value: {0}")]
+    EnvValue(#[from] dfps_configuration::EnvValueError),
     #[error("failed to read policy file {path:?}: {source}")]
     PolicyPathIo {
         path: PathBuf,
@@ -235,8 +237,6 @@ pub enum ComplianceError {
     },
     #[error("failed to parse policy file {path:?}: {message}")]
     PolicyPathParse { path: PathBuf, message: String },
-    #[error("failed to determine current directory: {0}")]
-    CurrentDir(std::io::Error),
     #[error("export blocked for tier '{tier}' under mode '{mode}'")]
     ExportNotAllowed { tier: String, mode: String },
 }

@@ -74,7 +74,7 @@ where
     let dim_concepts = dim_concepts();
     let xrefs = load_umls_xrefs();
     let engine = MappingEngine::new(LexicalRanker, VectorRankerMock, crate::engine::RuleReranker);
-    let (results, summary) = map_with_engine(codes.into_iter(), &engine, &xrefs, client, config);
+    let (results, summary) = map_with_engine(codes, &engine, &xrefs, client, config);
     (results, dim_concepts, summary)
 }
 
@@ -103,21 +103,21 @@ where
 
         summary.record(code_kind, enriched.license_label());
 
-        if let Some(tier) = enriched.license_tier {
-            if !config.policy.is_allowed(ComplianceAction::Map, tier) {
-                let mut blocked = build_result_with_score(
-                    &element,
-                    None,
-                    None,
-                    0.0,
-                    MappingStrategy::Unmapped,
-                    Some("license_blocked".into()),
-                    config,
-                );
-                attach_license_metadata(&mut blocked, &enriched);
-                results.push(blocked);
-                continue;
-            }
+        if let Some(tier) = enriched.license_tier
+            && !config.policy.is_allowed(ComplianceAction::Map, tier)
+        {
+            let mut blocked = build_result_with_score(
+                &element,
+                None,
+                None,
+                0.0,
+                MappingStrategy::Unmapped,
+                Some("license_blocked".into()),
+                config,
+            );
+            attach_license_metadata(&mut blocked, &enriched);
+            results.push(blocked);
+            continue;
         }
 
         let mut result = match code_kind {

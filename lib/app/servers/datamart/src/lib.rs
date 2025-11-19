@@ -86,45 +86,45 @@ pub fn from_pipeline_output(output: &PipelineOutput) -> (Dims, Vec<FactServiceRe
     let mut facts = Vec::new();
 
     for result in &output.mapping_results {
-        if let Some((code_key, sr_id)) = code_lookup.get(&result.code_element_id) {
-            if let Some(flat) = sr_lookup.get(sr_id) {
-                let patient_key = patient_lookup[&flat.patient_id];
-                let encounter_key = flat
-                    .encounter_id
-                    .as_ref()
-                    .and_then(|id| encounter_lookup.get(id).copied());
+        if let Some((code_key, sr_id)) = code_lookup.get(&result.code_element_id)
+            && let Some(flat) = sr_lookup.get(sr_id)
+        {
+            let patient_key = patient_lookup[&flat.patient_id];
+            let encounter_key = flat
+                .encounter_id
+                .as_ref()
+                .and_then(|id| encounter_lookup.get(id).copied());
 
-                let ncit_key = match (result.state, result.ncit_id.as_ref()) {
-                    (MappingState::NoMatch, _) | (_, None) => {
+            let ncit_key = match (result.state, result.ncit_id.as_ref()) {
+                (MappingState::NoMatch, _) | (_, None) => {
+                    ncit_dims
+                        .entry(no_match_key.0)
+                        .or_insert_with(DimNCIT::no_match);
+                    Some(no_match_key)
+                }
+                (_, Some(id)) => {
+                    let entry = ncit_lookup.entry(id.clone()).or_insert_with(|| {
+                        let key = DimNCITKey::from_ncit_id(id);
                         ncit_dims
-                            .entry(no_match_key.0)
-                            .or_insert_with(DimNCIT::no_match);
-                        Some(no_match_key)
-                    }
-                    (_, Some(id)) => {
-                        let entry = ncit_lookup.entry(id.clone()).or_insert_with(|| {
-                            let key = DimNCITKey::from_ncit_id(id);
-                            ncit_dims
-                                .entry(key.0)
-                                .or_insert_with(|| DimNCIT::unknown(id));
-                            key
-                        });
-                        Some(*entry)
-                    }
-                };
+                            .entry(key.0)
+                            .or_insert_with(|| DimNCIT::unknown(id));
+                        key
+                    });
+                    Some(*entry)
+                }
+            };
 
-                facts.push(FactServiceRequest {
-                    sr_id: flat.sr_id.clone(),
-                    patient_key,
-                    encounter_key,
-                    code_key: *code_key,
-                    ncit_key,
-                    status: flat.status.clone(),
-                    intent: flat.intent.clone(),
-                    description: flat.description.clone(),
-                    ordered_at: flat.ordered_at.clone(),
-                });
-            }
+            facts.push(FactServiceRequest {
+                sr_id: flat.sr_id.clone(),
+                patient_key,
+                encounter_key,
+                code_key: *code_key,
+                ncit_key,
+                status: flat.status.clone(),
+                intent: flat.intent.clone(),
+                description: flat.description.clone(),
+                ordered_at: flat.ordered_at.clone(),
+            });
         }
     }
 

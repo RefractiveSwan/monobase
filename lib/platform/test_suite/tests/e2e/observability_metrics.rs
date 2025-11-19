@@ -1,5 +1,7 @@
 use dfps_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
-use dfps_observability::{PipelineMetrics, VectorUsageSnapshot, log_no_match, log_pipeline_output};
+use dfps_observability::{
+    PipelineMetrics, VectorUsageSnapshot, log_no_match, log_pipeline_output, metrics_snapshot,
+};
 use dfps_pipeline::bundle_to_mapped_sr;
 use dfps_vector_store::CapacityProxies;
 
@@ -40,12 +42,15 @@ fn vector_usage_metrics_are_recorded() {
         queries: 3,
         hits: 2,
         fallbacks: 1,
-        capacity: Some(CapacityProxies {
-            geom_rm: Some(0.1),
-            geom_dm: Some(3.0),
-            geom_rm_sqrt_dm: Some(0.17),
-            cap_alpha_sim: Some(0.85),
-        }),
+        capacity: Some(
+            CapacityProxies {
+                geom_rm: Some(0.1),
+                geom_dm: Some(3.0),
+                geom_rm_sqrt_dm: Some(0.17),
+                cap_alpha_sim: Some(0.85),
+            }
+            .into(),
+        ),
     };
     log_pipeline_output(&[], &[], &[], &mut metrics, Some(usage), Some(120));
     assert_eq!(metrics.vector_queries, 3);
@@ -54,4 +59,6 @@ fn vector_usage_metrics_are_recorded() {
     assert_eq!(metrics.vector_latency_ms_p95, Some(120));
     assert_eq!(metrics.vector_capacity_cap_alpha_sim, Some(0.85));
     assert_eq!(metrics.vector_capacity_geom_rm_sqrt_dm, Some(0.17));
+    let snapshot = metrics_snapshot(&metrics);
+    assert!(snapshot.ratios.vector_hit_rate.is_some());
 }

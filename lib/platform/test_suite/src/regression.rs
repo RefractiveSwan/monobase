@@ -6,7 +6,7 @@ static REGRESSION_ENV: Lazy<()> = Lazy::new(|| {
     crate::init_environment();
 });
 
-static FIXTURE_REGISTRY: Lazy<Registry> = Lazy::new(|| Registry::default());
+static FIXTURE_REGISTRY: Lazy<Registry> = Lazy::new(Registry::default);
 
 fn ensure_env_loaded() {
     Lazy::force(&REGRESSION_ENV);

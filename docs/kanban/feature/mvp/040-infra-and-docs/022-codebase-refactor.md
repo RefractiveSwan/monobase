@@ -7,7 +7,7 @@
 > Status: **INPROGRESS**  
 > Branch target version: `v0.1.0`  
 > Introduced in: `v0.1.0`  
-> Last updated in: `Unreleased`
+> Last updated in: `v0.1.0`
 
 ### Columns
 * **TODO** – Not started yet  
@@ -158,44 +158,6 @@
   - [ ] Failure modes (invalid Bundle, ingestion error, disabled vector backend) with clear error mapping for upstream layers.
 
 ---
-
-
-### REFR-11 – Platform compliance & export gating (`dfps_compliance`)
-
-**Goal:** Provide a robust, testable compliance layer that expresses license/tier policies as pure data and config, with env loading and overrides clearly separated from domain mapping and datamart export.
-
-- [ ] Add `lib/platform/compliance/README.md` that:
-  - [ ] Explains `ComplianceMode`, `ComplianceAction`, `Policy`, and their relationship to mapping/export.
-  - [ ] Documents env variables (`DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`, `DFPS_WORKSPACE_ROOT`) and example policies.
-- [ ] Refactor `load_policy_from_env`:
-  - [ ] Introduce a `ComplianceConfig` struct that encapsulates env-derived settings (mode, policy path, workspace root).
-  - [ ] Use `dfps_configuration` helpers for env/paths instead of calling `env::var` directly.
-  - [ ] Return structured errors without panicking and ensure message clarity for CI logs.
-- [ ] Ensure `dfps_mapping`, `dfps_pipeline`, and `dfps_datamart` call `Policy::default_for_mode` or injected `Policy` instead of repeatedly calling `load_policy_from_env`:
-  - [ ] Plan entrypoints where app/web/CLI wires a `Policy` into mapping/pipeline/warehouse surfaces.
-  - [ ] Keep mapping domain code free of direct env/config parsing.
-- [ ] Add tests covering:
-  - [ ] Policy overrides from JSON/YAML across all modes and actions.
-  - [ ] Export gating semantics for each license tier in `Internal`, `Partner`, and `OpenSource` modes.
-  - [ ] Error behavior when policy files are malformed or missing, including `DFPS_WORKSPACE_ROOT` fallbacks.
-
-### REFR-12 – Platform observability & metrics (`dfps_observability`)
-
-**Goal:** Turn `dfps_observability` into a stable, opt-in metrics/logging adapter that can be wired from app/CLI/API, without panicking on env load and with clear contracts for pipeline/mapping/vector metrics.
-
-- [ ] Replace the panicking `OBS_ENV` initializer:
-  - [ ] Make `init_environment()` return a `Result<(), EnvLoadError>` that callers can handle, instead of `panic!`.
-  - [ ] Use `dfps_configuration::load_env("platform.observability")` with clear error messages and tests.
-- [ ] Clarify the ownership of `PipelineMetrics`:
-  - [ ] Document which surfaces update which fields (pipeline, vector store, analytics, cohorts).
-  - [ ] Ensure fields like `analytics_requests`, `cohort_queries`, `cohort_results_total` are updated only in app/API layers, not domain crates.
-- [ ] Add helper functions for:
-  - [ ] Emitting metrics snapshots as JSON structs that can be consumed by `/metrics/summary` endpoints and CLI exporters.
-  - [ ] Mapping `VectorUsageSnapshot` and vector capacity proxies (`geom_rm_sqrt_dm`, `cap_alpha_sim`) into pipeline metrics consistently.
-- [ ] Add tests that:
-  - [ ] Confirm `log_pipeline_output` and `log_no_match` do not panic when env files are missing (non-strict mode).
-  - [ ] Verify metrics counters (bundle_count, mapping_count, license_blocked, vector_* fields) match expectations for sample pipeline runs.
-  - [ ] Cover behavior when vector capacity is missing vs present (capacity fields remain `None` vs set).
 
 ### REFR-13 – Platform vector backends (`dfps_vector_store`)
 
@@ -429,6 +391,45 @@
   - [x] `workspace_root()` discovery in nested directories and failure modes (`WorkspaceRootNotFound`).
   - [x] Resolution order when `DFPS_ENV_FILE`, `DFPS_ENV_DIR`, and `DFPS_WORKSPACE_ROOT` are all present.
   - [x] Strict vs non-strict behavior in CI and local dev (FileMissing vs silent no-op).
+
+### REFR-11 – Platform compliance & export gating (`dfps_compliance`)
+
+**Goal:** Provide a robust, testable compliance layer that expresses license/tier policies as pure data and config, with env loading and overrides clearly separated from domain mapping and datamart export.
+
+- [x] Add `lib/platform/compliance/README.md` that:
+  - [x] Explains `ComplianceMode`, `ComplianceAction`, `Policy`, and their relationship to mapping/export.
+  - [x] Documents env variables (`DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`, `DFPS_WORKSPACE_ROOT`) and example policies.
+- [x] Refactor `load_policy_from_env`:
+  - [x] Introduce a `ComplianceConfig` struct that encapsulates env-derived settings (mode, policy path, workspace root).
+  - [x] Use `dfps_configuration` helpers for env/paths instead of calling `env::var` directly.
+  - [x] Return structured errors without panicking and ensure message clarity for CI logs.
+- [x] Ensure `dfps_mapping`, `dfps_pipeline`, and `dfps_datamart` call `Policy::default_for_mode` or injected `Policy` instead of repeatedly calling `load_policy_from_env`:
+  - [x] Plan entrypoints where app/web/CLI wires a `Policy` into mapping/pipeline/warehouse surfaces.
+  - [x] Keep mapping domain code free of direct env/config parsing.
+- [x] Add tests covering:
+  - [x] Policy overrides from JSON/YAML across all modes and actions.
+  - [x] Export gating semantics for each license tier in `Internal`, `Partner`, and `OpenSource` modes.
+  - [x] Error behavior when policy files are malformed or missing, including `DFPS_WORKSPACE_ROOT` fallbacks.
+
+### REFR-12 – Platform observability & metrics (`dfps_observability`)
+
+**Goal:** Turn `dfps_observability` into a stable, opt-in metrics/logging adapter that can be wired from app/CLI/API, without panicking on env load and with clear contracts for pipeline/mapping/vector metrics.
+
+- [x] Replace the panicking `OBS_ENV` initializer:
+  - [x] Make `init_environment()` return a `Result<(), EnvLoadError>` that callers can handle, instead of `panic!`.
+  - [x] Use `dfps_configuration::load_env("platform.observability")` with clear error messages and tests.
+- [x] Clarify the ownership of `PipelineMetrics`:
+  - [x] Document which surfaces update which fields (pipeline, vector store, analytics, cohorts).
+  - [x] Ensure fields like `analytics_requests`, `cohort_queries`, `cohort_results_total` are updated only in app/API layers, not domain crates.
+- [x] Add helper functions for:
+  - [x] Emitting metrics snapshots as JSON structs that can be consumed by `/metrics/summary` endpoints and CLI exporters.
+  - [x] Mapping `VectorUsageSnapshot` and vector capacity proxies (`geom_rm_sqrt_dm`, `cap_alpha_sim`) into pipeline metrics consistently.
+- [x] Add tests that:
+  - [x] Confirm `log_pipeline_output` and `log_no_match` do not panic when env files are missing (non-strict mode).
+  - [x] Verify metrics counters (bundle_count, mapping_count, license_blocked, vector_* fields) match expectations for sample pipeline runs.
+  - [x] Cover behavior when vector capacity is missing vs present (capacity fields remain `None` vs set).
+
+
 ---
 
 ## DONE

@@ -102,7 +102,7 @@ where
     let usage_handle = vector_ranker.usage_handle();
     let engine = MappingEngine::new(LexicalRanker, vector_ranker, RuleReranker);
     let (results, summary) = crate::pipelines::staging::map_with_engine(
-        codes.into_iter(),
+        codes,
         &engine,
         &xrefs,
         None as Option<&dyn dfps_terminology::TerminologyClient>,

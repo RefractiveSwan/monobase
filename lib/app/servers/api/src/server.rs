@@ -137,10 +137,10 @@ impl AnalyticsPersistence {
     }
 
     async fn persist(&self, output: &PipelineOutput, policy: &dfps_compliance::Policy) {
-        if let Some(pool) = self.pool().await {
-            if let Err(err) = load_from_pipeline_output(&pool, output, policy).await {
-                warn!(target: "dfps_api", "analytics persistence failed: {err}");
-            }
+        if let Some(pool) = self.pool().await
+            && let Err(err) = load_from_pipeline_output(&pool, output, policy).await
+        {
+            warn!(target: "dfps_api", "analytics persistence failed: {err}");
         }
     }
 }
@@ -217,15 +217,15 @@ impl AnalyticsState {
         let mut rows = Vec::new();
         for fact in &self.facts {
             let ncit_id = self.lookup_ncit_id(fact.ncit_key);
-            if let Some(expected) = &query.ncit_id {
-                if ncit_id.as_deref() != Some(expected.as_str()) {
-                    continue;
-                }
+            if let Some(expected) = &query.ncit_id
+                && ncit_id.as_deref() != Some(expected.as_str())
+            {
+                continue;
             }
-            if let Some(status) = &query.status {
-                if &fact.status != status {
-                    continue;
-                }
+            if let Some(status) = &query.status
+                && &fact.status != status
+            {
+                continue;
             }
             if !self.matches_date_filters(&fact.ordered_at, query) {
                 continue;
@@ -284,15 +284,15 @@ impl AnalyticsState {
         let Some(date) = normalize_date(ordered_at) else {
             return false;
         };
-        if let Some(from) = &query.date_from {
-            if date < *from {
-                return false;
-            }
+        if let Some(from) = &query.date_from
+            && date < *from
+        {
+            return false;
         }
-        if let Some(to) = &query.date_to {
-            if date > *to {
-                return false;
-            }
+        if let Some(to) = &query.date_to
+            && date > *to
+        {
+            return false;
         }
         true
     }
@@ -301,10 +301,10 @@ impl AnalyticsState {
 fn license_tiers_from_output(output: &PipelineOutput) -> Vec<LicenseTier> {
     let mut tiers = HashSet::new();
     for mapping in &output.mapping_results {
-        if let Some(label) = mapping.license_tier.as_deref() {
-            if let Some(tier) = parse_license_tier(label) {
-                tiers.insert(tier);
-            }
+        if let Some(label) = mapping.license_tier.as_deref()
+            && let Some(tier) = parse_license_tier(label)
+        {
+            tiers.insert(tier);
         }
     }
     tiers.into_iter().collect()
@@ -641,8 +641,10 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
 
     let mut response = MapBundlesResponse::default();
     let mut dims_seen: HashSet<String> = HashSet::new();
-    let mut request_metrics = PipelineMetrics::default();
-    request_metrics.compliance_mode = Some(state.compliance_policy.mode.as_str().to_string());
+    let mut request_metrics = PipelineMetrics {
+        compliance_mode: Some(state.compliance_policy.mode.as_str().to_string()),
+        ..PipelineMetrics::default()
+    };
 
     for bundle in bundles {
         let output =
@@ -733,12 +735,10 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     Ok(Json(response).into_response())
 }
 
-fn shutdown_signal() -> impl std::future::Future<Output = ()> {
-    async {
-        match tokio::signal::ctrl_c().await {
-            Ok(()) => info!(target: "dfps_api", "received shutdown signal"),
-            Err(err) => warn!(target: "dfps_api", "failed waiting for ctrl_c: {err}"),
-        }
+async fn shutdown_signal() {
+    match tokio::signal::ctrl_c().await {
+        Ok(()) => info!(target: "dfps_api", "received shutdown signal"),
+        Err(err) => warn!(target: "dfps_api", "failed waiting for ctrl_c: {err}"),
     }
 }
 

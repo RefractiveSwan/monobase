@@ -4,8 +4,8 @@
 //! - docs/system-design/fhir/index.md#quickstart
 //! - docs/system-design/ncit/behavior/sequence-servicerequest.md
 //! - lib/domain/pipeline/README.md (REFR-09 notes)
-//! by exposing a single entrypoint from Bundle -> staging -> NCIt concepts,
-//! with optional vector-store contexts injected by callers.
+//!   by exposing a single entrypoint from Bundle -> staging -> NCIt concepts,
+//!   with optional vector-store contexts injected by callers.
 
 use dfps_core::{
     fhir::Bundle,

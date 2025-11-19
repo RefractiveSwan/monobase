@@ -1,6 +1,7 @@
 //! Compliance policy definitions for license-aware gating across mapping, CLI, and export surfaces.
 //! See:
 //! - docs/kanban/feature/mvp/020-license-compliance-layer.md
+//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-11--platform-compliance--export-gating-dfps_compliance
 //! - docs/system-design/clinical/fhir/concepts/terminology-layer.md
 //! - docs/system-design/clinical/ncit/architecture.md
 
@@ -139,6 +140,44 @@ mod tests {
     }
 
     #[test]
+    fn json_policy_overrides_cover_all_actions() {
+        let _lock = env_guard().lock().unwrap();
+        let tmp_path = env::temp_dir().join(format!(
+            "dfps-compliance-policy-{}.json",
+            uuid::Uuid::new_v4()
+        ));
+        fs::write(
+            &tmp_path,
+            r#"{
+                "mode": "partner",
+                "allowed_actions": ["ingest", "map", "export"],
+                "allowed_tiers": {
+                    "ingest": ["licensed", "open", "internal_only"],
+                    "map": ["open"],
+                    "export": ["open"]
+                }
+            }"#,
+        )
+        .unwrap();
+
+        set_env_var(
+            "DFPS_COMPLIANCE_POLICY_PATH",
+            tmp_path.to_string_lossy().as_ref(),
+        );
+
+        let policy = load_policy_from_env().expect("json overrides apply");
+        assert_eq!(policy.mode, ComplianceMode::Partner);
+        assert!(policy.is_action_allowed(ComplianceAction::Ingest));
+        assert!(policy.is_allowed(ComplianceAction::Ingest, LicenseTier::InternalOnly));
+        assert!(policy.is_allowed(ComplianceAction::Map, LicenseTier::Open));
+        assert!(!policy.is_allowed(ComplianceAction::Map, LicenseTier::Licensed));
+        assert!(policy.is_allowed(ComplianceAction::Export, LicenseTier::Open));
+
+        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        let _ = fs::remove_file(&tmp_path);
+    }
+
+    #[test]
     fn yaml_policy_overrides_apply() {
         let _lock = env_guard().lock().unwrap();
         let tmp_path = env::temp_dir().join(format!(
@@ -177,6 +216,35 @@ allowed_tiers:
     }
 
     #[test]
+    fn export_gating_enforces_license_tiers_per_mode() {
+        let internal = Policy::default_for_mode(ComplianceMode::Internal);
+        assert!(
+            assert_export_allowed(
+                &[
+                    LicenseTier::Licensed,
+                    LicenseTier::Open,
+                    LicenseTier::InternalOnly
+                ],
+                &internal
+            )
+            .is_ok()
+        );
+
+        let partner = Policy::default_for_mode(ComplianceMode::Partner);
+        assert!(assert_export_allowed(&[LicenseTier::Licensed], &partner).is_ok());
+        assert!(assert_export_allowed(&[LicenseTier::Open], &partner).is_ok());
+        let partner_err = assert_export_allowed(&[LicenseTier::InternalOnly], &partner)
+            .expect_err("partner mode should block internal-only exports");
+        matches!(partner_err, ComplianceError::ExportNotAllowed { .. });
+
+        let oss = Policy::default_for_mode(ComplianceMode::OpenSource);
+        assert!(assert_export_allowed(&[LicenseTier::Open], &oss).is_ok());
+        let oss_err = assert_export_allowed(&[LicenseTier::Licensed], &oss)
+            .expect_err("open source mode blocks licensed exports");
+        matches!(oss_err, ComplianceError::ExportNotAllowed { .. });
+    }
+
+    #[test]
     fn load_policy_reports_parse_error_for_malformed_override() {
         let _lock = env_guard().lock().unwrap();
         clear_env_var("DFPS_COMPLIANCE_MODE");
@@ -194,6 +262,28 @@ allowed_tiers:
         matches!(err, ComplianceError::PolicyPathParse { .. });
         clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
         let _ = fs::remove_file(&tmp_path);
+    }
+
+    #[test]
+    fn load_policy_reports_missing_override_file() {
+        let _lock = env_guard().lock().unwrap();
+        let dir = env::temp_dir().join(format!("dfps-compliance-missing-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        unsafe { env::set_var("DFPS_WORKSPACE_ROOT", &dir) };
+        set_env_var("DFPS_COMPLIANCE_POLICY_PATH", "not_there.json");
+
+        let err = load_policy_from_env().expect_err("missing policy file should error");
+        match err {
+            ComplianceError::PolicyPathIo { path, .. } => {
+                assert!(path.ends_with("not_there.json"));
+                assert!(path.starts_with(&dir));
+            }
+            other => panic!("expected PolicyPathIo, got {other:?}"),
+        }
+
+        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        unsafe { env::remove_var("DFPS_WORKSPACE_ROOT") };
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]

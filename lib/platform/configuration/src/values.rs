@@ -2,6 +2,25 @@ use std::{env, ffi::OsString, str::FromStr};
 
 use thiserror::Error;
 
+/// Read a UTF-8 env var as a trimmed string, returning `None` when unset or empty.
+pub fn string_var(name: &str) -> Result<Option<String>, EnvValueError> {
+    match env::var(name) {
+        Ok(raw) => {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(trimmed.to_string()))
+            }
+        }
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(env::VarError::NotUnicode(os)) => Err(EnvValueError::InvalidUnicode {
+            name: name.to_string(),
+            value: os,
+        }),
+    }
+}
+
 /// Read a boolean env var (accepts true/false/1/0/on/off) returning `None` when unset.
 pub fn bool_var(name: &str) -> Result<Option<bool>, EnvValueError> {
     match env::var(name) {

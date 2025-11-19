@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf};
+use std::path::{Path, PathBuf};
 
 use crate::{ComplianceError, ComplianceMode, Policy, PolicyOverrides};
 
@@ -7,6 +7,7 @@ use crate::{ComplianceError, ComplianceMode, Policy, PolicyOverrides};
 pub struct ComplianceConfig {
     pub mode: ComplianceMode,
     pub policy_path: Option<PathBuf>,
+    pub workspace_root: PathBuf,
 }
 
 impl ComplianceConfig {
@@ -18,20 +19,24 @@ impl ComplianceConfig {
             Err(err) => return Err(ComplianceError::Env(err)),
         }
 
-        let mode = env::var("DFPS_COMPLIANCE_MODE")
-            .ok()
-            .and_then(non_empty_string)
-            .map(|value| ComplianceMode::from_env_value(&value))
-            .transpose()?
-            .unwrap_or(ComplianceMode::Internal);
+        let workspace_root = dfps_configuration::workspace_root().map_err(ComplianceError::Env)?;
 
-        let policy_path = env::var("DFPS_COMPLIANCE_POLICY_PATH")
-            .ok()
-            .and_then(non_empty_string)
-            .map(|value| resolve_path(&value))
-            .transpose()?;
+        let mode = match dfps_configuration::string_var("DFPS_COMPLIANCE_MODE")
+            .map_err(ComplianceError::EnvValue)?
+        {
+            Some(value) => ComplianceMode::from_env_value(&value)?,
+            None => ComplianceMode::Internal,
+        };
 
-        Ok(Self { mode, policy_path })
+        let policy_path = dfps_configuration::string_var("DFPS_COMPLIANCE_POLICY_PATH")
+            .map_err(ComplianceError::EnvValue)?
+            .map(|value| resolve_path(&workspace_root, &value));
+
+        Ok(Self {
+            mode,
+            policy_path,
+            workspace_root,
+        })
     }
 
     /// Build a policy from the resolved configuration.
@@ -46,25 +51,11 @@ impl ComplianceConfig {
     }
 }
 
-fn resolve_path(raw: &str) -> Result<PathBuf, ComplianceError> {
+fn resolve_path(root: &Path, raw: &str) -> PathBuf {
     let candidate = PathBuf::from(raw);
     if candidate.is_absolute() {
-        return Ok(candidate);
+        return candidate;
     }
 
-    match dfps_configuration::workspace_root() {
-        Ok(root) => Ok(root.join(raw)),
-        Err(_) => env::current_dir()
-            .map(|cwd| cwd.join(raw))
-            .map_err(ComplianceError::CurrentDir),
-    }
-}
-
-fn non_empty_string(value: String) -> Option<String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
+    root.join(raw)
 }

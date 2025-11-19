@@ -7,7 +7,7 @@ use dfps_eval::fake_data::{
 };
 use once_cell::sync::Lazy;
 
-static MAPPING_REGISTRY: Lazy<Registry> = Lazy::new(|| Registry::default());
+static MAPPING_REGISTRY: Lazy<Registry> = Lazy::new(Registry::default);
 
 pub fn service_request_scenario() -> ServiceRequestScenario {
     fake_service_request_scenario()

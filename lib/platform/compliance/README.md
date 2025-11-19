@@ -46,4 +46,13 @@ let should_map = policy.is_allowed(ComplianceAction::Map, LicenseTier::Licensed)
 dfps_compliance::assert_export_allowed(&tiers, &policy)?;
 ```
 
+## Config & entrypoints
+
+- `ComplianceConfig` bundles the resolved `ComplianceMode`, an optional policy override path (relative to `DFPS_WORKSPACE_ROOT` when not absolute), and the detected workspace root. This ensures file lookups behave the same in CI and local dev.
+- Apps/servers call `dfps_configuration::load_env("platform.compliance")` once, then construct the policy at startup:
+  - `dfps_cli` bins (`map_bundles`, `map_codes`, `load_datamart`) build a policy before streaming results so compliance failures can stop the process deterministically.
+  - `dfps_api` wires the policy into `ApiState` and reuses it for every request, sharing the same policy with analytics persistence/export gating.
+  - Warehouse loaders (`dfps_datamart`) require the caller to provide a `Policy`, ensuring SQLite export jobs honor the same tier matrix as live API/CLI flows.
+- Domain crates (`dfps_mapping`, `dfps_pipeline`, etc.) remain agnostic of env/config parsing—they accept a pre-built `Policy` (defaulting via `Policy::default_for_mode` in tests) so behavior stays deterministic.
+
 Downstream crates (`dfps_mapping`, `dfps_pipeline`, `dfps_datamart`) accept a `Policy` (often built in app/CLI/API code) instead of calling `load_policy_from_env`. This keeps domain logic deterministic and separates transport concerns from compliance rules.

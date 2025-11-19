@@ -1,5 +1,6 @@
 use crate::{
-    EnvLoadError, EnvValueError, bool_var, config_paths, load_env, port_var, workspace_root,
+    EnvLoadError, EnvValueError, bool_var, config_paths, load_env, port_var, string_var,
+    workspace_root,
 };
 use std::{
     env, fs,
@@ -132,4 +133,17 @@ fn port_var_rejects_zero() {
     unsafe { env::set_var("PORT_TEST", "8080") };
     assert_eq!(port_var("PORT_TEST").unwrap(), Some(8080));
     unsafe { env::remove_var("PORT_TEST") };
+}
+
+#[test]
+fn string_var_trims_and_ignores_empty_values() {
+    let _lock = env_guard().lock().unwrap();
+    unsafe { env::set_var("STRING_TEST", "  value  ") };
+    assert_eq!(
+        string_var("STRING_TEST").unwrap(),
+        Some("value".to_string())
+    );
+    unsafe { env::set_var("STRING_TEST", "   ") };
+    assert!(string_var("STRING_TEST").unwrap().is_none());
+    unsafe { env::remove_var("STRING_TEST") };
 }

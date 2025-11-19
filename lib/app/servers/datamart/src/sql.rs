@@ -123,13 +123,13 @@ pub async fn load_from_pipeline_output(
 
     let (dims, facts) = crate::from_pipeline_output(output);
     let mut tx = pool.begin().await?;
-    let mut summary = LoadSummary::default();
-
-    summary.patients = upsert_patients(&mut tx, &dims.patients).await?;
-    summary.encounters = upsert_encounters(&mut tx, &dims.encounters).await?;
-    summary.codes = upsert_codes(&mut tx, &dims.codes).await?;
-    summary.ncit = upsert_ncit(&mut tx, &dims.ncit).await?;
-    summary.facts = insert_facts(&mut tx, &facts).await?;
+    let summary = LoadSummary {
+        patients: upsert_patients(&mut tx, &dims.patients).await?,
+        encounters: upsert_encounters(&mut tx, &dims.encounters).await?,
+        codes: upsert_codes(&mut tx, &dims.codes).await?,
+        ncit: upsert_ncit(&mut tx, &dims.ncit).await?,
+        facts: insert_facts(&mut tx, &facts).await?,
+    };
 
     tx.commit().await?;
     Ok(summary)
@@ -217,10 +217,10 @@ fn enforce_export_policy(
 ) -> Result<(), LoadError> {
     let mut tiers = Vec::new();
     for mapping in &output.mapping_results {
-        if let Some(label) = mapping.license_tier.as_deref() {
-            if let Some(tier) = parse_license_tier(label) {
-                tiers.push(tier);
-            }
+        if let Some(label) = mapping.license_tier.as_deref()
+            && let Some(tier) = parse_license_tier(label)
+        {
+            tiers.push(tier);
         }
     }
     assert_export_allowed(&tiers, policy).map_err(|err| LoadError::Compliance(err.to_string()))
