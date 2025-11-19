@@ -1,0 +1,105 @@
+digraph DFPS {
+  rankdir=LR;
+  node [shape=box, style=rounded, fontname="Inter"];
+
+  subgraph cluster_clients {
+    label="Clients";
+    style=filled;
+    color="#e5f5ff";
+    EHR   [label="EHR / Upstream"];
+    CLI   [label="dfps_cli"];
+    WEB   [label="dfps_web_frontend"];
+  }
+
+  subgraph cluster_app {
+    label="App layer";
+    style=filled;
+    color="#e0f7e9";
+    API   [label="dfps_api"];
+    DM    [label="dfps_datamart"];
+    VEC   [label="dfps_vector_store"];
+  }
+
+  subgraph cluster_domain {
+    label="Domain layer";
+    style=filled;
+    color="#e0e7ff";
+    ING   [label="dfps_ingestion"];
+    CORE  [label="dfps_core"];
+    MAP   [label="dfps_mapping"];
+    PIPE  [label="dfps_pipeline"];
+    EVAL  [label="dfps_eval"];
+    TERM  [label="dfps_terminology"];
+  }
+
+  subgraph cluster_platform {
+    label="Platform";
+    style=dashed;
+    color="#f9a8d4";
+    CFG   [label="dfps_configuration"];
+    COMP  [label="dfps_compliance"];
+    OBS   [label="dfps_observability"];
+  }
+
+  subgraph cluster_storage {
+    label="Storage";
+    style=filled;
+    color="#fef3c7";
+    STG   [label="stg_servicerequest_*"];
+    PO    [label="PipelineOutput"];
+    WH    [label="Warehouse DB"];
+    DS    [label="Eval datasets"];
+  }
+
+  subgraph cluster_external {
+    label="External services";
+    style=filled;
+    color="#fee2e2";
+    FHIRV [label="FHIR validator ($validate)"];
+    VDB   [label="Vector DB (Qdrant/pgvector)"];
+    TAPI  [label="Terminology APIs"];
+  }
+
+  // Main path
+  EHR  -> API;
+  WEB  -> API;
+  CLI  -> API;
+
+  API  -> PIPE;
+  PIPE -> ING;
+  ING  -> STG;
+  STG  -> PIPE;
+  PIPE -> MAP;
+  MAP  -> PO;
+  PO   -> DM;
+  DM   -> WH;
+
+  // Vector path
+  MAP  -> VEC;
+  VEC  -> VDB;
+
+  // Terminology
+  MAP  -> TERM;
+  TERM -> TAPI;
+
+  // Eval
+  CLI  -> EVAL;
+  EVAL -> DS;
+  EVAL -> MAP;
+
+  // Analytics
+  API  -> DM;
+  DM   -> WH;
+  API  -> EVAL;
+
+  // Cross-cutting
+  {rank=same; CFG; COMP; OBS}
+  API  -> CFG;
+  DM   -> CFG;
+  VEC  -> CFG;
+  ING  -> CFG;
+  MAP  -> COMP;
+  DM   -> COMP;
+  PIPE -> OBS;
+  API  -> OBS;
+}

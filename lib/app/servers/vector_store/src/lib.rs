@@ -17,6 +17,7 @@ use std::{
     time::Duration,
 };
 
+use dfps_observability::{VectorCapacitySnapshot, VectorUsageSnapshot};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -130,6 +131,17 @@ pub struct CapacityProxies {
     pub cap_alpha_sim: Option<f32>,
 }
 
+impl From<CapacityProxies> for VectorCapacitySnapshot {
+    fn from(value: CapacityProxies) -> Self {
+        Self {
+            geom_rm: value.geom_rm,
+            geom_dm: value.geom_dm,
+            geom_rm_sqrt_dm: value.geom_rm_sqrt_dm,
+            cap_alpha_sim: value.cap_alpha_sim,
+        }
+    }
+}
+
 /// Metadata for an embedding function.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmbeddingMetadata {
@@ -206,14 +218,6 @@ pub struct VectorUsageCounters {
     vector_fallbacks: AtomicUsize,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct VectorUsageSnapshot {
-    pub queries: usize,
-    pub hits: usize,
-    pub fallbacks: usize,
-    pub capacity: Option<CapacityProxies>,
-}
-
 impl VectorUsageCounters {
     pub fn inc_query(&self) {
         self.vector_queries.fetch_add(1, Ordering::Relaxed);
@@ -253,7 +257,8 @@ impl VectorUsageHandle {
 
     pub fn snapshot(&self) -> VectorUsageSnapshot {
         let mut snapshot = self.counters.snapshot();
-        snapshot.capacity = self.capacity.lock().expect("capacity lock").clone();
+        let capacity = self.capacity.lock().expect("capacity lock").clone();
+        snapshot.capacity = capacity.map(VectorCapacitySnapshot::from);
         snapshot
     }
 }

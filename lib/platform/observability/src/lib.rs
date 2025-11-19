@@ -7,10 +7,13 @@ use dfps_core::{
     mapping::{MappingResult, MappingState},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use dfps_vector_store::VectorUsageSnapshot;
 use log::{info, warn};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+
+pub mod vector_usage;
+
+pub use vector_usage::{VectorCapacitySnapshot, VectorUsageSnapshot};
 
 static OBS_ENV: Lazy<()> = Lazy::new(|| {
     dfps_configuration::load_env("platform.observability")
@@ -109,7 +112,7 @@ pub fn log_pipeline_output(
     codes: &[StgSrCodeExploded],
     mappings: &[MappingResult],
     metrics: &mut PipelineMetrics,
-    vector_usage: Option<dfps_vector_store::VectorUsageSnapshot>,
+    vector_usage: Option<VectorUsageSnapshot>,
     vector_latency_ms_p95: Option<u64>,
 ) {
     ensure_env();

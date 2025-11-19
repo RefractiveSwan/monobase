@@ -44,6 +44,7 @@ main() {
 
     install_cargo_crate mdbook
     install_cargo_crate cargo-make
+    install_cargo_crate cargo-watch
 
     echo "Tooling installation complete."
 }

@@ -16,9 +16,9 @@ use dfps_ingestion::bundle_to_staging;
 use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes, map_staging_codes_with_vector,
 };
+use dfps_observability::VectorUsageSnapshot;
 use dfps_vector_store::{
-    VectorBackend, VectorItem, VectorSearchResult, VectorStore, VectorStoreConfig,
-    VectorStoreError, VectorUsageSnapshot,
+    VectorBackend, VectorItem, VectorSearchResult, VectorStore, VectorStoreConfig, VectorStoreError,
 };
 use log::warn;
 use std::sync::Arc;

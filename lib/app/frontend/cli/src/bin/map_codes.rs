@@ -10,6 +10,7 @@ use dfps_mapping::{
     DeterministicEmbeddingProvider, explain_staging_code,
     map_staging_codes_with_summary_and_policy, map_staging_codes_with_vector_and_policy,
 };
+use dfps_observability::VectorUsageSnapshot;
 use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend, VectorStoreConfig};
 
 #[derive(Parser)]
@@ -124,7 +125,7 @@ fn try_vector_mapping(
         Vec<dfps_core::mapping::MappingResult>,
         Vec<dfps_core::mapping::DimNCITConcept>,
         dfps_mapping::MappingSummary,
-        Option<dfps_vector_store::VectorUsageSnapshot>,
+        Option<VectorUsageSnapshot>,
     ),
     String,
 > {

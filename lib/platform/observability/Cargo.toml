@@ -10,4 +10,3 @@ serde_json.workspace = true
 log = "0.4"
 once_cell.workspace = true
 dfps_configuration = { path = "../configuration" }
-dfps_vector_store = { path = "../../app/servers/vector_store" }

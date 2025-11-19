@@ -1,3 +1,120 @@
+[tasks.graphviz-render]
+description = "Render all Graphviz .dot diagrams under docs/system-design"
+linux_alias = "graphviz-render-unix"
+mac_alias = "graphviz-render-unix"
+windows_alias = "graphviz-render-windows"
+
+[tasks.graphviz-render-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+if [ ! -d "docs/system-design" ]; then
+  echo "docs/system-design directory not found; nothing to render"
+  exit 0
+fi
+rendered=0
+while IFS= read -r -d '' file; do
+  rendered=1
+  out="${file%.dot}.svg"
+  echo "  dot -Tsvg $file -> $out"
+  dot -Tsvg "$file" -o "$out"
+done < <(find docs/system-design -name "*.dot" -print0)
+if [ $rendered -eq 0 ]; then
+  echo "No .dot files found under docs/system-design"
+fi
+'''
+]
+
+[tasks.graphviz-render-windows]
+description = "Render all Graphviz .dot diagrams under docs/system-design (Windows)"
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+# 1. Ensure docs dir exists
+if (-not (Test-Path "docs/system-design")) {
+    Write-Host "docs/system-design directory not found; nothing to render."
+    exit 0
+}
+
+# 2. Determine dot executable
+$dotExe = $env:GRAPHVIZ_DOT
+if ([string]::IsNullOrWhiteSpace($dotExe)) {
+    $dotExe = "dot"
+}
+
+# 3. Check that dot is available
+if (-not (Get-Command $dotExe -ErrorAction SilentlyContinue)) {
+    Write-Error "Graphviz 'dot' not found. Set GRAPHVIZ_DOT to the full path of dot.exe or add 'dot' to PATH."
+    exit 1
+}
+
+# 4. Find .dot files
+$dotFiles = Get-ChildItem -Path "docs/system-design" -Filter "*.dot" -Recurse
+if (-not $dotFiles -or $dotFiles.Count -eq 0) {
+    Write-Host "No .dot files found under docs/system-design."
+    exit 0
+}
+
+# 5. Render each .dot -> .svg
+Write-Host "Rendering Graphviz diagrams under docs/system-design using '$dotExe'..."
+foreach ($file in $dotFiles) {
+    $out = [System.IO.Path]::ChangeExtension($file.FullName, ".svg")
+    Write-Host "  $dotExe -Tsvg $($file.FullName) -> $out"
+    & $dotExe "-Tsvg" $file.FullName "-o" $out
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "dot failed for $($file.FullName) (exit code $LASTEXITCODE)"
+        exit $LASTEXITCODE
+    }
+}
+
+Write-Host "All diagrams rendered successfully."
+'''
+
+
+[tasks.graphviz-clean]
+description = "Remove generated .svg diagrams that sit next to .dot files"
+linux_alias = "graphviz-clean-unix"
+mac_alias = "graphviz-clean-unix"
+windows_alias = "graphviz-clean-windows"
+
+[tasks.graphviz-clean-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+if [ ! -d "docs/system-design" ]; then
+  exit 0
+fi
+removed=0
+while IFS= read -r -d '' file; do
+  out="${file%.dot}.svg"
+  if [ -f "$out" ]; then
+    removed=1
+    echo "  rm $out"
+    rm "$out"
+  fi
+done < <(find docs/system-design -name "*.dot" -print0)
+if [ $removed -eq 0 ]; then
+  echo "No generated .svg files to remove"
+fi
+'''
+]
+
+[tasks.graphviz-clean-windows]
+command = "powershell"
+args = [
+    "-NoLogo",
+    "-NoProfile",
+    "-Command",
+    "if (-not (Test-Path 'docs/system-design')) { exit 0 }; $removed = $false; Get-ChildItem -Path 'docs/system-design' -Filter *.dot -Recurse | ForEach-Object { $out = [System.IO.Path]::ChangeExtension($_.FullName, '.svg'); if (Test-Path $out) { $removed = $true; Write-Host \"  rm $out\"; Remove-Item -Force $out } }; if (-not $removed) { Write-Host 'No generated .svg files to remove' }"
+]
+
+[tasks.graphviz-watch]
+description = "Watch Graphviz sources and re-render diagrams on change"
+command = "cargo"
+args = ["watch", "-w", "docs/system-design", "-i", "target/*", "-x", "make graphviz-render"]
+
 [tasks.docs-sync]
 description = "Sync runbooks & kanban into the book sources"
 linux_alias = "docs-sync-unix"
@@ -25,12 +142,12 @@ args = [
 
 [tasks.docs]
 description = "Build mdBook to docs/book/book"
-dependencies = ["docs-sync"]
+dependencies = ["docs-sync", "graphviz-render"]
 command = "mdbook"
 args = ["build", "docs/book"]
 
 [tasks.docs-serve]
 description = "Serve mdBook locally"
-dependencies = ["docs-sync"]
+dependencies = ["docs-sync", "graphviz-render"]
 command = "mdbook"
 args = ["serve", "docs/book", "--open"]

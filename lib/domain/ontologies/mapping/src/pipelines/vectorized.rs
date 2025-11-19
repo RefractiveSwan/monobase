@@ -3,6 +3,7 @@ use std::sync::Arc;
 use dfps_compliance::Policy;
 use dfps_core::mapping::{CodeElement, DimNCITConcept, MappingResult};
 use dfps_core::staging::StgSrCodeExploded;
+use dfps_observability::VectorUsageSnapshot;
 use dfps_vector_store::{EmbeddingProvider, VectorStore, VectorStoreConfig};
 
 use crate::config::MappingConfig;
@@ -23,7 +24,7 @@ pub fn map_staging_codes_with_vector<I, S, E>(
         Vec<MappingResult>,
         Vec<DimNCITConcept>,
         MappingSummary,
-        dfps_vector_store::VectorUsageSnapshot,
+        VectorUsageSnapshot,
     ),
     VectorRankerError,
 >
@@ -54,7 +55,7 @@ pub fn map_staging_codes_with_vector_and_policy<I, S, E>(
         Vec<MappingResult>,
         Vec<DimNCITConcept>,
         MappingSummary,
-        dfps_vector_store::VectorUsageSnapshot,
+        VectorUsageSnapshot,
     ),
     VectorRankerError,
 >
@@ -86,7 +87,7 @@ pub fn map_staging_codes_with_vector_and_config<I, S, E>(
         Vec<MappingResult>,
         Vec<DimNCITConcept>,
         MappingSummary,
-        dfps_vector_store::VectorUsageSnapshot,
+        VectorUsageSnapshot,
     ),
     VectorRankerError,
 >

@@ -1,7 +1,7 @@
 extend = [
-    { path = "data/makefiles/core.toml" },
-    { path = "data/makefiles/docs.toml" },
-    { path = "data/makefiles/apps.toml" }
+    { path = "data/ops/makefiles/core.toml" },
+    { path = "data/ops/makefiles/docs.toml" },
+    { path = "data/ops/makefiles/apps.toml" }
 ]
 
 [env]
