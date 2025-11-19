@@ -4,9 +4,11 @@
 //! - docs/system-design/clinical/fhir/concepts/terminology-layer.md
 //! - docs/system-design/clinical/ncit/architecture.md
 
+pub mod config;
+
 use std::{
     collections::{BTreeMap, BTreeSet},
-    env, fs,
+    fs,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -185,32 +187,11 @@ impl PolicyOverrides {
     }
 }
 
+pub use config::ComplianceConfig;
+
 /// Load a policy from environment variables and optional JSON/YAML override file.
 pub fn load_policy_from_env() -> Result<Policy, ComplianceError> {
-    match dfps_configuration::load_env("platform.compliance") {
-        Ok(_) => {}
-        Err(dfps_configuration::EnvLoadError::FileMissing { .. }) => {}
-        Err(err) => return Err(ComplianceError::Env(err)),
-    }
-
-    let env_mode = env::var("DFPS_COMPLIANCE_MODE")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .map(|value| ComplianceMode::from_env_value(&value))
-        .transpose()?;
-    let mut policy = Policy::default_for_mode(env_mode.unwrap_or(ComplianceMode::Internal));
-
-    if let Some(path) = env::var("DFPS_COMPLIANCE_POLICY_PATH")
-        .ok()
-        .and_then(non_empty_string)
-    {
-        let resolved = resolve_path(&path)?;
-        let overrides = PolicyOverrides::from_path(&resolved)?;
-        let base_mode = overrides.mode.unwrap_or(policy.mode);
-        policy = Policy::default_for_mode(base_mode).apply_overrides(overrides);
-    }
-
-    Ok(policy)
+    ComplianceConfig::from_env()?.load_policy()
 }
 
 fn default_allowed_tiers(mode: ComplianceMode) -> BTreeSet<LicenseTier> {
@@ -256,30 +237,6 @@ fn parse_policy(path: &Path, contents: &str) -> Result<PolicyOverrides, Complian
     }
 }
 
-fn resolve_path(raw: &str) -> Result<PathBuf, ComplianceError> {
-    let candidate = PathBuf::from(raw);
-    if candidate.is_absolute() {
-        return Ok(candidate);
-    }
-
-    if let Ok(root) = env::var("DFPS_WORKSPACE_ROOT") {
-        return Ok(PathBuf::from(root).join(raw));
-    }
-
-    env::current_dir()
-        .map(|cwd| cwd.join(raw))
-        .map_err(ComplianceError::CurrentDir)
-}
-
-fn non_empty_string(value: String) -> Option<String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum ComplianceError {
     #[error("invalid compliance mode '{value}', expected internal | partner | open_source")]
@@ -302,7 +259,10 @@ pub enum ComplianceError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{Mutex, OnceLock};
+    use std::{
+        env,
+        sync::{Mutex, OnceLock},
+    };
 
     static ENV_GUARD: OnceLock<Mutex<()>> = OnceLock::new();
 
