@@ -79,7 +79,7 @@
   - [ ] `lib/domain/mapping` (`dfps_mapping`)
   - [ ] `lib/domain/obo_graph` (`dfps_obo_graph`)
   - [ ] `lib/domain/pipeline` (`dfps_pipeline`)
-  - [ ] `lib/domain/terminology` (`dfps_terminology`)
+  - [ ] `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - [ ] `lib/platform/compliance` (`dfps_compliance`)
   - [ ] `lib/platform/configuration` (`dfps_configuration`)
   - [ ] `lib/platform/observability` (`dfps_observability`)

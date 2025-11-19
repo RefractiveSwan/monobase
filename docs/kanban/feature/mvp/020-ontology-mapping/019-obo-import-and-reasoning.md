@@ -79,7 +79,7 @@
 - **Engineering Targets:** A1, B
 - **Crates & Paths:**
   - `lib/domain/obo_graph` (`dfps_obo_graph`)
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
 - **Shared Metrics & Signals:**
   - `mapping_precision`, `mapping_recall`, `mapping_f1`
 - **Docs & Kanbans Touched:**
@@ -109,7 +109,7 @@
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
   - `lib/app/cli` (`dfps_cli`)
 - **Shared Metrics & Signals:**
@@ -177,7 +177,7 @@
 - **Engineering Targets:** A1, C, D
 - **Crates & Paths:**
   - `lib/domain/obo_graph` (`dfps_obo_graph`)
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - `mapping_precision`, `mapping_recall`

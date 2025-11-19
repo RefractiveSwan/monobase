@@ -80,7 +80,7 @@
       - [ ] Stop reading `VectorStoreConfig` from env inside `bundle_to_mapped_sr`; require injected config/store and surface errors instead of silent fallback.
       - [ ] Emit dfps_observability metrics/logging for ingestion + vector paths so downstream apps don’t re-count manually.
       - [ ] Add tests for vector-enabled vs offline paths to keep `vector_usage` semantics stable.
-    - [ ] `lib/domain/terminology` (`dfps_terminology`)
+    - [ ] `lib/domain/ontologies/terminology` (`dfps_terminology`)
       - [ ] Expose code-system normalization helpers (`canonicalize_system`) for reuse by ingestion/mapping to avoid drift.
       - [ ] Add a crate README documenting license/source metadata semantics expected by analytics/mapping.
   - [ ] `lib/platform`
@@ -143,16 +143,16 @@
 
 **Goal:** Provide a clean, domain-level terminology layer (code systems, value sets, OBO graphs) that exposes stable APIs for mapping/compliance, with HTTP/env responsibilities clearly separated.
 
-- [ ] `dfps_terminology`
-  - [ ] Add a crate README that explains:
-    - [ ] The split between `codesystem`, `valueset`, `bridge`, `client`, `obo`, and `registry`.
-    - [ ] How license tiers and source kinds are intended to feed mapping/compliance decisions.
-  - [ ] Confirm `canonicalize_system` and `CodeKind` semantics are used consistently by both ingestion and mapping; plan to expose any missing helpers as public API.
-  - [ ] Inventory all HTTP/env touchpoints in `client::TerminologyClientConfig` and friends; mark them as adapter seams for future platform layering.
-- [ ] `dfps_obo_graph`
-  - [ ] Document the expectations around embedded `.obo` minis vs potential full graphs (NCIT/MONDO) and how graph versions are surfaced.
-  - [ ] Ensure `CachedOntologyGraph` exposes only pure graph operations (ancestors/descendants/synonyms/related_concepts), leaving file/network IO out of this crate.
-  - [ ] Add tests or examples tying synonym/related-concept behavior back to mapping/terminology use cases (e.g., PET/CT synonym sets).
+- [x] `dfps_terminology`
+  - [x] Add a crate README that explains:
+    - [x] The split between `codesystem`, `valueset`, `bridge`, `client`, `obo`, and `registry`.
+    - [x] How license tiers and source kinds are intended to feed mapping/compliance decisions.
+  - [x] Confirm `canonicalize_system` and `CodeKind` semantics are used consistently by both ingestion and mapping; plan to expose any missing helpers as public API.
+  - [x] Inventory all HTTP/env touchpoints in `client::TerminologyClientConfig` and friends; mark them as adapter seams for future platform layering.
+- [x] `dfps_obo_graph`
+  - [x] Document the expectations around embedded `.obo` minis vs potential full graphs (NCIT/MONDO) and how graph versions are surfaced.
+  - [x] Ensure `CachedOntologyGraph` exposes only pure graph operations (ancestors/descendants/synonyms/related_concepts), leaving file/network IO out of this crate.
+  - [x] Add tests or examples tying synonym/related-concept behavior back to mapping/terminology use cases (e.g., PET/CT synonym sets).
 
 ### REFR-09 – Domain pipeline orchestrator (`dfps_pipeline`)
 

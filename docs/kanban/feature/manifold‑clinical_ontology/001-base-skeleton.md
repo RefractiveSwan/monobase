@@ -236,7 +236,7 @@ def capacity_metrics(X: np.ndarray, y: np.ndarray, m_list=[32,128,512], B=1000):
 * `lib/domain/mapping` — add `geometry_probe()` & flags; flattening pre‑ranker hook.
 * `lib/domain/eval` — metrics structs + bootstrap; counterexample generators.
 * `lib/domain/pipeline` — surface metrics to observability.
-* `lib/domain/terminology` — synonym gate + provenance; Leiden outputs for graph health.
+* `lib/domain/ontologies/terminology` — synonym gate + provenance; Leiden outputs for graph health.
 
 **CI checks (defaults).**
 

@@ -41,7 +41,7 @@
 
 - **Engineering Targets:** A1, B
 - **Crates & Paths:**
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - auto_mapped
@@ -73,7 +73,7 @@
 
 - **Engineering Targets:** A1, B
 - **Crates & Paths:**
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/platform/test_suite` (`dfps_test_suite`)
 - **Shared Metrics & Signals:**
   - auto_mapped
@@ -106,7 +106,7 @@
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - auto_mapped
@@ -146,7 +146,7 @@
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - auto_mapped
@@ -184,7 +184,7 @@
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
   - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -221,7 +221,7 @@
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
   - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review

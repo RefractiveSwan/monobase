@@ -60,3 +60,20 @@ fn mondo_synonyms_bridge_via_xref() {
         .expect("xref provides bridge");
     assert!(synonyms.contains(&"example disease".to_string()));
 }
+
+#[test]
+fn pet_ct_synonyms_align_with_mapping_use_cases() {
+    let cached = CachedOntologyGraph::new(load_ontology_graph("ncit-mini").unwrap());
+    let pet_ct = cached
+        .synonym_set("NCIT:C116746")
+        .expect("pet/ct synonym set present");
+    assert!(
+        pet_ct.iter().any(|syn| syn.contains("pet/ct")),
+        "mapping surfaces rely on pet/ct synonyms"
+    );
+    let ancestors = cached.related_concepts("NCIT:C116746", 1);
+    assert!(
+        ancestors.contains(&"NCIT:C19951".to_string()),
+        "PET code should connect back to PET parent for ranking"
+    );
+}

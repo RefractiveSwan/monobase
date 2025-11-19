@@ -33,7 +33,7 @@
 ## DONE
 
 ### TERM-01 - Terminology crate scaffold
-- [x] Create `lib/domain/terminology` crate (e.g., `dfps_terminology`).
+- [x] Create `lib/domain/ontologies/terminology` crate (e.g., `dfps_terminology`).
 - [x] Wire into `Cargo.toml` workspace members.
 - [x] Initial modules:
   - [x] `codesystem` - FHIR / code system metadata.

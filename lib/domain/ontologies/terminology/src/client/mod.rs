@@ -23,6 +23,10 @@ impl TerminologyClientConfig {
     /// - `DFPS_TERMINOLOGY_API_KEY`
     /// - `DFPS_TERMINOLOGY_TIMEOUT_SECS`
     /// - `DFPS_TERMINOLOGY_MODE` (`mock_only` | `http_fallback` | `http_only`)
+    ///
+    /// Platform adapters should prefer loading env/config via `dfps_configuration`
+    /// (or equivalent) and then constructing this struct explicitly; this helper
+    /// exists for legacy CLIs/tests.
     pub fn from_env() -> Self {
         let base_url = std::env::var("DFPS_TERMINOLOGY_BASE_URL").ok();
         let api_key = std::env::var("DFPS_TERMINOLOGY_API_KEY").ok();

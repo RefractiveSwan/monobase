@@ -1,3 +1,9 @@
+//! License-aware terminology registries and bridges for staging/mapping flows.
+//! See:
+//! - docs/system-design/clinical/ncit/architecture.md
+//! - lib/domain/ontologies/terminology/README.md
+//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md (REFR-08)
+
 pub mod bridge;
 pub mod client;
 pub mod codesystem;
@@ -5,7 +11,7 @@ pub mod obo;
 pub mod registry;
 pub mod valueset;
 
-pub use bridge::{CodeKind, EnrichedCode};
+pub use bridge::{CodeKind, EnrichedCode, canonicalize_system_url};
 #[cfg(feature = "http-client")]
 pub use client::HttpTerminologyClient;
 pub use client::{

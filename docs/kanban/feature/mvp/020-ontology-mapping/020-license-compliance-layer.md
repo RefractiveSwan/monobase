@@ -57,7 +57,7 @@ Define a reusable policy layer that other epics (014 external terminology APIs, 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
   - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/domain/terminology` (`dfps_terminology`)
+  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`

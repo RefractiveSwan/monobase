@@ -761,9 +761,9 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Add e2e tests as surfaces grow; today, lean on ingestion + mapping unit tests.
 
 
-# Crate: lib/domain/terminology — `dfps_terminology`
+# Crate: lib/domain/ontologies/terminology — `dfps_terminology`
 
-**Path:** `code/lib/domain/terminology`  
+**Path:** `code/lib/domain/ontologies/terminology`  
 **Depends on:** `dfps_core`, `serde`.
 
 ## Responsibilities

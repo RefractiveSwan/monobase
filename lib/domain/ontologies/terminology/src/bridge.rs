@@ -35,7 +35,7 @@ impl CodeKind {
 
 impl EnrichedCode {
     pub fn from_staging(staging: StgSrCodeExploded) -> Self {
-        let canonical_system = canonicalize_system(staging.system.as_deref());
+        let canonical_system = canonicalize_system_opt(staging.system.as_deref());
         let codesystem = canonical_system
             .as_deref()
             .and_then(|url| lookup_codesystem(url));
@@ -97,8 +97,9 @@ impl EnrichedCode {
     }
 }
 
-fn canonicalize_system(value: Option<&str>) -> Option<String> {
-    let mut url = value?.trim().to_ascii_lowercase();
+/// Normalize code-system URLs (trim, lowercase, strip trailing slash, convert OIDs).
+pub fn canonicalize_system_url(value: &str) -> Option<String> {
+    let mut url = value.trim().to_ascii_lowercase();
     if url.is_empty() {
         return None;
     }
@@ -110,6 +111,10 @@ fn canonicalize_system(value: Option<&str>) -> Option<String> {
         "urn:oid:2.16.840.1.113883.6.1" => Some("http://loinc.org".into()),
         other => Some(other.to_string()),
     }
+}
+
+fn canonicalize_system_opt(value: Option<&str>) -> Option<String> {
+    value.and_then(canonicalize_system_url)
 }
 
 #[cfg(test)]
@@ -163,5 +168,18 @@ mod tests {
         let enriched =
             EnrichedCode::from_staging(staging(Some("http://example.org/custom"), Some("ABC")));
         assert_eq!(enriched.code_kind(), CodeKind::UnknownSystem);
+    }
+
+    #[test]
+    fn canonicalizes_oids_and_trailing_slashes() {
+        assert_eq!(
+            canonicalize_system_url("urn:oid:2.16.840.1.113883.6.96"),
+            Some("http://snomed.info/sct".into())
+        );
+        assert_eq!(
+            canonicalize_system_url("http://loinc.org/"),
+            Some("http://loinc.org".into())
+        );
+        assert_eq!(canonicalize_system_url("  "), None);
     }
 }
