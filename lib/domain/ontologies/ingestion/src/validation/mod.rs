@@ -6,191 +6,23 @@
 //! `crate::profiles` are applied alongside the hand-written checks to keep
 //! ingestion aligned with embedded StructureDefinitions.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
-#[cfg(feature = "profile_validation")]
-use crate::profiles::{self, ElementDefinition as ProfileElement, FhirProfile};
 use dfps_core::fhir;
-use serde::{Deserialize, Serialize};
 
 use crate::reference::reference_id_from_str;
-use crate::validation::external::{ExternalValidationError, ExternalValidator};
+use crate::validation::external::ExternalValidationError;
 
 pub mod external;
-
-/// Requirement identifiers mirrored from the ingestion requirements doc.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RequirementRef {
-    /// Requirement ensuring every ServiceRequest references a Patient.
-    RSubject,
-    /// Requirement covering acceptable/normalizable status values.
-    RStatus,
-    /// Requirement ensuring provenance/trace identifiers are present.
-    RTrace,
-    /// Requirement representing external validator findings.
-    RExternal,
-}
-
-impl RequirementRef {
-    /// Return the canonical string code used in documentation.
-    pub fn as_code(&self) -> &'static str {
-        match self {
-            RequirementRef::RSubject => "R_Subject",
-            RequirementRef::RStatus => "R_Status",
-            RequirementRef::RTrace => "R_Trace",
-            RequirementRef::RExternal => "R_External",
-        }
-    }
-}
-
-/// Severity of a validation issue.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ValidationSeverity {
-    Error,
-    Warning,
-    Info,
-}
-
-/// Describes a requirement-linked validation issue discovered during ingestion.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ValidationIssue {
-    /// Stable issue identifier (e.g., `VAL_SR_SUBJECT_MISSING`).
-    pub id: String,
-    pub severity: ValidationSeverity,
-    pub message: String,
-    pub requirement: RequirementRef,
-}
-
-impl ValidationIssue {
-    /// Convenience constructor for building a requirement-linked issue.
-    pub fn new(
-        id: impl Into<String>,
-        severity: ValidationSeverity,
-        message: impl Into<String>,
-        requirement: RequirementRef,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            severity,
-            message: message.into(),
-            requirement,
-        }
-    }
-
-    /// Return the canonical requirement code (e.g., `R_Subject`).
-    pub fn requirement_ref(&self) -> &'static str {
-        self.requirement.as_code()
-    }
-}
-
-/// Map RequirementRefs to specific profile element definitions for traceability.
-#[cfg(feature = "profile_validation")]
-pub fn profile_requirement_links(profile: &FhirProfile) -> Vec<(RequirementRef, ProfileElement)> {
-    [
-        (RequirementRef::RSubject, "ServiceRequest.subject"),
-        (RequirementRef::RStatus, "ServiceRequest.status"),
-        (RequirementRef::RTrace, "ServiceRequest.id"),
-    ]
-    .iter()
-    .filter_map(|(req, path)| profile.element_by_path(path).cloned().map(|el| (*req, el)))
-    .collect()
-}
-
-/// Profile-driven checks for ServiceRequest cardinalities and required elements.
-#[cfg(feature = "profile_validation")]
-pub fn validate_sr_profile(
-    sr: &fhir::ServiceRequest,
-    profile: &FhirProfile,
-) -> Vec<ValidationIssue> {
-    let mut issues = Vec::new();
-    let requirement_lookup = build_requirement_lookup(profile);
-
-    for element in &profile.elements {
-        if !element.path.starts_with("ServiceRequest.") {
-            continue;
-        }
-        let min = element.min.unwrap_or(0);
-        if min > 0 && !sr_field_present(sr, &element.path) {
-            let requirement = requirement_lookup
-                .get(element.path.as_str())
-                .copied()
-                .unwrap_or(RequirementRef::RTrace);
-            let id = profile_issue_id(&element.path, "MISSING");
-            let message = format!(
-                "{} required by profile {} is missing.",
-                element.path, profile.meta.url
-            );
-            issues.push(ValidationIssue::new(
-                id,
-                ValidationSeverity::Error,
-                message,
-                requirement,
-            ));
-        }
-        if let Some(max) = element.max.as_deref() {
-            if max == "0" && sr_field_present(sr, &element.path) {
-                let requirement = requirement_lookup
-                    .get(element.path.as_str())
-                    .copied()
-                    .unwrap_or(RequirementRef::RTrace);
-                let id = profile_issue_id(&element.path, "NOT_ALLOWED");
-                let message = format!(
-                    "{} is not permitted by profile {}.",
-                    element.path, profile.meta.url
-                );
-                issues.push(ValidationIssue::new(
-                    id,
-                    ValidationSeverity::Error,
-                    message,
-                    requirement,
-                ));
-            }
-        }
-    }
-
-    issues
-}
+pub mod types;
 
 #[cfg(feature = "profile_validation")]
-fn build_requirement_lookup(profile: &FhirProfile) -> HashMap<String, RequirementRef> {
-    profile_requirement_links(profile)
-        .into_iter()
-        .map(|(req, el)| (el.path.clone(), req))
-        .collect()
-}
+pub mod profile;
 
-#[cfg(feature = "profile_validation")]
-fn sr_field_present(sr: &fhir::ServiceRequest, path: &str) -> bool {
-    match path {
-        "ServiceRequest.id" => sr.id.as_deref().map(|v| !v.is_empty()).unwrap_or(false),
-        "ServiceRequest.status" => sr.status.as_deref().map(|v| !v.is_empty()).unwrap_or(false),
-        "ServiceRequest.intent" => sr.intent.as_deref().map(|v| !v.is_empty()).unwrap_or(false),
-        "ServiceRequest.subject" => sr
-            .subject
-            .as_ref()
-            .and_then(|r| r.reference.as_deref())
-            .map(|v| !v.is_empty())
-            .unwrap_or(false),
-        "ServiceRequest.encounter" => sr
-            .encounter
-            .as_ref()
-            .and_then(|r| r.reference.as_deref())
-            .map(|v| !v.is_empty())
-            .unwrap_or(false),
-        _ => false,
-    }
-}
-
-#[cfg(feature = "profile_validation")]
-fn profile_issue_id(path: &str, suffix: &str) -> String {
-    let key = path
-        .trim_start_matches("ServiceRequest.")
-        .replace('.', "_")
-        .to_ascii_uppercase();
-    format!("VAL_SR_PROFILE_{}_{}", key, suffix)
-}
+pub use types::{
+    ExternalValidationContext, RequirementRef, Validated, ValidationIssue, ValidationMode,
+    ValidationReport, ValidationSeverity,
+};
 
 /// Validate a FHIR ServiceRequest against ingestion requirements.
 pub fn validate_sr(sr: &fhir::ServiceRequest) -> Vec<ValidationIssue> {
@@ -203,68 +35,6 @@ pub fn validate_sr(sr: &fhir::ServiceRequest) -> Vec<ValidationIssue> {
     issues
 }
 
-/// Aggregated validation mode for bundle ingestion.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ValidationMode {
-    Strict,
-    Lenient,
-    ExternalPreferred,
-    ExternalStrict,
-}
-
-impl Default for ValidationMode {
-    fn default() -> Self {
-        ValidationMode::Lenient
-    }
-}
-
-/// Aggregated report returned by `validate_bundle`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ValidationReport {
-    pub issues: Vec<ValidationIssue>,
-}
-
-impl ValidationReport {
-    pub fn new(issues: Vec<ValidationIssue>) -> Self {
-        Self { issues }
-    }
-
-    pub fn has_errors(&self) -> bool {
-        self.issues
-            .iter()
-            .any(|issue| issue.severity == ValidationSeverity::Error)
-    }
-}
-
-/// Context for optional external validation (validator + profile URL).
-#[derive(Clone, Copy, Default)]
-pub struct ExternalValidationContext<'a> {
-    pub validator: Option<&'a dyn ExternalValidator>,
-    pub profile_url: Option<&'a str>,
-}
-
-impl std::fmt::Debug for ExternalValidationContext<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ExternalValidationContext")
-            .field("validator", &self.validator.is_some())
-            .field("profile_url", &self.profile_url)
-            .finish()
-    }
-}
-
-/// Output wrapper for functions that combine ingestion + validation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Validated<T> {
-    pub value: T,
-    pub report: ValidationReport,
-}
-
-impl<T> Validated<T> {
-    pub fn new(value: T, report: ValidationReport) -> Self {
-        Self { value, report }
-    }
-}
-
 /// Validate an entire FHIR Bundle by walking ServiceRequests and referenced resources.
 pub fn validate_bundle(bundle: &fhir::Bundle) -> ValidationReport {
     validate_bundle_with_external_profile(
@@ -275,9 +45,9 @@ pub fn validate_bundle(bundle: &fhir::Bundle) -> ValidationReport {
 }
 
 #[cfg(feature = "profile_validation")]
-fn load_service_request_profile(profile_url: Option<&str>) -> Option<FhirProfile> {
-    let url = profile_url.unwrap_or(profiles::SERVICE_REQUEST_PROFILE_URL);
-    profiles::load_profile(url)
+fn load_service_request_profile(profile_url: Option<&str>) -> Option<crate::profiles::FhirProfile> {
+    let url = profile_url.unwrap_or(crate::profiles::SERVICE_REQUEST_PROFILE_URL);
+    crate::profiles::load_profile(url)
 }
 
 /// Validate a bundle and optionally merge external validator feedback.
@@ -310,7 +80,9 @@ pub fn validate_bundle_with_external_profile(
                 issues.extend(validate_sr(&sr));
                 #[cfg(feature = "profile_validation")]
                 if let Some(profile) = sr_profile.as_ref() {
-                    issues.extend(validate_sr_profile(&sr, profile));
+                    issues.extend(crate::validation::profile::validate_sr_profile(
+                        &sr, profile,
+                    ));
                 }
                 validate_bundle_relationships(&sr, &patient_ids, &encounter_ids, &mut issues);
             }
@@ -629,143 +401,5 @@ mod tests {
 
         let issues = validate_sr(&sr);
         assert!(issues.is_empty());
-    }
-
-    #[test]
-    fn profile_requirement_links_return_expected_paths() {
-        let profile =
-            crate::profiles::load_profile(crate::profiles::SERVICE_REQUEST_PROFILE_URL).unwrap();
-        let mappings = profile_requirement_links(&profile);
-        assert!(mappings.iter().any(|(req, el)| {
-            *req == RequirementRef::RSubject && el.path == "ServiceRequest.subject"
-        }));
-        assert!(
-            mappings.iter().any(|(req, el)| {
-                *req == RequirementRef::RTrace && el.path == "ServiceRequest.id"
-            })
-        );
-    }
-
-    #[test]
-    fn validate_sr_profile_flags_missing_intent() {
-        let profile =
-            crate::profiles::load_profile(crate::profiles::SERVICE_REQUEST_PROFILE_URL).unwrap();
-        let sr = fhir::ServiceRequest {
-            resource_type: "ServiceRequest".into(),
-            id: Some("SR-123".into()),
-            status: Some("active".into()),
-            intent: None,
-            subject: Some(fhir::Reference {
-                reference: Some("Patient/P1".into()),
-                display: None,
-            }),
-            encounter: None,
-            requester: None,
-            supporting_info: vec![],
-            code: None,
-            category: vec![],
-            description: None,
-            authored_on: None,
-        };
-
-        let issues = validate_sr_profile(&sr, &profile);
-        assert!(
-            issues
-                .iter()
-                .any(|issue| issue.id == "VAL_SR_PROFILE_INTENT_MISSING"),
-            "missing intent should surface a profile issue"
-        );
-        assert_eq!(
-            issues
-                .iter()
-                .filter(|i| i.requirement == RequirementRef::RTrace)
-                .count(),
-            1
-        );
-    }
-
-    #[test]
-    fn bundle_validation_aggregates_service_request_issues() {
-        let bundle = fhir::Bundle {
-            resource_type: "Bundle".into(),
-            bundle_type: Some("collection".into()),
-            entry: vec![fhir::BundleEntry {
-                full_url: None,
-                resource: Some(serde_json::json!({
-                    "resourceType": "ServiceRequest",
-                    "id": "SR-2",
-                    "status": "unknown",
-                    "intent": "order",
-                    "subject": { "reference": "Observation/123" },
-                })),
-            }],
-        };
-
-        let report = validate_bundle(&bundle);
-        assert!(report.has_errors());
-        assert_eq!(report.issues.len(), 3);
-    }
-
-    #[test]
-    fn bundle_validation_flags_missing_patient_resource() {
-        let bundle = fhir::Bundle {
-            resource_type: "Bundle".into(),
-            bundle_type: Some("collection".into()),
-            entry: vec![fhir::BundleEntry {
-                full_url: None,
-                resource: Some(serde_json::json!({
-                    "resourceType": "ServiceRequest",
-                    "id": "SR-3",
-                    "status": "active",
-                    "intent": "order",
-                    "subject": { "reference": "Patient/P-MISSING" }
-                })),
-            }],
-        };
-
-        let report = validate_bundle(&bundle);
-        assert!(report.has_errors());
-        assert!(
-            report
-                .issues
-                .iter()
-                .any(|issue| issue.id == "VAL_SR_SUBJECT_PATIENT_NOT_FOUND")
-        );
-    }
-
-    #[test]
-    fn bundle_validation_flags_missing_encounter_resource() {
-        let bundle = fhir::Bundle {
-            resource_type: "Bundle".into(),
-            bundle_type: Some("collection".into()),
-            entry: vec![
-                fhir::BundleEntry {
-                    full_url: None,
-                    resource: Some(serde_json::json!({
-                        "resourceType": "Patient",
-                        "id": "PAT-1"
-                    })),
-                },
-                fhir::BundleEntry {
-                    full_url: None,
-                    resource: Some(serde_json::json!({
-                        "resourceType": "ServiceRequest",
-                        "id": "SR-4",
-                        "status": "active",
-                        "intent": "order",
-                        "subject": { "reference": "Patient/PAT-1" },
-                        "encounter": { "reference": "Encounter/ENC-MISSING" }
-                    })),
-                },
-            ],
-        };
-
-        let report = validate_bundle(&bundle);
-        assert!(
-            report
-                .issues
-                .iter()
-                .any(|issue| issue.id == "VAL_SR_ENCOUNTER_NOT_FOUND")
-        );
     }
 }

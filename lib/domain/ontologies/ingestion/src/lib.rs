@@ -18,24 +18,26 @@
 #[cfg(feature = "profile_validation")]
 pub mod profiles;
 mod reference;
-mod transforms;
+pub mod transforms;
 pub mod validation;
 
 pub use reference::{reference_id, reference_id_from_str};
 pub use transforms::{
-    IngestionError, bundle_to_domain, bundle_to_domain_with_validation, bundle_to_staging,
-    bundle_to_staging_with_validation, sr_to_domain, sr_to_staging,
+    bundle::*, errors::IngestionError, service_request::sr_to_domain,
+    service_request::sr_to_staging,
 };
 
-pub use validation::{
+pub use validation::external::{
+    ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
+    OperationOutcomeIssue,
+};
+#[cfg(feature = "profile_validation")]
+pub use validation::profile::{profile_requirement_links, validate_sr_profile};
+pub use validation::types::{
     ExternalValidationContext, RequirementRef, Validated, ValidationIssue, ValidationMode,
     ValidationReport, ValidationSeverity,
-    external::{
-        ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
-        OperationOutcomeIssue,
-    },
+};
+pub use validation::{
     validate_bundle, validate_bundle_with_external, validate_bundle_with_external_profile,
     validate_sr,
 };
-#[cfg(feature = "profile_validation")]
-pub use validation::{profile_requirement_links, validate_sr_profile};
