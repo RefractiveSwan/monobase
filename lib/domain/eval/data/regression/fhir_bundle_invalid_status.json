@@ -1,0 +1,23 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-BAD-STATUS",
+        "status": "invalid_status",
+        "intent": "order",
+        "subject": { "reference": "Patient/PAT-INVALID" },
+        "code": {
+          "coding": [
+            { "system": "http://www.ama-assn.org/go/cpt", "code": "78815" }
+          ],
+          "text": "Invalid status regression"
+        },
+        "authoredOn": "2024-05-01T12:00:00Z"
+      }
+    },
+    { "resource": { "resourceType": "Patient", "id": "PAT-INVALID" } }
+  ]
+}

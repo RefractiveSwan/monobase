@@ -1,0 +1,9 @@
+{
+  "min_precision": 0.95,
+  "min_recall": 0.95,
+  "min_f1": 0.95,
+  "min_accuracy": 0.95,
+  "min_auto_precision": 0.98,
+  "min_top1": 0.95,
+  "allow_no_match_reason": ["missing_system_or_code", "unknown_code_system"]
+}

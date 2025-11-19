@@ -1,0 +1,5 @@
+{"system":"http://www.ama-assn.org/go/cpt","code":"78815","display":"Gold tier CPT PET","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://snomed.info/sct","code":"441567006","display":"Gold tier SNOMED PET-CT","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://loinc.org","code":"24606-6","display":"Gold tier FDG uptake","expected_ncit_id":"NCIT:C17747"}
+{"system":"http://purl.obolibrary.org/obo/NCIT","code":"C19951","display":"Gold tier NCIt PET concept","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://purl.obolibrary.org/obo/NCIT","code":"C17747","display":"Gold tier NCIt FDG concept","expected_ncit_id":"NCIT:C17747"}

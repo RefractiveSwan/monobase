@@ -1,0 +1,60 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "PAT-000001"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "ENC-000001"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-000001",
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "reference": "Patient/PAT-000001"
+        },
+        "encounter": {
+          "reference": "Encounter/ENC-000001"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://www.ama-assn.org/go/cpt",
+              "code": "78815",
+              "display": "PET with concurrently acquired CT"
+            },
+            {
+              "system": "http://snomed.info/sct",
+              "code": "441567006",
+              "display": "PET-CT for neoplasm staging"
+            }
+          ],
+          "text": "PET/CT order"
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "363679005",
+                "display": "Imaging"
+              }
+            ]
+          }
+        ],
+        "description": "Regression PET/CT ServiceRequest",
+        "authoredOn": "2024-05-01T12:00:00Z"
+      }
+    }
+  ]
+}
