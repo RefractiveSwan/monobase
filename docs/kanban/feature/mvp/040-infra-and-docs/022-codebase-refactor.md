@@ -159,17 +159,17 @@
 **Goal:** Keep the mapping engine deterministic and domain-centric, while factoring out policy/vector/terminology wiring so platform/app layers can compose backends cleanly.
 
 - [ ] Document the mapping pipeline in a crate-level `//!` header and README:
-  - [ ] Clarify roles of `Mapper`, `CandidateRanker`, `MappingEngine`, and policy/vector/terminology integration points.
-  - [ ] Link to NCIt/obo-graph system-design docs and evaluation epics (mapping/eval harness).
+  - [x] Clarify roles of `Mapper`, `CandidateRanker`, `MappingEngine`, and policy/vector/terminology integration points.
+  - [x] Link to NCIt/obo-graph system-design docs and evaluation epics (mapping/eval harness).
 - [ ] Identify places where `dfps_mapping` directly reads env or config (e.g., `load_policy_from_env`):
-  - [ ] Introduce an explicit `MappingConfig` / policy parameter so mapping functions can be called without reading env.
+  - [x] Introduce an explicit `MappingConfig` / policy parameter so mapping functions can be called without reading env.
   - [ ] Plan to move env parsing for policies into `dfps_compliance` / `dfps_configuration`.
 - [ ] Review vector-related wiring:
-  - [ ] Ensure `VectorRankerBackend` and `DeterministicEmbeddingProvider` are pure domain constructs that operate purely on traits (`VectorStore`, `EmbeddingProvider`).
-  - [ ] Avoid coupling mapping to specific backends (Qdrant/pgvector) beyond the trait layer.
+  - [x] Ensure `VectorRankerBackend` and `DeterministicEmbeddingProvider` are pure domain constructs that operate purely on traits (`VectorStore`, `EmbeddingProvider`).
+  - [x] Avoid coupling mapping to specific backends (Qdrant/pgvector) beyond the trait layer.
 - [ ] Align mapping result semantics:
-  - [ ] Confirm `build_result_with_score` uses a single source of truth for thresholds and `MappingState` transitions.
-  - [ ] Add refactor tasks for reusing `MappingThresholds`/`MappingSourceVersion` from `dfps_core` consistently.
+  - [x] Confirm `build_result_with_score` uses a single source of truth for thresholds and `MappingState` transitions.
+  - [x] Add refactor tasks for reusing `MappingThresholds`/`MappingSourceVersion` from `dfps_core` consistently.
 - [ ] Evaluate whether deprecated `eval::run_eval` can be removed or wrapped behind a clearer “mapping eval port” that just delegates to `dfps_eval`.
 
 ### REFR-07 – Domain eval harness & fake data fixtures (`dfps_eval`, `dfps_fake_data`)
