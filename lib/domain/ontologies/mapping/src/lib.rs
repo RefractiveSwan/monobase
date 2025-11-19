@@ -19,7 +19,6 @@
 pub mod config;
 mod data;
 pub mod engine;
-pub mod eval;
 pub mod pipelines;
 pub mod rankers;
 pub mod traits;
@@ -34,8 +33,6 @@ pub use engine::{
     MappingEngine, MappingExplanation, RuleReranker, default_engine, explain_staging_code,
     vector_engine, vector_engine_from_config,
 };
-#[allow(deprecated)]
-pub use eval::run_eval;
 pub use pipelines::{
     attach_license_metadata, build_result_with_score, classify, dim_concepts, map_staging_codes,
     map_staging_codes_with_summary, map_staging_codes_with_summary_and_policy,
