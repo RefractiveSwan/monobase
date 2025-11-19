@@ -37,7 +37,7 @@ fn summary_states(summary: &EvalSummary) -> (usize, usize, usize) {
 
 #[test]
 fn offline_and_vector_parity_on_pet_ct_small() {
-    dfps_test_suite::init_environment();
+    dfps_test_suite::init_environment().expect("load test env");
     let cases = fixtures::eval_pet_ct_small_cases();
     let codes = build_codes_from_cases(&cases);
 

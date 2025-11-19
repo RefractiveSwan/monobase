@@ -1,7 +1,7 @@
 use dfps_compliance::ComplianceConfig;
 use dfps_datamart::{LoadError, load_from_pipeline_output, migrate};
 use dfps_pipeline::bundle_to_mapped_sr;
-use dfps_test_suite::regression;
+use dfps_test_suite::{regression, scoped_env_var};
 use sqlx::SqlitePool;
 use std::sync::{Mutex, OnceLock};
 
@@ -94,7 +94,7 @@ async fn warehouse_loads_baseline_and_unknown_bundles() {
 #[tokio::test]
 async fn bundle_respects_compliance_mode_open_source() {
     let _lock = env_guard().lock().unwrap();
-    unsafe { std::env::set_var("DFPS_COMPLIANCE_MODE", "open_source") };
+    let _mode_guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "open_source");
 
     let pool = SqlitePool::connect(":memory:")
         .await
@@ -121,14 +121,12 @@ async fn bundle_respects_compliance_mode_open_source() {
         matches!(load_err, Err(LoadError::Compliance(_))),
         "export should be denied by compliance policy"
     );
-
-    unsafe { std::env::remove_var("DFPS_COMPLIANCE_MODE") };
 }
 
 #[tokio::test]
 async fn bundle_allows_licensed_codes_in_partner_mode() {
     let _lock = env_guard().lock().unwrap();
-    unsafe { std::env::set_var("DFPS_COMPLIANCE_MODE", "partner") };
+    let _mode_guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "partner");
 
     let pool = SqlitePool::connect(":memory:")
         .await
@@ -152,6 +150,4 @@ async fn bundle_allows_licensed_codes_in_partner_mode() {
     load_from_pipeline_output(&pool, &output, &policy)
         .await
         .expect("partner mode should permit warehouse load");
-
-    unsafe { std::env::remove_var("DFPS_COMPLIANCE_MODE") };
 }

@@ -15,7 +15,7 @@ fn custom_no_match_case() -> EvalCase {
 
 #[test]
 fn pet_ct_eval_sample_has_high_precision() {
-    init_environment();
+    init_environment().expect("load test env");
     let cases = fixtures::eval_pet_ct_small_cases();
     let summary = eval_with_pipeline(&cases);
 
@@ -42,7 +42,7 @@ fn pet_ct_eval_sample_has_high_precision() {
 
 #[test]
 fn eval_summary_flags_no_match_cases() {
-    init_environment();
+    init_environment().expect("load test env");
     let mut cases = fixtures::eval_pet_ct_small_cases();
     cases.push(custom_no_match_case());
 
@@ -73,7 +73,7 @@ fn eval_summary_flags_no_match_cases() {
 
 #[test]
 fn tiered_datasets_load() {
-    init_environment();
+    init_environment().expect("load test env");
     for dataset in [
         "bronze_pet_ct_small",
         "bronze_pet_ct_unknowns",
@@ -92,7 +92,7 @@ fn eval_with_pipeline(cases: &[EvalCase]) -> dfps_eval::EvalSummary {
 
 #[test]
 fn eval_summary_is_deterministic() {
-    init_environment();
+    init_environment().expect("load test env");
     let cases = fixtures::eval_pet_ct_small_cases();
 
     let first = eval_with_pipeline(&cases);
@@ -113,7 +113,7 @@ fn eval_summary_is_deterministic() {
 
 #[test]
 fn run_eval_outputs_ndjson_stable() {
-    init_environment();
+    init_environment().expect("load test env");
     let cases = fixtures::eval_pet_ct_small_cases();
 
     let capture = |cases: &[EvalCase]| {

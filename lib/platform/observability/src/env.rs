@@ -16,7 +16,11 @@ pub(crate) fn ensure_env() -> Result<(), dfps_configuration::EnvLoadError> {
     if state.loaded {
         return Ok(());
     }
-    dfps_configuration::load_env("platform.observability")?;
+    match dfps_configuration::load_env("platform.observability") {
+        Ok(_) => {}
+        Err(dfps_configuration::EnvLoadError::FileMissing { .. }) => {}
+        Err(err) => return Err(err),
+    }
     state.loaded = true;
     Ok(())
 }

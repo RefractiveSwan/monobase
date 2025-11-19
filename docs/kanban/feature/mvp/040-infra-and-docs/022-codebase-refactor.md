@@ -139,8 +139,6 @@
 
 ---
 
-
-
 ### REFR-09 – Domain pipeline orchestrator (`dfps_pipeline`)
 
 **Goal:** Make `dfps_pipeline` the thin, explicit orchestrator connecting ingestion, mapping, and vector-store configuration, without owning transport, env, or platform concerns.
@@ -159,6 +157,50 @@
 
 ---
 
+### REFR-14 – Platform test harness & regression suite (`dfps_test_suite`)
+
+**Goal:** Consolidate cross-crate testing concerns (fixtures, assertions, env bootstrapping) inside `dfps_test_suite` so that app/domain/platform tests use a single, well-defined harness without unsafe env mutations.
+
+- [x] Add `lib/platform/test_suite/README.md` that:
+  - [x] Explains the structure of `src/` (assertions, fixtures, regression) and `tests/` (e2e, integration, unit).
+  - [x] Describes how other crates should depend on this crate (for fixtures, not for production code).
+- [x] Refactor env handling in `TEST_SUITE_ENV`:
+  - [x] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
+  - [x] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
+- [x] Clarify fixture ownership:
+  - [x] Ensure all regression/eval fixtures live under `lib/domain/evaluation/eval/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
+  - [x] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
+- [x] Harden test surfaces:
+  - [x] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).
+  - [x] Add a small “smoke test index” that verifies all major flows (ingestion, mapping, eval, vector, warehouse, web API) still run after refactors.
+- [x] Add CI guidance:
+  - [x] Document which features (`backend-pgvector`, external validation mocks) must be enabled for the full suite.
+  - [x] Provide recommended command lines (`cargo test -p dfps_test_suite --features backend-pgvector`) to reproduce CI locally.
+
+---
+
+### REFR-16 – HTTP backend & warehouse surfaces (`dfps_api`, `dfps_datamart`)
+
+**Goal:** Treat the Axum API and datamart service as the primary HTTP-facing ports into the domain/pipeline/datamart, with clean config injection, compliance boundaries, and DTOs aligned across app/frontend/docs.
+
+- [ ] `dfps_api`:
+  - [ ] Add a crate-level README that describes:
+    - [ ] The main routes (`/api/map-bundles`, `/metrics/summary`, `/health`, `/analytics/*`, `/api/eval/*`).
+    - [ ] How it composes `dfps_pipeline`, `dfps_datamart`, `dfps_observability`, `dfps_eval`, `dfps_compliance`, `dfps_terminology`.
+  - [ ] Replace raw `env::var` usage in `ApiServerConfig::default` with a typed config struct built via `dfps_configuration` (host, port, warehouse URL, etc.).
+  - [ ] Factor compliance enforcement into one helper (shared with CLI/datamart) so license-tier export rules are defined once.
+  - [ ] Ensure `ApiState` is constructed with injected `Policy`, `WarehouseConfig`, and `PipelineMetrics`, rather than loading env/policy deep inside handlers.
+  - [ ] Review error taxonomy:
+    - [ ] Keep `ApiError` variants stable and documented (`invalid_json`, `invalid_fhir`, `invalid_dataset`, `compliance_blocked`, `internal_error`).
+    - [ ] Align HTTP status codes and error payloads with frontend expectations and CLI error messages.
+- [ ] `dfps_datamart`:
+  - [ ] Document how `Dim*` and `FactServiceRequest` types map onto the SQL schema and how they’re consumed by analytics/cohort endpoints.
+  - [ ] Move `WarehouseConfig::from_env` onto `app.web.backend.datamart` namespace and use `dfps_configuration` helpers for parsing numeric params.
+  - [ ] Ensure `load_from_pipeline_output` uses the same compliance helper as CLI/API (no duplicated `parse_license_tier` logic).
+  - [ ] Add tests for:
+    - [ ] Idempotent upserts (dim tables) and stable keys across re-runs.
+    - [ ] NO_MATCH sentinel behavior and referential integrity with fact rows.
+  
 ### REFR-13 – Platform vector backends (`dfps_vector_store`)
 
 **Goal:** Provide a cohesive, well-tested vector backend abstraction where env/config parsing is centralized, backends are pluggable, and usage metrics/capacity proxies integrate cleanly with domain mapping and observability.
@@ -176,28 +218,6 @@
 - [ ] Align capacity and usage reporting:
   - [ ] Guarantee that all backends can propagate `CapacityProxies` to callers when available and safely omit them when not.
   - [ ] Add tests for dimension mismatch, namespace validation, pool_max/timeout edge cases, and health checks across all supported backends.
-
-### REFR-14 – Platform test harness & regression suite (`dfps_test_suite`)
-
-**Goal:** Consolidate cross-crate testing concerns (fixtures, assertions, env bootstrapping) inside `dfps_test_suite` so that app/domain/platform tests use a single, well-defined harness without unsafe env mutations.
-
-- [ ] Add `lib/platform/test_suite/README.md` that:
-  - [ ] Explains the structure of `src/` (assertions, fixtures, regression) and `tests/` (e2e, integration, unit).
-  - [ ] Describes how other crates should depend on this crate (for fixtures, not for production code).
-- [ ] Refactor env handling in `TEST_SUITE_ENV`:
-  - [ ] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
-  - [ ] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
-- [ ] Clarify fixture ownership:
-  - [ ] Ensure all regression/eval fixtures live under `lib/domain/evaluation/eval/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
-  - [ ] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
-- [ ] Harden test surfaces:
-  - [ ] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).
-  - [ ] Add a small “smoke test index” that verifies all major flows (ingestion, mapping, eval, vector, warehouse, web API) still run after refactors.
-- [ ] Add CI guidance:
-  - [ ] Document which features (`backend-pgvector`, external validation mocks) must be enabled for the full suite.
-  - [ ] Provide recommended command lines (`cargo test -p dfps_test_suite --features backend-pgvector`) to reproduce CI locally.
-
----
 
 ### REFR-15 – CLI surfaces & orchestration (`dfps_cli`)
 
@@ -231,28 +251,6 @@
 - [ ] `build_vector_index`:
   - [ ] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
   - [ ] Share embedding/version metadata semantics with mapping/vector-store docs (documented in mdBook and CLI help).
-
-### REFR-16 – HTTP backend & warehouse surfaces (`dfps_api`, `dfps_datamart`)
-
-**Goal:** Treat the Axum API and datamart service as the primary HTTP-facing ports into the domain/pipeline/datamart, with clean config injection, compliance boundaries, and DTOs aligned across app/frontend/docs.
-
-- [ ] `dfps_api`:
-  - [ ] Add a crate-level README that describes:
-    - [ ] The main routes (`/api/map-bundles`, `/metrics/summary`, `/health`, `/analytics/*`, `/api/eval/*`).
-    - [ ] How it composes `dfps_pipeline`, `dfps_datamart`, `dfps_observability`, `dfps_eval`, `dfps_compliance`, `dfps_terminology`.
-  - [ ] Replace raw `env::var` usage in `ApiServerConfig::default` with a typed config struct built via `dfps_configuration` (host, port, warehouse URL, etc.).
-  - [ ] Factor compliance enforcement into one helper (shared with CLI/datamart) so license-tier export rules are defined once.
-  - [ ] Ensure `ApiState` is constructed with injected `Policy`, `WarehouseConfig`, and `PipelineMetrics`, rather than loading env/policy deep inside handlers.
-  - [ ] Review error taxonomy:
-    - [ ] Keep `ApiError` variants stable and documented (`invalid_json`, `invalid_fhir`, `invalid_dataset`, `compliance_blocked`, `internal_error`).
-    - [ ] Align HTTP status codes and error payloads with frontend expectations and CLI error messages.
-- [ ] `dfps_datamart`:
-  - [ ] Document how `Dim*` and `FactServiceRequest` types map onto the SQL schema and how they’re consumed by analytics/cohort endpoints.
-  - [ ] Move `WarehouseConfig::from_env` onto `app.web.backend.datamart` namespace and use `dfps_configuration` helpers for parsing numeric params.
-  - [ ] Ensure `load_from_pipeline_output` uses the same compliance helper as CLI/API (no duplicated `parse_license_tier` logic).
-  - [ ] Add tests for:
-    - [ ] Idempotent upserts (dim tables) and stable keys across re-runs.
-    - [ ] NO_MATCH sentinel behavior and referential integrity with fact rows.
 
 ### REFR-17 – Web frontend & UX (`dfps_web_frontend`)
 
