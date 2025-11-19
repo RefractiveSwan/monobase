@@ -14,7 +14,7 @@ use axum::{
     routing::{get, post},
 };
 use chrono::{DateTime, NaiveDate};
-use dfps_compliance::{assert_export_allowed, load_policy_from_env};
+use dfps_compliance::{ComplianceConfig, assert_export_allowed};
 use dfps_core::{
     fhir::Bundle,
     mapping::{DimNCITConcept, MappingResult, MappingState},
@@ -126,9 +126,9 @@ impl AnalyticsPersistence {
         }
     }
 
-    async fn persist(&self, output: &PipelineOutput) {
+    async fn persist(&self, output: &PipelineOutput, policy: &dfps_compliance::Policy) {
         if let Some(pool) = self.pool().await {
-            if let Err(err) = load_from_pipeline_output(&pool, output).await {
+            if let Err(err) = load_from_pipeline_output(&pool, output, policy).await {
                 warn!(target: "dfps_api", "analytics persistence failed: {err}");
             }
         }
@@ -338,7 +338,10 @@ pub struct ApiState {
 
 impl ApiState {
     pub fn new() -> Self {
-        let compliance_policy = load_policy_from_env()
+        let compliance_config = ComplianceConfig::from_env()
+            .unwrap_or_else(|err| panic!("failed to load compliance config: {err}"));
+        let compliance_policy = compliance_config
+            .load_policy()
             .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
         Self {
             metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
@@ -598,7 +601,10 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             output.vector_usage.clone(),
             None,
         );
-        state.analytics_persistence.persist(&output).await;
+        state
+            .analytics_persistence
+            .persist(&output, &state.compliance_policy)
+            .await;
         {
             let mut analytics = state.analytics.lock().await;
             analytics.record_output(&output);

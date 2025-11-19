@@ -4,7 +4,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_compliance::load_policy_from_env;
+use dfps_compliance::ComplianceConfig;
 use dfps_configuration::load_env;
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
@@ -42,7 +42,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
     let args = Args::parse();
     init_logging(&args.log_level)?;
-    let policy = load_policy_from_env()?;
+    let compliance = ComplianceConfig::from_env()?;
+    let policy = compliance.load_policy()?;
     let reader: Box<dyn BufRead> = match &args.input {
         Some(path) => Box::new(BufReader::new(File::open(path)?)),
         None => Box::new(BufReader::new(io::stdin())),

@@ -3,7 +3,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_compliance::load_policy_from_env;
+use dfps_compliance::ComplianceConfig;
 use dfps_configuration::load_env;
 use dfps_core::staging::StgSrCodeExploded;
 use dfps_mapping::{
@@ -48,7 +48,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         codes.push(code);
     }
 
-    let policy = load_policy_from_env()?;
+    let compliance = ComplianceConfig::from_env()?;
+    let policy = compliance.load_policy()?;
     let vector_mapping = try_vector_mapping(&codes, &policy);
     let (results, summary) = match vector_mapping {
         Ok((results, _dims, summary, usage)) => {

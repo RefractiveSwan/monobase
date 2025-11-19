@@ -1,4 +1,4 @@
-use dfps_compliance::{assert_export_allowed, load_policy_from_env};
+use dfps_compliance::{Policy, assert_export_allowed};
 use dfps_configuration::load_env;
 use dfps_pipeline::PipelineOutput;
 use dfps_terminology::codesystem::LicenseTier;
@@ -111,17 +111,15 @@ pub enum LoadError {
     Sql(#[from] sqlx::Error),
     #[error("export blocked by compliance policy: {0}")]
     Compliance(String),
-    #[error("failed to load compliance policy: {0}")]
-    CompliancePolicy(dfps_compliance::ComplianceError),
 }
 
 /// Load a PipelineOutput into the warehouse, upserting dims and inserting facts.
 pub async fn load_from_pipeline_output(
     pool: &Pool<Sqlite>,
     output: &PipelineOutput,
+    policy: &Policy,
 ) -> Result<LoadSummary, LoadError> {
-    let policy = load_policy_from_env().map_err(LoadError::CompliancePolicy)?;
-    enforce_export_policy(output, &policy)?;
+    enforce_export_policy(output, policy)?;
 
     let (dims, facts) = crate::from_pipeline_output(output);
     let mut tx = pool.begin().await?;

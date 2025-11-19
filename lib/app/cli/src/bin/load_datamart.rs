@@ -3,7 +3,7 @@ use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_compliance::{assert_export_allowed, load_policy_from_env};
+use dfps_compliance::{ComplianceConfig, assert_export_allowed};
 use dfps_configuration::load_env;
 use dfps_datamart::{
     LoadSummary, WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate,
@@ -53,7 +53,8 @@ impl AggregateSummary {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
     let args = Args::parse();
-    let policy = load_policy_from_env()?;
+    let compliance = ComplianceConfig::from_env()?;
+    let policy = compliance.load_policy()?;
 
     let cfg = WarehouseConfig::from_env().map_err(|err| format!("{err}"))?;
     let rt = tokio::runtime::Runtime::new()?;
@@ -65,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut agg = AggregateSummary::default();
         for output in outputs {
             enforce_export_policy(&output, &policy)?;
-            let summary = load_from_pipeline_output(&pool, &output).await?;
+            let summary = load_from_pipeline_output(&pool, &output, &policy).await?;
             agg.add(summary);
         }
 

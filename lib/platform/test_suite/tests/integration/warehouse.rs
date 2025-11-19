@@ -1,21 +1,22 @@
+use dfps_compliance::ComplianceConfig;
 use dfps_datamart::{LoadError, load_from_pipeline_output, migrate};
 use dfps_pipeline::bundle_to_mapped_sr;
 use dfps_test_suite::regression;
 use sqlx::SqlitePool;
 use std::sync::{Mutex, OnceLock};
 
-async fn load_baseline(pool: &SqlitePool) {
+async fn load_baseline(pool: &SqlitePool, policy: &dfps_compliance::Policy) {
     let bundle = regression::baseline_fhir_bundle();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps baseline bundle");
-    load_from_pipeline_output(pool, &output)
+    load_from_pipeline_output(pool, &output, policy)
         .await
         .expect("load baseline into warehouse");
 }
 
-async fn load_unknown(pool: &SqlitePool) {
+async fn load_unknown(pool: &SqlitePool, policy: &dfps_compliance::Policy) {
     let bundle = regression::fhir_bundle_unknown_code();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps unknown bundle");
-    load_from_pipeline_output(pool, &output)
+    load_from_pipeline_output(pool, &output, policy)
         .await
         .expect("load unknown into warehouse");
 }
@@ -31,9 +32,12 @@ async fn warehouse_loads_baseline_and_unknown_bundles() {
         .await
         .expect("connect sqlite");
     migrate(&pool).await.expect("apply migrations");
+    let policy = ComplianceConfig::from_env()
+        .and_then(|cfg| cfg.load_policy())
+        .expect("default compliance policy");
 
-    load_baseline(&pool).await;
-    load_unknown(&pool).await;
+    load_baseline(&pool, &policy).await;
+    load_unknown(&pool, &policy).await;
 
     let patients: i64 = sqlx::query_scalar("select count(*) from dim_patient")
         .fetch_one(&pool)
@@ -109,7 +113,10 @@ async fn bundle_respects_compliance_mode_open_source() {
         "baseline bundle should be blocked under open_source"
     );
 
-    let load_err = load_from_pipeline_output(&pool, &output).await;
+    let policy = ComplianceConfig::from_env()
+        .and_then(|cfg| cfg.load_policy())
+        .expect("open_source policy");
+    let load_err = load_from_pipeline_output(&pool, &output, &policy).await;
     assert!(
         matches!(load_err, Err(LoadError::Compliance(_))),
         "export should be denied by compliance policy"
@@ -139,7 +146,10 @@ async fn bundle_allows_licensed_codes_in_partner_mode() {
         "partner mode should allow licensed tier mappings to proceed"
     );
 
-    load_from_pipeline_output(&pool, &output)
+    let policy = ComplianceConfig::from_env()
+        .and_then(|cfg| cfg.load_policy())
+        .expect("partner policy");
+    load_from_pipeline_output(&pool, &output, &policy)
         .await
         .expect("partner mode should permit warehouse load");
 
