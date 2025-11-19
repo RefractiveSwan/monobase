@@ -18,13 +18,13 @@ serde_json.workspace = true
 uuid.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "sqlite"] }
-dfps_core = { path = "../../../../domain/core" }
-dfps_pipeline = { path = "../../../../domain/pipeline" }
-dfps_observability = { path = "../../../../platform/observability" }
-dfps_configuration = { path = "../../../../platform/configuration" }
-dfps_mapping = { path = "../../../../domain/ontologies/mapping" }
-dfps_eval = { path = "../../../../domain/eval" }
+dfps_core = { path = "../../../domain/core" }
+dfps_pipeline = { path = "../../../domain/pipeline" }
+dfps_observability = { path = "../../../platform/observability" }
+dfps_configuration = { path = "../../../platform/configuration" }
+dfps_mapping = { path = "../../../domain/ontologies/mapping" }
+dfps_eval = { path = "../../../domain/eval" }
 dfps_datamart = { path = "../datamart" }
-dfps_compliance = { path = "../../../../platform/compliance" }
-dfps_terminology = { path = "../../../../domain/ontologies/terminology" }
-dfps_vector_store = { path = "../../../../platform/vector_store" }
+dfps_compliance = { path = "../../../platform/compliance" }
+dfps_terminology = { path = "../../../domain/ontologies/terminology" }
+dfps_vector_store = { path = "../vector_store" }

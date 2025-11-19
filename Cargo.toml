@@ -6,10 +6,11 @@ edition.workspace = true
 
 [workspace]
 members = [
-    "lib/app/cli",
-    "lib/app/web/backend/api",
-    "lib/app/web/frontend",
-    "lib/app/web/backend/datamart",
+    "lib/app/frontend/cli",
+    "lib/app/frontend/web",
+    "lib/app/servers/api",
+    "lib/app/servers/datamart",
+    "lib/app/servers/vector_store",    
     "lib/domain/eval",
     "lib/domain/core",
     "lib/domain/ontologies/ingestion",
@@ -19,7 +20,6 @@ members = [
     "lib/platform/compliance",
     "lib/platform/configuration",
     "lib/platform/observability",
-    "lib/platform/vector_store",
     "lib/platform/test_suite",
 ]
 
@@ -50,7 +50,7 @@ serde_yaml = "0.9.34"
 tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal"] }
 dotenvy = "0.15.7"
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
-dfps_vector_store = { path = "lib/platform/vector_store" }
+dfps_vector_store = { path = "lib/app/servers/vector_store" }
 thiserror = "2.0.17"
 
 [dependencies]
