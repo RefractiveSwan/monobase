@@ -1,8 +1,10 @@
+//! Full-stack smoke index covering ingestion → mapping → datamart → eval → vector (REFR-14).
+
 use dfps_datamart::from_pipeline_output;
 use dfps_eval::FileDatasetStore;
 use dfps_pipeline::bundle_to_mapped_sr;
 use dfps_test_suite::{ensure_eval_data_root, regression};
-use dfps_vector_store::MockVectorStore;
+use dfps_vector_store::{MockVectorStore, VectorStore};
 
 #[test]
 fn smoke_index_exercises_core_surfaces() {
@@ -23,17 +25,15 @@ fn smoke_index_exercises_core_surfaces() {
     let eval_root = ensure_eval_data_root().expect("ensure DFPS_EVAL_DATA_ROOT");
     let store = FileDatasetStore::new(eval_root);
     let datasets = store
-        .list_datasets()
-        .expect("list eval datasets from store");
+        .list_manifests()
+        .expect("list eval dataset manifests from store");
     assert!(
         datasets.iter().any(|d| d.name == "pet_ct_small"),
         "eval dataset registry should include pet_ct_small"
     );
 
     let vector_store = MockVectorStore::new("ncit_dev");
-    let usage = vector_store.usage_handle().snapshot();
-    assert_eq!(
-        usage.queries, 0,
-        "mock store should start with zero vector queries"
-    );
+    vector_store
+        .health("ncit_dev")
+        .expect("mock vector store health check");
 }

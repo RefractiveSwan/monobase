@@ -1,3 +1,5 @@
+//! Integration coverage for vector-backed mapping (VEC-013).
+
 use std::sync::Arc;
 
 use dfps_compliance::{ComplianceMode, Policy};

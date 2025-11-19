@@ -1,3 +1,5 @@
+//! Service request flow invariants (REFR-14).
+
 use dfps_test_suite::{assertions, fixtures};
 
 #[test]

@@ -1,3 +1,6 @@
+//! REFR-06 – Mapping engine properties (lexical/vector/rule parity).
+//! Ensures ranked candidates remain sorted and synonym augmentation never regresses.
+
 use dfps_core::{mapping::CodeElement, staging::StgSrCodeExploded};
 use dfps_mapping::{default_engine, map_staging_codes};
 use proptest::prelude::*;

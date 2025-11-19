@@ -1,3 +1,5 @@
+//! Full ingestion → mapping end-to-end flow (REFR-06 / REFR-16).
+
 use dfps_pipeline::bundle_to_mapped_sr;
 use dfps_test_suite::regression;
 

@@ -157,28 +157,6 @@
 
 ---
 
-### REFR-14 – Platform test harness & regression suite (`dfps_test_suite`)
-
-**Goal:** Consolidate cross-crate testing concerns (fixtures, assertions, env bootstrapping) inside `dfps_test_suite` so that app/domain/platform tests use a single, well-defined harness without unsafe env mutations.
-
-- [x] Add `lib/platform/test_suite/README.md` that:
-  - [x] Explains the structure of `src/` (assertions, fixtures, regression) and `tests/` (e2e, integration, unit).
-  - [x] Describes how other crates should depend on this crate (for fixtures, not for production code).
-- [x] Refactor env handling in `TEST_SUITE_ENV`:
-  - [x] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
-  - [x] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
-- [x] Clarify fixture ownership:
-  - [x] Ensure all regression/eval fixtures live under `lib/domain/evaluation/eval/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
-  - [x] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
-- [x] Harden test surfaces:
-  - [x] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).
-  - [x] Add a small “smoke test index” that verifies all major flows (ingestion, mapping, eval, vector, warehouse, web API) still run after refactors.
-- [x] Add CI guidance:
-  - [x] Document which features (`backend-pgvector`, external validation mocks) must be enabled for the full suite.
-  - [x] Provide recommended command lines (`cargo test -p dfps_test_suite --features backend-pgvector`) to reproduce CI locally.
-
----
-
 ### REFR-16 – HTTP backend & warehouse surfaces (`dfps_api`, `dfps_datamart`)
 
 **Goal:** Treat the Axum API and datamart service as the primary HTTP-facing ports into the domain/pipeline/datamart, with clean config injection, compliance boundaries, and DTOs aligned across app/frontend/docs.
@@ -427,6 +405,25 @@
   - [x] Verify metrics counters (bundle_count, mapping_count, license_blocked, vector_* fields) match expectations for sample pipeline runs.
   - [x] Cover behavior when vector capacity is missing vs present (capacity fields remain `None` vs set).
 
+### REFR-14 – Platform test harness & regression suite (`dfps_test_suite`)
+
+**Goal:** Consolidate cross-crate testing concerns (fixtures, assertions, env bootstrapping) inside `dfps_test_suite` so that app/domain/platform tests use a single, well-defined harness without unsafe env mutations.
+
+- [x] Add `lib/platform/test_suite/README.md` that:
+  - [x] Explains the structure of `src/` (assertions, fixtures, regression) and `tests/` (e2e, integration, unit).
+  - [x] Describes how other crates should depend on this crate (for fixtures, not for production code).
+- [x] Refactor env handling in `TEST_SUITE_ENV`:
+  - [x] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
+  - [x] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
+- [x] Clarify fixture ownership:
+  - [x] Ensure all regression/eval fixtures live under `lib/domain/evaluation/eval/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
+  - [x] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
+- [x] Harden test surfaces:
+  - [x] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).
+  - [x] Add a small “smoke test index” that verifies all major flows (ingestion, mapping, eval, vector, warehouse, web API) still run after refactors.
+- [x] Add CI guidance:
+  - [x] Document which features (`backend-pgvector`, external validation mocks) must be enabled for the full suite.
+  - [x] Provide recommended command lines (`cargo test -p dfps_test_suite --features backend-pgvector`) to reproduce CI locally.
 
 ---
 

@@ -1,3 +1,5 @@
+//! Observability metrics e2e flow (REFR-12).
+
 use dfps_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
 use dfps_observability::{
     PipelineMetrics, VectorUsageSnapshot, log_no_match, log_pipeline_output, metrics_snapshot,

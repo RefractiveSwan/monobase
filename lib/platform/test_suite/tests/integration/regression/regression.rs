@@ -1,3 +1,5 @@
+//! Regression fixture integrity tests (REFR-14).
+
 use dfps_test_suite::{assertions, regression};
 
 #[test]

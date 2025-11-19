@@ -1,3 +1,5 @@
+//! External validator integration tests (FHIR-CONF-015).
+
 use axum::{Router, http::StatusCode, response::IntoResponse, routing::post};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::{

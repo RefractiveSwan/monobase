@@ -30,3 +30,13 @@ Utilities, fixtures, and integration/e2e tests that keep the DFPS workspace hone
 - `cargo test -p dfps_test_suite` exercises the default mocks (in-memory sqlite/vector). For full backend coverage (e.g., pgvector), run `cargo test -p dfps_test_suite --features backend-pgvector`.
 - The crate intentionally stays test-only: production binaries should not depend on `dfps_test_suite`.
 - Integration/e2e tests only call public surfaces: `dfps_pipeline::bundle_to_mapped_sr`, `dfps_datamart::load_from_pipeline_output`, CLI entrypoints, `dfps_eval::run_eval_with_mapper`, `dfps_vector_store::MockVectorStore`, etc. If a new internal dependency creeps in, move it behind a public API before reusing it here.
+
+## Testing conventions
+
+- **File naming** – use `*_flow.rs` for e2e flows, `*_spec.rs`/`*_tests.rs` for integration/unit specs, and `*_helpers.rs` for pure helper tests. Each file starts with a `//!` doc referencing the epic or system-design doc it covers.
+- **Modules** – `tests/unit`, `tests/integration/<area>`, `tests/e2e` mirror the workspace concerns (ingestion, mapping, datamart, api, vector, regression). Check `tests/integration/mod.rs` for the full map.
+- **Running subsets** – examples:
+  - `cargo test -p dfps_test_suite --test unit_tests mapping_properties` (unit layer).
+  - `cargo test -p dfps_test_suite --test integration_tests mapping::mapping_eval` (mapping integrations).
+  - `cargo test -p dfps_test_suite --test e2e_tests smoke_index` (full-stack smoke).
+- **Environment** – always call `dfps_test_suite::init_environment()` at the start of tests and wrap env overrides in `ScopedEnvVar`.

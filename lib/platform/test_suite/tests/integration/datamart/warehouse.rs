@@ -1,7 +1,9 @@
-use dfps_compliance::ComplianceConfig;
+//! Datamart warehouse + compliance enforcement tests (REFR-16 / REFR-11).
+
+use dfps_compliance::{ComplianceMode, Policy};
 use dfps_datamart::{LoadError, load_from_pipeline_output, migrate};
 use dfps_pipeline::bundle_to_mapped_sr;
-use dfps_test_suite::{regression, scoped_env_var};
+use dfps_test_suite::regression;
 use sqlx::SqlitePool;
 use std::sync::{Mutex, OnceLock};
 
@@ -28,13 +30,13 @@ fn env_guard() -> &'static Mutex<()> {
 
 #[tokio::test]
 async fn warehouse_loads_baseline_and_unknown_bundles() {
+    let _lock = env_guard().lock().unwrap();
+
     let pool = SqlitePool::connect(":memory:")
         .await
         .expect("connect sqlite");
     migrate(&pool).await.expect("apply migrations");
-    let policy = ComplianceConfig::from_env()
-        .and_then(|cfg| cfg.load_policy())
-        .expect("default compliance policy");
+    let policy = Policy::default_for_mode(ComplianceMode::Internal);
 
     load_baseline(&pool, &policy).await;
     load_unknown(&pool, &policy).await;
@@ -94,7 +96,6 @@ async fn warehouse_loads_baseline_and_unknown_bundles() {
 #[tokio::test]
 async fn bundle_respects_compliance_mode_open_source() {
     let _lock = env_guard().lock().unwrap();
-    let _mode_guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "open_source");
 
     let pool = SqlitePool::connect(":memory:")
         .await
@@ -113,9 +114,7 @@ async fn bundle_respects_compliance_mode_open_source() {
         "baseline bundle should include licensed mappings to exercise open_source compliance"
     );
 
-    let policy = ComplianceConfig::from_env()
-        .and_then(|cfg| cfg.load_policy())
-        .expect("open_source policy");
+    let policy = Policy::default_for_mode(ComplianceMode::OpenSource);
     let load_err = load_from_pipeline_output(&pool, &output, &policy).await;
     assert!(
         matches!(load_err, Err(LoadError::Compliance(_))),
@@ -126,7 +125,6 @@ async fn bundle_respects_compliance_mode_open_source() {
 #[tokio::test]
 async fn bundle_allows_licensed_codes_in_partner_mode() {
     let _lock = env_guard().lock().unwrap();
-    let _mode_guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "partner");
 
     let pool = SqlitePool::connect(":memory:")
         .await
@@ -144,9 +142,7 @@ async fn bundle_allows_licensed_codes_in_partner_mode() {
         "partner mode should allow licensed tier mappings to proceed"
     );
 
-    let policy = ComplianceConfig::from_env()
-        .and_then(|cfg| cfg.load_policy())
-        .expect("partner policy");
+    let policy = Policy::default_for_mode(ComplianceMode::Partner);
     load_from_pipeline_output(&pool, &output, &policy)
         .await
         .expect("partner mode should permit warehouse load");

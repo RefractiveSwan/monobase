@@ -1,3 +1,5 @@
+//! Vector backend smoke tests for Qdrant/mock parity (VEC-013).
+
 use std::sync::Arc;
 
 use dfps_vector_store::{MockVectorStore, VectorBackend, VectorStore, VectorStoreConfig};

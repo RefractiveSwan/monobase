@@ -1,3 +1,5 @@
+//! Validation integration tests for FHIR requirements (REFR-05).
+
 use dfps_ingestion::validation::validate_bundle;
 use dfps_test_suite::regression;
 

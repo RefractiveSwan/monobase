@@ -1,3 +1,5 @@
+//! Axum API integration tests (REFR-16).
+
 use axum::{
     Router,
     body::Body,
@@ -14,7 +16,7 @@ use dfps_core::{
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
 use dfps_observability::PipelineMetrics;
-use dfps_test_suite::regression;
+use dfps_test_suite::{regression, scoped_env_var};
 
 use http_body_util::BodyExt;
 use reqwest::StatusCode as ReqwestStatusCode;
@@ -95,6 +97,7 @@ where
 
 #[tokio::test]
 async fn map_bundles_returns_mapped_results() {
+    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
     let app = app();
     let bundle = regression::baseline_fhir_bundle();
     let payload = serde_json::to_vec(&bundle).expect("serialize bundle");
@@ -120,6 +123,7 @@ async fn map_bundles_returns_mapped_results() {
 
 #[tokio::test]
 async fn map_bundles_unknown_code_surfaces_no_match() {
+    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
     let app = app();
     let bundle = regression::fhir_bundle_unknown_code();
     let payload = serde_json::to_vec(&bundle).expect("serialize bundle");
@@ -142,6 +146,7 @@ async fn map_bundles_unknown_code_surfaces_no_match() {
 
 #[tokio::test]
 async fn metrics_summary_tracks_processed_bundles() {
+    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
     let app = app();
     let bundle = regression::baseline_fhir_bundle();
     let payload = serde_json::to_vec(&bundle).expect("serialize bundle");
@@ -181,6 +186,7 @@ async fn metrics_summary_tracks_processed_bundles() {
 
 #[tokio::test]
 async fn ci_smoke_server_runs_endpoints() {
+    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
     let (addr, shutdown_tx, handle) = spawn_http_server().await;
     let client = reqwest::Client::new();
     let base = format!("http://{addr}");

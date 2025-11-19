@@ -1,3 +1,5 @@
+//! End-to-end mapping eval harness tests (EVAL-012).
+
 use dfps_core::mapping::MappingState;
 use dfps_eval::{self, EvalCase};
 use dfps_mapping::map_staging_codes;

@@ -1,12 +1,8 @@
-mod datamart;
-mod external_validation;
-mod fhir_ingest;
-mod mapping;
-mod mapping_eval;
-mod regression;
-mod validation;
-mod vector_backend_smoke;
-mod vector_mapping;
-mod vector_parity;
-mod warehouse;
-mod web_api;
+//! Integration test suites grouped by domain concern (REFR-14).
+
+pub mod api;
+pub mod datamart;
+pub mod ingestion;
+pub mod mapping;
+pub mod regression;
+pub mod vector;

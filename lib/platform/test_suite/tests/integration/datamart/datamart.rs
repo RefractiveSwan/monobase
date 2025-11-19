@@ -1,3 +1,5 @@
+//! Datamart adapter smoke tests (REFR-16).
+
 use dfps_datamart::from_pipeline_output;
 use dfps_pipeline::bundle_to_mapped_sr;
 

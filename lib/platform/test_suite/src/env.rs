@@ -39,8 +39,7 @@ pub fn ensure_eval_data_root() -> Result<PathBuf, dfps_configuration::EnvLoadErr
         return Ok(PathBuf::from(raw));
     }
 
-    let default_root =
-        dfps_configuration::workspace_root()?.join("lib/domain/evaluation/eval/data/eval");
+    let default_root = dfps_configuration::workspace_root()?.join("lib/domain/eval/data/eval");
     unsafe {
         env::set_var("DFPS_EVAL_DATA_ROOT", &default_root);
     }

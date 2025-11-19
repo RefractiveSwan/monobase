@@ -1,3 +1,5 @@
+//! Ensures mock vector + baseline lexical parity (VEC-013).
+
 use std::sync::Arc;
 
 use dfps_core::mapping::MappingState;
