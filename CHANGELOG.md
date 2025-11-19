@@ -22,7 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - REFR-06  – Mapping engine docs/config cleanup (`MappingConfig` injects policy/thresholds/versions, env reads removed; README + crate docs added; vector ranker remains trait-based).
 - REFR-06  – Compliance policy env parsing now centralized in `dfps_compliance::ComplianceConfig` (using `dfps_configuration` namespace loading); CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_api`), and datamart loaders now build the policy once per process instead of calling `load_policy_from_env` per request; and the deprecated `dfps_mapping::eval::run_eval` shim has been removed in favor of `dfps_eval::run_eval_with_mapper`.
 - REFR-022 – Domain core helpers and docs alignment (`dfps_core` README, `CodeElement::id_for`, MappingResult builders, staging/datagate alignment notes, staging serde tests, unit coverage).
-- REFR-08  – Terminology + OBO graph docs and helpers (`dfps_terminology`/`dfps_obo_graph` READMEs, `canonicalize_system_url` for ingestion/mapping parity, terminology client env seams documented, and PET/CT synonym tests tied back to mapping use cases).
+- REFR-08  – Terminology + OBO graph docs and helpers (`dfps_terminology`/`dfps_terminology::obo_graph` READMEs, `canonicalize_system_url` for ingestion/mapping parity, terminology client env seams documented, and PET/CT synonym tests tied back to mapping use cases).
 - REFR-07  – `dfps_eval` now exposes a `FileDatasetStore` seam + README, CLI/API/frontend inject `DFPS_EVAL_DATA_ROOT`, fake-data RNGs/ID helpers were centralized with new docs/tests, and eval fixtures/regression docs now live under `lib/domain/evaluation/fake_data`.
 
 ### Planned

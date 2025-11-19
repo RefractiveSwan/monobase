@@ -23,8 +23,10 @@ See:
   optional `TerminologyClientConfig::from_env` convenience reads
   `DFPS_TERMINOLOGY_*` variables for CLI/tests, but platform layers should inject
   typed configs instead of letting domain crates read the environment.
-- `obo` – thin bridge to `dfps_obo_graph` when vector/ranker layers need
-  synonym/related-concept reasoning.
+- `obo_graph` – embedded NCIt/MONDO graph parser + cached reasoning helpers
+  (ancestors, descendants, synonyms, related concepts) used by the OBO bridge.
+- `obo` – high-level bridge that exposes versioned graph contexts, merging the
+  cached NCIt/MONDO reasoning outputs for mapping/compliance consumers.
 
 ## License & source classification
 
@@ -45,7 +47,7 @@ of domain crates.
 
 ## Related crates
 
-- `lib/domain/ontologies/obo_graph` (`dfps_obo_graph`) supplies the embedded
-  NCIt/MONDO mini graphs used by the `obo` bridge.
+- The in-crate `obo_graph` module supplies the embedded NCIt/MONDO mini graphs
+  used by the `obo` bridge.
 - `lib/domain/ontologies/mapping` (`dfps_mapping`) consumes `EnrichedCode` to
   produce license-aware mapping summaries and compliance signals.

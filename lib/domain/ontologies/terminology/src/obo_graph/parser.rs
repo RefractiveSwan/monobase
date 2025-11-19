@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
-use crate::error::OboError;
-use crate::types::{Edge, Node, OntologyGraph, Relation};
+use super::error::OboError;
+use super::types::{Edge, Node, OntologyGraph, Relation};
 
 #[derive(Default)]
 struct NodeBuilder {

@@ -8,12 +8,11 @@ default = ["http-client"]
 http-client = ["reqwest"]
 umls-http = ["http-client"]
 ncit-http = ["http-client"]
-obo-graph = ["dfps_obo_graph"]
+obo-graph = []
 
 [dependencies]
 serde.workspace = true
 dfps_core = { path = "../../core" }
 thiserror = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
-dfps_obo_graph = { path = "../obo_graph", optional = true }
 once_cell = { workspace = true }

@@ -1,6 +1,6 @@
-use crate::error::OboError;
-use crate::parser::parse_obo;
-use crate::types::OntologyGraph;
+use super::error::OboError;
+use super::parser::parse_obo;
+use super::types::OntologyGraph;
 
 pub const SUPPORTED_GRAPHS: &[&str] = &["ncit-mini", "mondo-mini"];
 

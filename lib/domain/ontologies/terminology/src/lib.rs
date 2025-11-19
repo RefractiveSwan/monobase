@@ -8,6 +8,8 @@ pub mod bridge;
 pub mod client;
 pub mod codesystem;
 pub mod obo;
+#[cfg(feature = "obo-graph")]
+pub mod obo_graph;
 pub mod registry;
 pub mod valueset;
 

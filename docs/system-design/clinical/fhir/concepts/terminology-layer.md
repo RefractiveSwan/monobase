@@ -7,7 +7,7 @@ DFPS keeps an explicit terminology layer between FHIR staging and NCIt mapping. 
 - `dfps_terminology::codesystem`
   - Registry of FHIR CodeSystems with license tier (`licensed`, `open`, `internal_only`) and source kind (`fhir`, `umls`, `obo_foundry`, `local`).
 - `dfps_terminology::obo`
-  - Metadata for NCIt OBO, MONDO, and other OBO Foundry ontologies we rely on, including bridges into `dfps_obo_graph` when the `obo-graph` feature flag is enabled.
+  - Metadata for NCIt OBO, MONDO, and other OBO Foundry ontologies we rely on, including bridges into the in-crate `obo_graph` module when the `obo-graph` feature flag is enabled.
 - `dfps_terminology::valueset`
   - ValueSet descriptors that group code systems for DFPS workflows.
 - `dfps_terminology::bridge::EnrichedCode`
@@ -33,7 +33,7 @@ DFPS keeps an explicit terminology layer between FHIR staging and NCIt mapping. 
 
 ## Graph context & reasoning
 
-- Terminology can optionally load graph-backed views (NCIt + companion slices) via `dfps_obo_graph::load_ontology_graph` when `obo-graph` is enabled.
+- Terminology can optionally load graph-backed views (NCIt + companion slices) via `dfps_terminology::obo_graph::load_ontology_graph` when `obo-graph` is enabled.
 - `CachedOntologyGraph` memoizes query results for `ancestors`, `descendants`, `synonym_set`, and hop-bounded `related_concepts`, keyed by normalized NCIt IDs and graph version.
 - Mapping consumers should treat the graph surface as an enrichment layer: synonym expansion and graph-distance-aware tweaks must keep deterministic ordering when the feature is disabled.
 - Graph version metadata (`graph_versions`) surfaces provenance (e.g., `ncit-mini-0.1.1`) for cache invalidation and observability tags.

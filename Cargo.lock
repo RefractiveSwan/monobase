@@ -1045,15 +1045,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dfps_obo_graph"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror 2.0.17",
-]
-
-[[package]]
 name = "dfps_observability"
 version = "0.1.0"
 dependencies = [
@@ -1087,7 +1078,6 @@ name = "dfps_terminology"
 version = "0.1.0"
 dependencies = [
  "dfps_core",
- "dfps_obo_graph",
  "once_cell",
  "reqwest",
  "serde",

@@ -15,7 +15,6 @@ members = [
     "lib/domain/core",
     "lib/domain/ontologies/ingestion",
     "lib/domain/ontologies/mapping",
-    "lib/domain/ontologies/obo_graph",
     "lib/domain/ontologies/terminology",
     "lib/domain/pipeline",
     "lib/platform/compliance",

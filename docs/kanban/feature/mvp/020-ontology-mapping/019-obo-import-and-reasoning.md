@@ -30,7 +30,7 @@
 
 ### TERM-01 – OBO graph crate
 
-- [x] Add a new crate `lib/domain/obo_graph` (`dfps_obo_graph`) with a focused API for NCIt + one companion ontology (e.g., MONDO) and deterministic parsing.
+- [x] Add a new crate `lib/domain/ontologies/terminology (obo_graph module)` (`dfps_terminology::obo_graph`) with a focused API for NCIt + one companion ontology (e.g., MONDO) and deterministic parsing.
 
   - [x] Types (serde-friendly, deterministic ordering; error type captures missing labels/xrefs):
 
@@ -50,15 +50,15 @@
 
 - **Engineering Targets:** A1, C
 - **Crates & Paths:**
-  - `lib/domain/obo_graph` (`dfps_obo_graph`)
-  - `data/obo` (fixtures referenced by dfps_obo_graph)
+  - `lib/domain/ontologies/terminology (obo_graph module)` (`dfps_terminology::obo_graph`)
+  - `data/clinical/ontologies` (fixtures referenced by dfps_terminology::obo_graph)
 - **Shared Metrics & Signals:**
   - `graph_communities_count`, `graph_modularity`, `graph_conductance_mean`
 - **Docs & Kanbans Touched:**
   - `docs/system-design/clinical/ncit/concepts/obo-graph.md`
   - `docs/kanban/feature/mvp/019-obo-import-and-reasoning.md`
 - **Experiments / CI Hooks:**
-  - `dfps_obo_graph` parser/round-trip unit tests
+  - `dfps_terminology::obo_graph` parser/round-trip unit tests
   - Fixture validation task for embedded `.obo` slices
 - **Interfaces & Contracts:**
   - API: `load_ontology_graph`, `OntologyGraph`, `Node`, `Edge`
@@ -78,7 +78,7 @@
 
 - **Engineering Targets:** A1, B
 - **Crates & Paths:**
-  - `lib/domain/obo_graph` (`dfps_obo_graph`)
+  - `lib/domain/ontologies/terminology (obo_graph module)` (`dfps_terminology::obo_graph`)
   - `lib/domain/ontologies/terminology` (`dfps_terminology`)
 - **Shared Metrics & Signals:**
   - `mapping_precision`, `mapping_recall`, `mapping_f1`
@@ -86,7 +86,7 @@
   - `docs/system-design/clinical/ncit/concepts/obo-graph.md`
   - `docs/system-design/clinical/fhir/concepts/terminology-layer.md`
 - **Experiments / CI Hooks:**
-  - Memoization benchmarks in `dfps_obo_graph`
+  - Memoization benchmarks in `dfps_terminology::obo_graph`
   - Reasoning utilities unit tests (ancestor/descendant/synonym)
 - **Interfaces & Contracts:**
   - APIs: `ancestors`, `descendants`, `synonym_set`, `related_concepts`
@@ -129,11 +129,11 @@
 
 ### TERM-04 – Tests & fixtures
 
-- [x] Add small clipped NCIt OBO fixtures under `data/obo/ncit-mini.obo` with deterministic ordering and comments on provenance:
+- [x] Add small clipped NCIt OBO fixtures under `data/clinical/ontologies/ncit-mini.obo` with deterministic ordering and comments on provenance:
 
   - [x] Include nodes for PET/CT and immediate neighbors; include at least one MONDO slice for cross-ontology validation.
 
-- [x] Tests in `dfps_obo_graph`:
+- [x] Tests in `dfps_terminology::obo_graph`:
 
   - [x] Parse the mini graph.
   - [x] Verify ancestor/descendant relationships for known NCIt IDs (e.g., PET/CT lineage).
@@ -147,8 +147,8 @@
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `data/obo` (fixtures)
-  - `lib/domain/obo_graph` (`dfps_obo_graph`)
+  - `data/clinical/ontologies` (fixtures)
+  - `lib/domain/ontologies/terminology (obo_graph module)` (`dfps_terminology::obo_graph`)
   - `lib/platform/test_suite` (`dfps_test_suite`)
 - **Shared Metrics & Signals:**
   - `mapping_precision`, `mapping_recall`, `mapping_f1`
@@ -158,7 +158,7 @@
   - `docs/kanban/feature/mvp/019-obo-import-and-reasoning.md`
 - **Experiments / CI Hooks:**
   - Integration tests: `lib/platform/test_suite/tests/integration/vector_mapping.rs`
-  - Fixture validation job for `data/obo/ncit-mini.obo`
+  - Fixture validation job for `data/clinical/ontologies/ncit-mini.obo`
 - **Interfaces & Contracts:**
   - CLI/data: fixtures consumed by `dfps_cli map_codes`/`eval_mapping` smoke tests
   - API: `load_ontology_graph` fixture loading contract
@@ -176,7 +176,7 @@
 
 - **Engineering Targets:** A1, C, D
 - **Crates & Paths:**
-  - `lib/domain/obo_graph` (`dfps_obo_graph`)
+  - `lib/domain/ontologies/terminology (obo_graph module)` (`dfps_terminology::obo_graph`)
   - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
@@ -188,7 +188,7 @@
   - `docs/kanban/feature/mvp/019-obo-import-and-reasoning.md`
 - **Experiments / CI Hooks:**
   - `cargo make docs` (mdBook build) including new OBO graph doc
-  - Doc examples synced with `dfps_cli`/`dfps_obo_graph` APIs
+  - Doc examples synced with `dfps_cli`/`dfps_terminology::obo_graph` APIs
 - **Interfaces & Contracts:**
   - Documentation links for `obo-graph` feature flag and `OntologyGraph` API
   - References to `dfps_cli map_codes`/`eval_mapping` usage with OBO context

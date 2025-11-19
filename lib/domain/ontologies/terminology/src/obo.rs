@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[cfg(feature = "obo-graph")]
-use dfps_obo_graph::{CachedOntologyGraph, load_ontology_graph};
+use crate::obo_graph::{CachedOntologyGraph, load_ontology_graph};
 #[cfg(feature = "obo-graph")]
 use std::sync::OnceLock;
 

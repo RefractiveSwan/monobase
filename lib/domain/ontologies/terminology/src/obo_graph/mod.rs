@@ -2,7 +2,7 @@
 //! See:
 //! - docs/system-design/clinical/ncit/concepts/obo-graph.md
 //! - docs/system-design/clinical/fhir/concepts/terminology-layer.md
-//! - lib/domain/ontologies/obo_graph/README.md
+//! - lib/domain/ontologies/terminology/README.md#obo-graph-module
 //! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md (REFR-08)
 
 mod error;

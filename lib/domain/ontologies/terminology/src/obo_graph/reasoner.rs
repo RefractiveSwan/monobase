@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 
-use crate::types::{Edge, OntologyGraph};
+use super::types::{Edge, Node, OntologyGraph};
 
 #[derive(Debug, Default)]
 struct GraphCache {
@@ -178,10 +178,7 @@ fn neighbors(graph: &OntologyGraph, iri: &str) -> Vec<String> {
     related
 }
 
-fn matching_nodes_for_ncit<'a>(
-    graph: &'a OntologyGraph,
-    ncit_id: &str,
-) -> Vec<&'a crate::types::Node> {
+fn matching_nodes_for_ncit<'a>(graph: &'a OntologyGraph, ncit_id: &str) -> Vec<&'a Node> {
     graph
         .nodes
         .iter()

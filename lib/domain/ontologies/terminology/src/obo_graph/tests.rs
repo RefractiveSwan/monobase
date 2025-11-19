@@ -1,4 +1,4 @@
-use crate::{CachedOntologyGraph, load_ontology_graph};
+use super::{CachedOntologyGraph, load_ontology_graph};
 
 #[test]
 fn parses_ncit_mini_fixture() {

@@ -8,12 +8,12 @@ Lightweight OBO graph ingestion and reasoning utilities that expose NCIt (and a 
 - Keep graph IDs/version metadata visible to downstream caches (`obo-graph` feature flag gated).
 
 ## Data sources
-- Embedded fixtures under `data/obo/` (mini NCIt + MONDO slices for PET/CT and xref coverage).
+- Embedded fixtures under `data/clinical/ontologies/` (mini NCIt + MONDO slices for PET/CT and xref coverage).
 - Loader registry: `load_ontology_graph("ncit-mini" | "mondo-mini")`; `SUPPORTED_GRAPHS` enumerates the set.
 - Normalizes NCIt IDs across forms (`NCIT:C123`, `NCIT_C123`, `C123`); captures `data-version` headers for downstream cache/version plumbing.
 
 ## APIs & contracts
-- Crate: `lib/domain/obo_graph` (`dfps_obo_graph`)
+- Module: `lib/domain/ontologies/terminology::obo_graph`
   - Types: `OntologyGraph`, `Node { iri, label, synonyms, xref_ncit_ids }`, `Edge { from, to, relation }`, `Relation`.
   - Loader: `load_ontology_graph(id)` → `Result<OntologyGraph, OboError>`.
   - Reasoner: `CachedOntologyGraph::ancestors`, `descendants`, `synonym_set`, `related_concepts(max_hops)`.
@@ -26,7 +26,7 @@ Lightweight OBO graph ingestion and reasoning utilities that expose NCIt (and a 
 
 ## Fixtures & tests
 - Fixtures: `data/obo/ncit-mini.obo`, `data/obo/mondo-mini.obo` (PET/CT lineage + MONDO cross-xref).
-- Tests (`dfps_obo_graph`):
+- Tests (`dfps_terminology::obo_graph`):
   - Parse fixtures, verify ancestor/descendant relationships (PET-CT → PET, CT).
   - Synonym expansion (label + PET/CT variants) and hop-bounded related concept queries.
   - Xref-driven synonym discovery via MONDO slice.

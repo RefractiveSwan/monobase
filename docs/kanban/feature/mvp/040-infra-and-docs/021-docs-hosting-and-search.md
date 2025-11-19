@@ -77,7 +77,7 @@
   - [ ] `lib/domain/ingestion::profiles` (embedded FHIR profiles)
   - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
   - [ ] `lib/domain/mapping` (`dfps_mapping`)
-  - [ ] `lib/domain/obo_graph` (`dfps_obo_graph`)
+  - [ ] Terminology `obo_graph` module (`lib/domain/ontologies/terminology`)
   - [ ] `lib/domain/pipeline` (`dfps_pipeline`)
   - [ ] `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - [ ] `lib/platform/compliance` (`dfps_compliance`)
