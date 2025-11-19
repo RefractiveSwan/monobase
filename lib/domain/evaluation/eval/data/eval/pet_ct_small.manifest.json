@@ -2,7 +2,7 @@
   "name": "pet_ct_small",
   "version": "20250119",
   "license": "internal_demo",
-  "source": "dfps_fake_data",
+  "source": "dfps_eval::fake_data",
   "n_cases": 3,
   "sha256": "ec2b3dd51132355b2b52b2ec8e7bccd1aee9fe98c57fe8656c5c37f295ca48de",
   "notes": "Compact PET/CT trio covering CPT, SNOMED, and LOINC"

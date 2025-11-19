@@ -2,7 +2,7 @@
   "name": "silver_pet_ct_obo",
   "version": "20250119",
   "license": "open",
-  "source": "dfps_fake_data",
+  "source": "dfps_eval::fake_data",
   "n_cases": 3,
   "sha256": "8d88e79ef4fca286d0596a649c80697540d3f88b2d4d8cd1bc2b8f81b8c68056",
   "notes": "Silver tier emphasizing OBO-sourced NCIt concepts"

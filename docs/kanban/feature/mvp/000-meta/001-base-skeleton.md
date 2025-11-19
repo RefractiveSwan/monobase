@@ -105,7 +105,7 @@ Central place for **shared test utilities, property tests, integration-style tes
 Using `fake` crate for convenient generators against your domain types.
 
 * [x] **FD-01 – Wire `fake` + `Dummy` derives**
-  * Core exposes a `dummy` feature powered by `fake::Dummy`, enabled automatically from `dfps_fake_data`.
+  * Core exposes a `dummy` feature powered by `fake::Dummy`, enabled automatically from `dfps_eval::fake_data`.
 
   * Add `fake` + `rand` deps (already in WS-02).
   * For simpler types, derive `Dummy` directly in `core` (behind a cfg or feature if you want), or in `fake_data` via wrapper types.
@@ -148,7 +148,7 @@ Using `fake` crate for convenient generators against your domain types.
 
 * [x] **FD-05 – CLI / dev helper (optional)**
 
-  * Added `dfps_fake_data` binary `generate_sample` that emits NDJSON scenarios.
+  * Added fake-data binaries under `dfps_eval` (e.g., `generate_sample`) that emit NDJSON scenarios.
 
   * Add a small binary target in `fake_data` or a separate bin crate (e.g. `bin/generate_sample.rs`) that dumps fake domain objects as NDJSON for quick eyeballing.
 
@@ -232,21 +232,22 @@ Functional domain modeling + `serde` via ADTs and newtypes, roughly along the li
     ```
 
     (Serde derive setup per official docs).
-  * `lib/fake_data/Cargo.toml`:
+  * `lib/eval/Cargo.toml` (eval + fake-data helpers):
 
     ```toml
     [package]
-    name = "dfps_fake_data"
+    name = "dfps_eval"
     version = "0.1.0"
     edition = "2021"
 
     [dependencies]
-    core = { path = "../core" }
+    core = { path = "../core", features = ["dummy"] }
     fake = { version = "4", features = ["derive"] }
     rand = "0.8"
+    once_cell = "1"
     ```
 
-    (Using the `fake` crate’s `Dummy`/`Fake` traits).
+    (Using the `fake` crate’s `Dummy`/`Fake` traits plus deterministic RNG helpers).
   * `lib/test_suite/Cargo.toml`:
 
     ```toml
@@ -257,7 +258,7 @@ Functional domain modeling + `serde` via ADTs and newtypes, roughly along the li
 
     [dependencies]
     core = { path = "../core" }
-    fake_data = { path = "../fake_data" }
+    eval = { path = "../eval" }
     serde_json = "1"
     proptest = "1" # optional, if you want property-based tests
     ```

@@ -1,4 +1,4 @@
-use crate::{
+use crate::fake_data::{
     rng,
     value::{
         fake_order_description_with_rng, fake_service_request_id_with_rng,

@@ -1,6 +1,6 @@
 use dfps_core::{order::ServiceRequest, staging::StgSrCodeExploded};
 use dfps_eval::EvalCase;
-use dfps_fake_data::{
+use dfps_eval::fake_data::{
     ServiceRequestScenario, fake_service_request_for,
     fixtures::{self, Registry},
     scenarios::{fake_service_request_scenario, fake_service_request_scenario_with_seed},
@@ -67,5 +67,5 @@ pub fn mapping_ncit_obo_code() -> StgSrCodeExploded {
 
 pub fn eval_pet_ct_small_cases() -> Vec<EvalCase> {
     dfps_eval::load_dataset("pet_ct_small")
-        .expect("pet_ct_small dataset should load from lib/domain/evaluation/fake_data/data/eval")
+        .expect("pet_ct_small dataset should load from lib/domain/evaluation/eval/data/eval")
 }

@@ -73,7 +73,7 @@
   - [ ] `lib/app/web/frontend` (`dfps_web_frontend`)
   - [ ] `lib/domain/core` (`dfps_core`)
   - [ ] `lib/domain/eval` (`dfps_eval`)
-  - [ ] `lib/domain/fake_data` (`dfps_fake_data`)
+  - [ ] `lib/domain/eval::fake_data` (`dfps_eval::fake_data`)
   - [ ] `lib/domain/ingestion::profiles` (embedded FHIR profiles)
   - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
   - [ ] `lib/domain/mapping` (`dfps_mapping`)

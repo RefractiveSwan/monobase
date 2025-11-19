@@ -16,7 +16,7 @@ static GLOBAL_RNG: Lazy<Mutex<StdRng>> =
 pub fn with_global_rng<T>(f: impl FnOnce(&mut StdRng) -> T) -> T {
     let mut guard = GLOBAL_RNG
         .lock()
-        .expect("dfps_fake_data global RNG lock poisoned");
+        .expect("dfps_eval::fake_data global RNG lock poisoned");
     f(&mut guard)
 }
 

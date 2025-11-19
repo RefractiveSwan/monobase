@@ -27,8 +27,13 @@ use dfps_datamart::{
     load_from_pipeline_output, migrate,
 };
 use dfps_observability::{PipelineMetrics, log_no_match, log_pipeline_output};
-use dfps_pipeline::{PipelineError, PipelineOutput, bundle_to_mapped_sr};
+use dfps_pipeline::{
+    PipelineError, PipelineOutput, VectorPipelineContext, bundle_to_mapped_sr_with_vector_context,
+};
 use dfps_terminology::codesystem::LicenseTier;
+use dfps_vector_store::{
+    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
+};
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -336,6 +341,7 @@ pub struct ApiState {
     latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
     compliance_policy: dfps_compliance::Policy,
     dataset_store: Arc<dfps_eval::FileDatasetStore>,
+    vector_context: Option<VectorPipelineContext>,
 }
 
 impl ApiState {
@@ -346,6 +352,7 @@ impl ApiState {
             .load_policy()
             .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
         let dataset_store = Arc::new(eval_dataset_store_from_env());
+        let vector_context = load_vector_context_from_env();
         Self {
             metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
             analytics: Arc::new(Mutex::new(AnalyticsState::default())),
@@ -353,6 +360,7 @@ impl ApiState {
             latest_eval: Arc::new(Mutex::new(None)),
             compliance_policy,
             dataset_store,
+            vector_context,
         }
     }
 }
@@ -573,6 +581,22 @@ fn eval_dataset_store_from_env() -> dfps_eval::FileDatasetStore {
     dfps_eval::FileDatasetStore::new(root)
 }
 
+fn load_vector_context_from_env() -> Option<VectorPipelineContext> {
+    let config = VectorStoreConfig::from_env().ok()?;
+    if !config.enabled {
+        return None;
+    }
+    let store: Arc<dyn VectorStore> = match config.backend {
+        VectorBackend::Qdrant => {
+            let store = QdrantVectorStore::from_config(&config).ok()?;
+            Arc::new(store)
+        }
+        VectorBackend::Mock => Arc::new(MockVectorStore::new(config.namespace.clone())),
+        _ => return None,
+    };
+    Some(VectorPipelineContext::new(store, config))
+}
+
 async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {
     let request_id = Uuid::new_v4();
     let metrics = state.metrics.lock().await.clone();
@@ -607,9 +631,13 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     request_metrics.compliance_mode = Some(state.compliance_policy.mode.as_str().to_string());
 
     for bundle in bundles {
-        let output = bundle_to_mapped_sr(&bundle).map_err(|err| match err {
-            PipelineError::Ingestion(source) => ApiError::ingestion(source.to_string(), request_id),
-        })?;
+        let output =
+            bundle_to_mapped_sr_with_vector_context(&bundle, state.vector_context.as_ref())
+                .map_err(|err| match err {
+                    PipelineError::Ingestion(source) => {
+                        ApiError::ingestion(source.to_string(), request_id)
+                    }
+                })?;
 
         enforce_export_policy(&output, &state.compliance_policy, request_id)?;
 

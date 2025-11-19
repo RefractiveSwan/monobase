@@ -8,8 +8,13 @@ use dfps_configuration::load_env;
 use dfps_datamart::{
     LoadSummary, WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate,
 };
-use dfps_pipeline::{PipelineOutput, bundle_to_mapped_sr};
+use dfps_pipeline::{
+    PipelineOutput, VectorPipelineContext, bundle_to_mapped_sr_with_vector_context,
+};
 use serde::Deserialize;
+
+mod vector_ctx;
+use vector_ctx::pipeline_vector_context_from_env;
 
 #[derive(Parser)]
 #[command(
@@ -55,14 +60,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let compliance = ComplianceConfig::from_env()?;
     let policy = compliance.load_policy()?;
-
+    let vector_ctx = pipeline_vector_context_from_env();
     let cfg = WarehouseConfig::from_env().map_err(|err| format!("{err}"))?;
+    let outputs = read_inputs(&args, vector_ctx.as_ref())?;
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async move {
         let pool = connect_sqlite(&cfg).await?;
         migrate(&pool).await?;
 
-        let outputs = read_inputs(&args)?;
         let mut agg = AggregateSummary::default();
         for output in outputs {
             enforce_export_policy(&output, &policy)?;
@@ -85,7 +90,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn read_inputs(args: &Args) -> Result<Vec<PipelineOutput>, Box<dyn std::error::Error>> {
+fn read_inputs(
+    args: &Args,
+    vector_ctx: Option<&VectorPipelineContext>,
+) -> Result<Vec<PipelineOutput>, Box<dyn std::error::Error>> {
     let mut outputs = Vec::new();
     let file = File::open(&args.input)?;
     let mut reader = BufReader::new(file);
@@ -113,7 +121,7 @@ fn read_inputs(args: &Args) -> Result<Vec<PipelineOutput>, Box<dyn std::error::E
                     continue;
                 }
                 let bundle: dfps_core::fhir::Bundle = serde_json::from_str(trimmed)?;
-                let mapped = bundle_to_mapped_sr(&bundle)
+                let mapped = bundle_to_mapped_sr_with_vector_context(&bundle, vector_ctx)
                     .map_err(|err| format!("pipeline mapping error: {err}"))?;
                 outputs.push(mapped);
             }

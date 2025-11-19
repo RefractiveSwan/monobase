@@ -1,13 +1,11 @@
-//! Fake data generators for DFPS domain model.
+//! Deterministic fake-data generators plus checked-in fixtures that mirror the
+//! DFPS domain model (patients, encounters, ServiceRequests, eval corpora).
 //!
-//! See:
+//! Merged from the standalone `dfps_fake_data` crate so evaluation + fixtures
+//! now live under one home. See:
 //! - docs/system-design/base/directory-architecture.md
 //! - docs/system-design/clinical/ncit/architecture.md
 //! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md (REFR-07)
-//!
-//! This crate exposes helpers to synthesize coherent patients, encounters,
-//! service requests, and composite scenarios for tests and local tooling. RNG
-//! helpers live under [`rng`] so CLIs and tests can share deterministic seeds.
 
 pub mod encounter;
 pub mod fixtures;
@@ -25,7 +23,7 @@ pub use raw_fhir::*;
 pub use scenarios::*;
 pub use value::*;
 
-/// Simple placeholder so downstream crates can confirm the crate is wired.
+/// Simple placeholder so downstream crates can confirm the module is wired.
 pub fn ping() -> &'static str {
     "fake-data-ready"
 }

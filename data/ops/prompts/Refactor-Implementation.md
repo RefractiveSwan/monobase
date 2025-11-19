@@ -22,7 +22,7 @@ PROJECT INVARIANTS (DO NOT VIOLATE)
 5) Observability must not panic on env load; return Results and bubble errors.
 6) Cross‑surface DTOs (CLI/API/frontend) must align; prefer shared DTO modules and schema snapshots where applicable.
 7) Keep docstrings/`//!` headers pointing to system-design docs and the governing REFR card.
-8) Tests must be deterministic; prefer RNG seeding helpers from `dfps_fake_data` when needed.
+8) Tests must be deterministic; prefer RNG seeding helpers from `dfps_eval::fake_data` when needed.
 
 DEFINITION OF DONE
 - Code compiles (`cargo build`) and is formatted/linted:

@@ -5,11 +5,13 @@
 //! - docs/runbook/030-mapping-and-terminology/mapping-eval-quickstart.md
 //! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md (REFR-07)
 
+pub mod fake_data;
+
 use dfps_core::{
     mapping::{MappingResult, MappingState},
     staging::StgSrCodeExploded,
 };
-#[cfg(feature = "rand")]
+#[cfg(feature = "eval-advanced")]
 use rand::{Rng, SeedableRng, rngs::StdRng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -20,7 +22,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub const DEFAULT_DATA_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../fake_data/data/eval");
+pub const DEFAULT_DATA_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/eval");
 
 pub mod io;
 pub mod report;

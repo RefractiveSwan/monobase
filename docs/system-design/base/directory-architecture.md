@@ -204,9 +204,9 @@ code/lib/domain/
   * Dataset manifests and baseline snapshots for regression gating, loaded via
     `FileDatasetStore` and `report::load_baseline_snapshot_from(root, name)`.
 
-#### `evaluation/fake_data/` – Domain-aware generators
+#### `evaluation/eval::fake_data` – Domain-aware generators
 
-* Crate: `dfps_fake_data`
+* Module: `dfps_eval::fake_data`
 * Responsibilities:
 
   * Generate realistic fake data that mirrors domain models with deterministic RNGs.

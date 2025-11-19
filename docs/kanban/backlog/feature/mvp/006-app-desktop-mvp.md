@@ -16,7 +16,7 @@
 - [ ] Expose a `run()` function from `lib` that `main()` calls so tests can exercise the desktop shell without spawning a process.
 
 ### DESK-02 – Wire desktop shell to pipeline
-- [ ] Add dependency on `dfps_pipeline`, `dfps_fake_data`, and `dfps_observability`.
+- [ ] Add dependency on `dfps_pipeline`, `dfps_eval::fake_data`, and `dfps_observability`.
 - [ ] Implement a simple “Load & map sample bundle” flow:
   - [ ] Option A: load the baseline bundle fixture from `dfps_test_suite::regression::baseline_fhir_bundle`.
   - [ ] Option B: open a local JSON/NDJSON file chosen by the user.

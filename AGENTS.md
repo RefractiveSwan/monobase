@@ -648,29 +648,29 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Prefer deterministic seeds when using `#[cfg(feature = "dummy")]` generators.
 
 
-# Crate: lib/domain/evaluation/fake_data - `dfps_fake_data`
+# Module: lib/domain/evaluation/eval/src/fake_data — `dfps_eval::fake_data`
 
-**Path:** `code/lib/domain/evaluation/fake_data`  
-**Depends on:** `dfps_core` (with `dummy`), `rand`, `fake`, `serde(_json)`, `dfps_configuration`.
+**Path:** `code/lib/domain/evaluation/eval/src/fake_data`  
+**Depends on:** `dfps_core` (with `dummy`), `rand`, `fake`, `serde(_json)`, `once_cell`.
 
 ## Responsibilities
-- Deterministic, **seeded** generators for domain + minimal FHIR.
-- CLI tools for generating **scenarios** and **raw FHIR Bundles** as JSON/NDJSON.
+- Deterministic, **seeded** generators for domain + minimal FHIR aligned with evaluation data.
+- Checked-in fixtures + registries under `lib/domain/evaluation/eval/data/**` for regression/eval datasets.
+- CLI tools (now built from the `dfps_eval` crate) for emitting scenario/FHIR NDJSON for demos.
 
 ## Modules & bins
-- `value.rs` - ID/status/intent/description fakers; seeded helpers.
-- `patient.rs`, `encounter.rs`, `order.rs` - domain entity generators.
-- `scenarios.rs` - cohesive `ServiceRequestScenario { patient, encounter, service_request }`.
-- `raw_fhir.rs` - fake **FHIR** `Patient`, `Encounter`, `ServiceRequest`, and `Bundle` with plausible codings (SNOMED/CPT/LOINC); includes normalization to keep intent/status coherent.
-- `bin/generate_sample.rs` - emits **domain** scenarios (reads env via `dfps_configuration`).
-- `bin/generate_fhir_bundle.rs` - emits **FHIR Bundle** NDJSON; supports `--seed`, `--count`.
+- `value`, `patient`, `encounter`, `order`, `scenarios` — thin helpers that create domain types sharing ID/description logic with `dfps_core`.
+- `raw_fhir` — emits FHIR `Bundle`s + Patient/Encounter/ServiceRequest resources rooted in the same RNG helpers so CLI demos and tests stay reproducible.
+- `fixtures` — loads evaluation + regression JSON/NDJSON under `data/` via `Registry`.
+- `rng` — exposes `with_global_rng`, `rng_from_seed`, and `SeedSequence` so CLIs/tests share deterministic seeds.
+- `bin/generate_sample.rs` & `bin/generate_fhir_bundle.rs` — part of `dfps_eval`; emit domain scenarios or Bundle NDJSON (still read env via `dfps_configuration`).
 
 ## Conventions
 - Always provide `*_with_seed` and `*_with_rng` for determinism.
 - Prefer minimal surface area for FHIR mock data; keep display/system/code realistic.
 
 ## Tests
-- Round‑trip serde tests where helpful.
+- Round-trip serde tests where helpful.
 - Keep RNG usage explicit in tests (`StdRng::seed_from_u64`).
 
 

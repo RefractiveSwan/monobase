@@ -46,7 +46,7 @@
   - [x] Helper to parse FHIR `Reference` `"Type/ID"` -> `ID`
 
 ### FP-03 – Fake raw FHIR generators
-- [x] Extend `dfps_fake_data` with `raw_fhir` module:
+- [x] Extend `dfps_eval::fake_data` with `raw_fhir` module:
   - [x] `fake_fhir_patient[_with_seed]`
   - [x] `fake_fhir_encounter_for[_with_seed]`
   - [x] `fake_fhir_servicerequest[_with_seed]` (compose 2–3 codings from CPT/SNOMED/LOINC)
@@ -94,7 +94,7 @@
 
 ## Acceptance Criteria
 - `cargo test --all` passes.
-- `dfps_fake_data::generate_fhir_bundle` prints valid FHIR `Bundle` NDJSON.
+- `dfps_eval` bin `generate_fhir_bundle` prints valid FHIR `Bundle` NDJSON.
 - `bundle_to_staging` yields exactly one flat row per SR and one exploded row per `code.coding[]`.
 - Domain aggregate fields (IDs, status, intent, description) match the source FHIR semantics.
 

@@ -27,7 +27,7 @@
   - [ ] `--pretty` – pretty-print JSON for debugging.
 
 ### APP-03 – `generate-fhir-bundles` subcommand (fake data)
-- [ ] Implement a `generate-fhir-bundles` subcommand that wraps `dfps_fake_data::raw_fhir` helpers.
+- [ ] Implement a `generate-fhir-bundles` subcommand that wraps `dfps_eval::fake_data::raw_fhir` helpers.
 - [ ] Support `--count` and `--seed` options mirroring the existing `generate_fhir_bundle` binary semantics.
 - [ ] Ensure the output shape matches what `bundle_to_mapped_sr` expects so it can be piped directly into `map-bundles`.
 

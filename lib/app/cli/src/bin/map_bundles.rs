@@ -9,9 +9,12 @@ use dfps_configuration::load_env;
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
 use dfps_observability::{PipelineMetrics, log_no_match, log_pipeline_output};
-use dfps_pipeline::bundle_to_mapped_sr;
+use dfps_pipeline::bundle_to_mapped_sr_with_vector_context;
 use log::{LevelFilter, info, warn};
 use serde::Serialize;
+use vector_ctx::pipeline_vector_context_from_env;
+
+mod vector_ctx;
 
 #[derive(Parser)]
 #[command(
@@ -54,6 +57,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut handle = stdout.lock();
     let mut metrics = PipelineMetrics::default();
     metrics.compliance_mode = Some(policy.mode.as_str().to_string());
+    let vector_ctx = pipeline_vector_context_from_env();
 
     for line in reader.lines() {
         let raw = line?;
@@ -82,7 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for issue in &validation.issues {
             write_json(&mut handle, "validation_issue", issue)?;
         }
-        let output = bundle_to_mapped_sr(&bundle)?;
+        let output = bundle_to_mapped_sr_with_vector_context(&bundle, vector_ctx.as_ref())?;
         log_pipeline_output(
             &output.flats,
             &output.exploded_codes,

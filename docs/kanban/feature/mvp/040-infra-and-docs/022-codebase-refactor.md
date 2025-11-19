@@ -59,8 +59,8 @@
       - [ ] Replace raw `std::env` dataset root resolution with a config struct built via `dfps_configuration` (still honoring DFPS_EVAL_DATA_ROOT).
       - [ ] Split IO/parsing from scoring so eval functions accept injected readers/writers instead of reading files directly.
       - [ ] Add determinism/benchmark tests for fingerprint computation across chunk sizes and `top_k` settings.
-    - [ ] `lib/domain/evaluation/fake_data` (`dfps_fake_data`)
-      - [ ] Add a crate README describing generator outputs/seed controls and link it from `data/eval/README.md`.
+    - [ ] `lib/domain/evaluation/eval::fake_data` (`dfps_eval::fake_data`)
+      - [ ] Add module docs describing generator outputs/seed controls and link them from `data/eval/README.md`.
       - [ ] Centralize RNG seeding helpers to keep fixtures deterministic across modules and CLI bins.
       - [ ] Provide a thin config wrapper over `dfps_configuration` for the generators instead of ad-hoc env access.
     - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
@@ -243,7 +243,7 @@
   - [ ] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
   - [ ] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
 - [ ] Clarify fixture ownership:
-  - [ ] Ensure all regression/eval fixtures live under `lib/domain/evaluation/fake_data/data/**` and are accessed via `dfps_fake_data::fixtures::Registry` helpers.
+  - [ ] Ensure all regression/eval fixtures live under `lib/domain/evaluation/eval/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
   - [ ] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
 - [ ] Harden test surfaces:
   - [ ] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).
@@ -396,7 +396,7 @@
   - [x] Add refactor tasks for reusing `MappingThresholds`/`MappingSourceVersion` from `dfps_core` consistently.
 - [x] Evaluate whether deprecated `eval::run_eval` can be removed or wrapped behind a clearer “mapping eval port” that just delegates to `dfps_eval` (`dfps_mapping::eval` shim deleted; callers use `dfps_eval::run_eval_with_mapper` directly).
 
-### REFR-07 – Domain eval harness & fake data fixtures (`dfps_eval`, `dfps_fake_data`)
+### REFR-07 – Domain eval harness & fake data fixtures (`dfps_eval`, `dfps_eval::fake_data`)
 
 **Goal:** Treat eval and fake-data crates as domain-aligned data/eval providers with deterministic behavior and clear boundaries to IO/config, ready to be driven by CLI/web/platform tooling.
 
@@ -406,7 +406,7 @@
     - [x] Keep file/NDJSON IO behind small helpers that can later be replaced with alternative sources (e.g., HTTP, DB).
     - [x] Clarify how `DEFAULT_DATA_ROOT` and `DFPS_EVAL_DATA_ROOT` interact with future configuration layers.
   - [x] Identify any places where eval depends on CLI/web/platform behavior (env, logging) and plan to push those concerns outward.
-- [x] `dfps_fake_data`
+- [x] `dfps_eval::fake_data`
   - [x] Document the structure of `data/` (eval/meta/regression) and how it maps to `fixtures::*` and generator modules.
   - [x] Centralize RNG seeding and ID generation helpers so CLI bins and tests share deterministic behavior.
   - [x] Ensure value generators (`fake_*_id`, `fake_order_description`, etc.) are thin over core types from `dfps_core` and do not embed app/platform assumptions (URLs, ports, etc.).

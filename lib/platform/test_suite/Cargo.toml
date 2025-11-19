@@ -18,7 +18,6 @@ tower = "0.5"
 dfps_api = { path = "../../app/web/backend/api" }
 dfps_datamart = { path = "../../app/web/backend/datamart" }
 dfps_core = { path = "../../domain/core" }
-dfps_fake_data = { path = "../../domain/evaluation/fake_data" }
 dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
 dfps_mapping = { path = "../../domain/ontologies/mapping" }
 dfps_terminology= { path = "../../domain/ontologies/terminology" }

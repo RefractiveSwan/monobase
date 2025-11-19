@@ -1,4 +1,4 @@
-use crate::rng;
+use crate::fake_data::rng;
 use dfps_core::{
     order::{ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId, ServiceRequestId},

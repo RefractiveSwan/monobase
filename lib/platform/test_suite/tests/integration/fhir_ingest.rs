@@ -1,4 +1,4 @@
-use dfps_fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
+use dfps_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
 use dfps_ingestion::{IngestionError, bundle_to_staging};
 use dfps_test_suite::regression;
 use proptest::prelude::*;

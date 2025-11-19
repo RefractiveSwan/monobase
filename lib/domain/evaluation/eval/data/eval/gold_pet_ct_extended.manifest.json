@@ -2,7 +2,7 @@
   "name": "gold_pet_ct_extended",
   "version": "20250119",
   "license": "internal_demo",
-  "source": "dfps_fake_data",
+  "source": "dfps_eval::fake_data",
   "n_cases": 6,
   "sha256": "74342970d9cc5d700374d89d45124e000834facf90392d4be986b33f3c4c6c8b",
   "notes": "Gold tier extended scenario combining CPT, SNOMED, and NCIt"

@@ -82,7 +82,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_eval::EvalCase;
+    use crate::EvalCase;
 
     #[test]
     fn eval_fixtures_match_evalcase_schema() {

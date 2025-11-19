@@ -26,6 +26,6 @@ This track hardens config/env handling across app/domain/platform crates so loca
 ## DONE
 
 - Added `dfps_configuration` crate that discovers the workspace root, resolves `DFPS_ENV` / `APP_ENV`, and auto-loads `.env.<namespace>.<profile>` files for every surface.
-- Wired `dfps_api`, `dfps_web_frontend`, `dfps_cli`, `dfps_fake_data`, `dfps_observability`, and `dfps_test_suite` into the loader so backend, UI, CLIs, and tests all consume the right env files without manual sourcing.
+- Wired `dfps_api`, `dfps_web_frontend`, `dfps_cli`, `dfps_eval` (fake data generators), `dfps_observability`, and `dfps_test_suite` into the loader so backend, UI, CLIs, and tests all consume the right env files without manual sourcing.
 - Expanded `docs/runbook/web-quickstart.md` with the multi-env story, namespace examples, storage/secrets guidance, and `DFPS_ENV_STRICT` expectations for CI.
 - Added `.env` coverage notes to `docs/system-design/base/directory-architecture.md` so the observability story spells out how env profiles drive log/metrics sinks.

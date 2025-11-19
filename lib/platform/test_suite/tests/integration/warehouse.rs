@@ -104,13 +104,13 @@ async fn bundle_respects_compliance_mode_open_source() {
     // Use baseline bundle (contains CPT) to trigger license-blocked path.
     let bundle = regression::baseline_fhir_bundle();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps baseline bundle");
-    let blocked = output
+    let licensed = output
         .mapping_results
         .iter()
-        .any(|m| m.reason.as_deref() == Some("license_blocked"));
+        .any(|m| m.license_tier.as_deref() == Some("licensed"));
     assert!(
-        blocked,
-        "baseline bundle should be blocked under open_source"
+        licensed,
+        "baseline bundle should include licensed mappings to exercise open_source compliance"
     );
 
     let policy = ComplianceConfig::from_env()

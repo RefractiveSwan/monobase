@@ -1,5 +1,5 @@
 use dfps_core::order::{ServiceRequest, ServiceRequestIntent, ServiceRequestStatus};
-use dfps_fake_data::scenarios::ServiceRequestScenario;
+use dfps_eval::fake_data::scenarios::ServiceRequestScenario;
 use serde::{Serialize, de::DeserializeOwned};
 
 pub fn assert_json_roundtrip<T>(value: &T)

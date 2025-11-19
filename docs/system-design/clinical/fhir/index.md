@@ -90,7 +90,7 @@ assert!(!lenient.report.has_errors());
 - Generate sample NDJSON Bundles:
 
   ```bash
-  cargo run -p dfps_fake_data --bin generate_fhir_bundle -- --count 5 --seed 42 > bundles.ndjson
+  cargo run -p dfps_eval --bin generate_fhir_bundle -- --count 5 --seed 42 > bundles.ndjson
   ```
 
 - Run the full ingestion + mapping pipeline:
@@ -103,7 +103,7 @@ assert!(!lenient.report.has_errors());
 
   ```bash
   cargo run -p dfps_cli --bin map_bundles -- --help
-  cargo run -p dfps_fake_data --bin generate_fhir_bundle -- --help
+  cargo run -p dfps_eval --bin generate_fhir_bundle -- --help
   ```
 
 ### Observability & logging

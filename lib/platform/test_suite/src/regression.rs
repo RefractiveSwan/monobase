@@ -1,5 +1,5 @@
 use dfps_core::{fhir, order::ServiceRequest};
-use dfps_fake_data::fixtures::{self, Registry};
+use dfps_eval::fake_data::fixtures::{self, Registry};
 use once_cell::sync::Lazy;
 
 static REGRESSION_ENV: Lazy<()> = Lazy::new(|| {

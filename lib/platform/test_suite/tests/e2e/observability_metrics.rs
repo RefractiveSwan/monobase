@@ -1,4 +1,4 @@
-use dfps_fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
+use dfps_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
 use dfps_observability::{PipelineMetrics, log_no_match, log_pipeline_output};
 use dfps_pipeline::bundle_to_mapped_sr;
 use dfps_vector_store::{CapacityProxies, VectorUsageSnapshot};

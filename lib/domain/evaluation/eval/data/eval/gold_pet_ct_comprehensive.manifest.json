@@ -2,7 +2,7 @@
   "name": "gold_pet_ct_comprehensive",
   "version": "20250119",
   "license": "internal_demo",
-  "source": "dfps_fake_data",
+  "source": "dfps_eval::fake_data",
   "n_cases": 7,
   "sha256": "6baf771e4ccfeb4a40b107146cff4f72f4f209b7b7b091e47dfb74e54aa3be2d",
   "notes": "Gold tier comprehensive sweep with multiple entries per system"

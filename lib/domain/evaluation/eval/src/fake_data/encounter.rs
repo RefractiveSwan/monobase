@@ -1,4 +1,4 @@
-use crate::{rng, value::fake_encounter_id_with_rng};
+use crate::fake_data::{rng, value::fake_encounter_id_with_rng};
 use dfps_core::{encounter::Encounter, value::PatientId};
 use rand::Rng;
 
