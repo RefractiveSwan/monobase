@@ -62,20 +62,20 @@ impl VectorStoreConfig {
         // Best-effort env load; errors bubble only when parsing specific vars.
         let _ = dfps_configuration::load_env("platform.vector_store");
 
-        let enabled = env_flag("DFPS_VECTOR_ENABLED", false);
+        let enabled = dfps_configuration::bool_var("DFPS_VECTOR_ENABLED")
+            .map_err(|err| VectorStoreConfigError::InvalidEnv(err.to_string()))?
+            .unwrap_or(false);
         let backend = env::var("DFPS_VECTOR_BACKEND")
             .ok()
             .and_then(|value| value.parse().ok())
             .unwrap_or(VectorBackend::Mock);
         let url = env::var("DFPS_VECTOR_URL").ok();
         let namespace = env::var("DFPS_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
-        let pool_max = env::var("DFPS_VECTOR_POOL_MAX")
-            .ok()
-            .and_then(|value| value.parse::<u32>().ok())
+        let pool_max = dfps_configuration::u32_var("DFPS_VECTOR_POOL_MAX")
+            .map_err(|err| VectorStoreConfigError::InvalidEnv(err.to_string()))?
             .unwrap_or(DEFAULT_POOL_MAX);
-        let health_timeout_ms = env::var("DFPS_VECTOR_HEALTH_TIMEOUT_MS")
-            .ok()
-            .and_then(|value| value.parse::<u64>().ok())
+        let health_timeout_ms = dfps_configuration::u64_var("DFPS_VECTOR_HEALTH_TIMEOUT_MS")
+            .map_err(|err| VectorStoreConfigError::InvalidEnv(err.to_string()))?
             .unwrap_or(DEFAULT_HEALTH_TIMEOUT_MS);
 
         let config = Self {
@@ -107,19 +107,6 @@ impl VectorStoreConfig {
     }
 }
 
-fn env_flag(name: &str, default: bool) -> bool {
-    env::var(name)
-        .map(|value| {
-            let lowered = value.trim().to_ascii_lowercase();
-            if lowered.is_empty() {
-                true
-            } else {
-                !matches!(lowered.as_str(), "false" | "0" | "off")
-            }
-        })
-        .unwrap_or(default)
-}
-
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum VectorStoreConfigError {
     #[error("vector store namespace must not be empty when enabled")]
@@ -130,6 +117,8 @@ pub enum VectorStoreConfigError {
     InvalidPoolMax,
     #[error("health_timeout_ms must be greater than zero")]
     InvalidTimeout,
+    #[error("invalid environment value: {0}")]
+    InvalidEnv(String),
 }
 
 /// Aggregate capacity metrics surfaced by a backend.

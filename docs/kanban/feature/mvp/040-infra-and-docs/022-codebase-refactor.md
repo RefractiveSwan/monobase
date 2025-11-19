@@ -159,23 +159,6 @@
 
 ---
 
-### REFR-10 – Platform configuration & env loading (`dfps_configuration`)
-
-**Goal:** Make `dfps_configuration` the single entrypoint for environment/namespace/profile resolution across app, domain, and platform crates, with typed helpers instead of ad-hoc `std::env` and custom flag parsing.
-
-- [ ] Add `lib/platform/configuration/README.md` summarizing:
-  - [ ] How `load_env(namespace)` is intended to be used by `lib/app`, `lib/domain`, and `lib/platform`.
-  - [ ] The search strategy (`DFPS_ENV_FILE`, `DFPS_ENV_DIR`, `DFPS_WORKSPACE_ROOT`, `data/environment`) and strict vs non-strict modes.
-- [ ] Extract common helpers from `lib/platform/configuration/src/lib.rs` into reusable functions:
-  - [ ] Typed flag parsing (bool/int/port) that can be called from vector store, compliance, observability, API/CLI configs.
-  - [ ] A small “config root” helper that exposes the resolved workspace root and env search dirs to other crates.
-- [ ] Inventory env usage in other crates (`dfps_vector_store`, `dfps_compliance`, `dfps_observability`, `dfps_test_suite`, apps) and:
-  - [ ] Replace bespoke `env::var` + string parsing with typed helpers from `dfps_configuration`.
-  - [ ] Ensure all env-namespace names reflect directory structure (`app.web.api`, `platform.vector_store`, etc.) and are documented.
-- [ ] Add tests for:
-  - [ ] `workspace_root()` discovery in nested directories and failure modes (`WorkspaceRootNotFound`).
-  - [ ] Resolution order when `DFPS_ENV_FILE`, `DFPS_ENV_DIR`, and `DFPS_WORKSPACE_ROOT` are all present.
-  - [ ] Strict vs non-strict behavior in CI and local dev (FileMissing vs silent no-op).
 
 ### REFR-11 – Platform compliance & export gating (`dfps_compliance`)
 
@@ -427,6 +410,25 @@
   - [x] Ensure `CachedOntologyGraph` exposes only pure graph operations (ancestors/descendants/synonyms/related_concepts), leaving file/network IO out of this crate.
   - [x] Add tests or examples tying synonym/related-concept behavior back to mapping/terminology use cases (e.g., PET/CT synonym sets).
   
+---
+  
+### REFR-10 – Platform configuration & env loading (`dfps_configuration`)
+
+**Goal:** Make `dfps_configuration` the single entrypoint for environment/namespace/profile resolution across app, domain, and platform crates, with typed helpers instead of ad-hoc `std::env` and custom flag parsing.
+
+- [x] Add `lib/platform/configuration/README.md` summarizing:
+  - [x] How `load_env(namespace)` is intended to be used by `lib/app`, `lib/domain`, and `lib/platform`.
+  - [x] The search strategy (`DFPS_ENV_FILE`, `DFPS_ENV_DIR`, `DFPS_WORKSPACE_ROOT`, `data/environment`) and strict vs non-strict modes.
+- [x] Extract common helpers from `lib/platform/configuration/src/lib.rs` into reusable functions:
+  - [x] Typed flag parsing (bool/int/port) that can be called from vector store, compliance, observability, API/CLI configs.
+  - [x] A small “config root” helper that exposes the resolved workspace root and env search dirs to other crates.
+- [ ] Inventory env usage in other crates (`dfps_vector_store`, `dfps_compliance`, `dfps_observability`, `dfps_test_suite`, apps) and:
+  - [x] Replace bespoke `env::var` + string parsing with typed helpers from `dfps_configuration`.
+  - [ ] Ensure all env-namespace names reflect directory structure (`app.web.api`, `platform.vector_store`, etc.) and are documented.
+- [x] Add tests for:
+  - [x] `workspace_root()` discovery in nested directories and failure modes (`WorkspaceRootNotFound`).
+  - [x] Resolution order when `DFPS_ENV_FILE`, `DFPS_ENV_DIR`, and `DFPS_WORKSPACE_ROOT` are all present.
+  - [x] Strict vs non-strict behavior in CI and local dev (FileMissing vs silent no-op).
 ---
 
 ## DONE

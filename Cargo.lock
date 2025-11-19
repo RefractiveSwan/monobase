@@ -966,6 +966,7 @@ name = "dfps_configuration"
 version = "0.1.0"
 dependencies = [
  "dotenvy",
+ "tempfile",
  "thiserror 2.0.17",
 ]
 

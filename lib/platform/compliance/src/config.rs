@@ -52,13 +52,12 @@ fn resolve_path(raw: &str) -> Result<PathBuf, ComplianceError> {
         return Ok(candidate);
     }
 
-    if let Ok(root) = env::var("DFPS_WORKSPACE_ROOT") {
-        return Ok(PathBuf::from(root).join(raw));
+    match dfps_configuration::workspace_root() {
+        Ok(root) => Ok(root.join(raw)),
+        Err(_) => env::current_dir()
+            .map(|cwd| cwd.join(raw))
+            .map_err(ComplianceError::CurrentDir),
     }
-
-    env::current_dir()
-        .map(|cwd| cwd.join(raw))
-        .map_err(ComplianceError::CurrentDir)
 }
 
 fn non_empty_string(value: String) -> Option<String> {

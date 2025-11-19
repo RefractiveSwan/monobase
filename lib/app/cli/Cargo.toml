@@ -34,7 +34,7 @@ dfps_mapping = { path = "../../domain/ontologies/mapping" }
 dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
 dfps_observability = { path = "../../platform/observability" }
 dfps_configuration = { path = "../../platform/configuration" }
-dfps_eval = { path = "../../domain/evaluation/eval" }
+dfps_eval = { path = "../../domain/eval" }
 dfps_datamart = { path = "../web/backend/datamart" }
 dfps_vector_store = { path = "../../platform/vector_store" }
 dfps_compliance = { path = "../../platform/compliance" }

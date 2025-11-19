@@ -58,10 +58,14 @@ pub struct ApiServerConfig {
 impl Default for ApiServerConfig {
     fn default() -> Self {
         let host = env::var("DFPS_API_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-        let port = env::var("DFPS_API_PORT")
-            .ok()
-            .and_then(|raw| raw.parse::<u16>().ok())
-            .unwrap_or(8080);
+        let port = match dfps_configuration::port_var("DFPS_API_PORT") {
+            Ok(Some(value)) => value,
+            Ok(None) => 8080,
+            Err(err) => {
+                warn!(target: "dfps_api", "invalid DFPS_API_PORT: {err}; using default 8080");
+                8080
+            }
+        };
         Self { host, port }
     }
 }
@@ -575,9 +579,19 @@ fn normalize_date(value: &Option<String>) -> Option<String> {
 }
 
 fn eval_dataset_store_from_env() -> dfps_eval::FileDatasetStore {
-    let root = env::var("DFPS_EVAL_DATA_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| dfps_eval::default_data_root());
+    let root = match env::var("DFPS_EVAL_DATA_ROOT") {
+        Ok(value) if !value.trim().is_empty() => {
+            let candidate = PathBuf::from(&value);
+            if candidate.is_absolute() {
+                candidate
+            } else if let Ok(workspace) = dfps_configuration::workspace_root() {
+                workspace.join(candidate)
+            } else {
+                candidate
+            }
+        }
+        _ => dfps_eval::default_data_root(),
+    };
     dfps_eval::FileDatasetStore::new(root)
 }
 

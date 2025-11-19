@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_core = { path = "../../core", features = ["dummy"] }
+dfps_core = { path = "../core", features = ["dummy"] }
 serde.workspace = true
 serde_json.workspace = true
 rand.workspace = true
@@ -12,7 +12,7 @@ sha2 = "0.10"
 fake.workspace = true
 once_cell.workspace = true
 clap.workspace = true
-dfps_configuration = { path = "../../../platform/configuration" }
+dfps_configuration = { path = "../../platform/configuration" }
 
 [dev-dependencies]
 criterion = "0.5"

@@ -10,7 +10,7 @@ members = [
     "lib/app/web/backend/api",
     "lib/app/web/frontend",
     "lib/app/web/backend/datamart",
-    "lib/domain/evaluation/eval",
+    "lib/domain/eval",
     "lib/domain/core",
     "lib/domain/ontologies/ingestion",
     "lib/domain/ontologies/mapping",

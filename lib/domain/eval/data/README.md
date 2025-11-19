@@ -4,7 +4,7 @@ This directory anchors all checked-in datasets and regression fixtures consumed 
 `dfps_eval::fake_data` loaders, `dfps_eval::FileDatasetStore`, CLIs, and downstream tests.
 
 ```
-lib/domain/evaluation/eval/data/
+lib/domain/eval/data/
 ├─ eval/         # NDJSON evaluation corpora (see eval/README.md)
 ├─ meta/         # Shared configs like eval thresholds
 └─ regression/   # Deterministic bundles + mapping cases referenced by tests

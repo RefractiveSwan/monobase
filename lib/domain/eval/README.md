@@ -23,7 +23,7 @@ streaming runners consumed by the CLI, API, and frontend. See:
 ## Dataset layout and config
 
 - `DEFAULT_DATA_ROOT` points at the checked-in fixtures under
-  `lib/domain/evaluation/eval/data/eval`. Apps should read `DFPS_EVAL_DATA_ROOT`
+  `lib/domain/eval/data/eval`. Apps should read `DFPS_EVAL_DATA_ROOT`
   (via `dfps_configuration` or their config layer) and build a
   `FileDatasetStore::new(path)` to override the location, instead of calling env APIs
   from this crate.
@@ -45,7 +45,7 @@ streaming runners consumed by the CLI, API, and frontend. See:
 ## Extending
 
 - Add new dataset tiers by checking NDJSON + manifest (+ optional baseline) into
-  `lib/domain/evaluation/eval/data/eval`.
+  `lib/domain/eval/data/eval`.
 - Keep manifests up to date when row counts or checksums change; the CLI warns when
   manifest metadata drifts from the on-disk NDJSON.
 - When adding new summary fields, extend both `EvalSummary` and
