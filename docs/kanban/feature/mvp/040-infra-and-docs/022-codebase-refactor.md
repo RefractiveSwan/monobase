@@ -163,14 +163,15 @@
   - [x] Link to NCIt/obo-graph system-design docs and evaluation epics (mapping/eval harness).
 - [ ] Identify places where `dfps_mapping` directly reads env or config (e.g., `load_policy_from_env`):
   - [x] Introduce an explicit `MappingConfig` / policy parameter so mapping functions can be called without reading env.
-  - [ ] Plan to move env parsing for policies into `dfps_compliance` / `dfps_configuration`.
+  - [x] Plan to move env parsing for policies into `dfps_compliance` / `dfps_configuration` (`ComplianceConfig::from_env` now encapsulates `DFPS_COMPLIANCE_*` reads and feeds policies into mapping via injected config/policy).
+  - [x] Wire CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_api`), and datamart loaders to construct `ComplianceConfig` once at startup and pass the resulting policy through mapping/pipeline/datamart paths instead of calling `load_policy_from_env` repeatedly.
 - [ ] Review vector-related wiring:
   - [x] Ensure `VectorRankerBackend` and `DeterministicEmbeddingProvider` are pure domain constructs that operate purely on traits (`VectorStore`, `EmbeddingProvider`).
   - [x] Avoid coupling mapping to specific backends (Qdrant/pgvector) beyond the trait layer.
 - [ ] Align mapping result semantics:
   - [x] Confirm `build_result_with_score` uses a single source of truth for thresholds and `MappingState` transitions.
   - [x] Add refactor tasks for reusing `MappingThresholds`/`MappingSourceVersion` from `dfps_core` consistently.
-- [ ] Evaluate whether deprecated `eval::run_eval` can be removed or wrapped behind a clearer “mapping eval port” that just delegates to `dfps_eval`.
+- [x] Evaluate whether deprecated `eval::run_eval` can be removed or wrapped behind a clearer “mapping eval port” that just delegates to `dfps_eval` (`dfps_mapping::eval` shim deleted; callers use `dfps_eval::run_eval_with_mapper` directly).
 
 ### REFR-07 – Domain eval harness & fake data fixtures (`dfps_eval`, `dfps_fake_data`)
 
