@@ -68,10 +68,10 @@ architecture-beta
   - `lib/platform/observability` : metrics/log helpers used by the CLI and tests.
   - `lib/platform/test_suite` : regression/property tests and fixtures, plus the evaluation harness tests (`tests/integration/mapping_eval.rs`) that keep `run_eval` wired to the gold datasets.
 - **Warehouse bridge**
-  - `lib/app/web/backend/datamart` (`dfps_datamart`) -?" turns `bundle_to_mapped_sr` output into the dimensional mart (`DimPatient`, `DimEncounter`, `DimCode`, `DimNCIT`, `FactServiceRequest`) and maintains the sentinel `DimNCIT` row that collects `NoMatch` facts.
+  - `lib/app/servers/datamart` (`dfps_datamart`) -?" turns `bundle_to_mapped_sr` output into the dimensional mart (`DimPatient`, `DimEncounter`, `DimCode`, `DimNCIT`, `FactServiceRequest`) and maintains the sentinel `DimNCIT` row that collects `NoMatch` facts.
 - **App surfaces**
-  - `lib/app/cli` : `map_bundles` streams Bundles -> staging/mapping rows; `map_codes` explains staged codes; `eval_mapping` reads gold NDJSON or a named dataset (`--dataset pet_ct_small`) and prints enriched metrics (precision/recall/F1, stratified tables) via `dfps_eval::run_eval_with_mapper` (backed by `map_staging_codes`). The quickstart lives in `docs/runbook/mapping-eval-quickstart.md`; use `--thresholds` to gate CI and `--out-dir` to capture `eval_summary.json`/`eval_results.ndjson`.
-  - `lib/app/web/backend/api` : exposes `GET /api/eval/summary?dataset=...` (runs the same eval harness on a dataset) alongside `/api/map-bundles`, plus analytics surfaces `/analytics/ncit-summary` and `/analytics/cohort` that stream in-memory counts/facts for dashboards and BI smoke tests; when `DFPS_WAREHOUSE_URL` is set the analytics endpoints persist dim/fact tables via `dfps_datamart`.
+  - `lib/app/frontend/cli` : `map_bundles` streams Bundles -> staging/mapping rows; `map_codes` explains staged codes; `eval_mapping` reads gold NDJSON or a named dataset (`--dataset pet_ct_small`) and prints enriched metrics (precision/recall/F1, stratified tables) via `dfps_eval::run_eval_with_mapper` (backed by `map_staging_codes`). The quickstart lives in `docs/runbook/mapping-eval-quickstart.md`; use `--thresholds` to gate CI and `--out-dir` to capture `eval_summary.json`/`eval_results.ndjson`.
+  - `lib/app/servers/api` : exposes `GET /api/eval/summary?dataset=...` (runs the same eval harness on a dataset) alongside `/api/map-bundles`, plus analytics surfaces `/analytics/ncit-summary` and `/analytics/cohort` that stream in-memory counts/facts for dashboards and BI smoke tests; when `DFPS_WAREHOUSE_URL` is set the analytics endpoints persist dim/fact tables via `dfps_datamart`.
 
 ## Mapping states & thresholds
 

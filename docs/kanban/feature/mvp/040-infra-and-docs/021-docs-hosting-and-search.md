@@ -67,10 +67,10 @@
 
 - [ ] For each of the following crates, ensure crate-level docs and docs-related logic are clean:
 
-  - [ ] `lib/app/cli` (`dfps_cli`)
-  - [ ] `lib/app/web/backend/api` (`dfps_api`)
-  - [ ] `lib/app/web/backend/datamart` (`dfps_datamart`)
-  - [ ] `lib/app/web/frontend` (`dfps_web_frontend`)
+  - [ ] `lib/app/frontend/cli` (`dfps_cli`)
+  - [ ] `lib/app/servers/api` (`dfps_api`)
+  - [ ] `lib/app/servers/datamart` (`dfps_datamart`)
+  - [ ] `lib/app/frontend/web` (`dfps_web_frontend`)
   - [ ] `lib/domain/core` (`dfps_core`)
   - [ ] `lib/domain/eval` (`dfps_eval`)
   - [ ] `lib/domain/eval::fake_data` (`dfps_eval::fake_data`)
@@ -84,7 +84,7 @@
   - [ ] `lib/platform/configuration` (`dfps_configuration`)
   - [ ] `lib/platform/observability` (`dfps_observability`)
   - [ ] `lib/platform/test_suite` (`dfps_test_suite`)
-  - [ ] `lib/platform/vector_store` (`dfps_vector_store`)
+  - [ ] `lib/app/servers/vector_store` (`dfps_vector_store`)
 
   For each crate above:
 

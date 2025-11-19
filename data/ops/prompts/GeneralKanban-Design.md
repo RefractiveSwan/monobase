@@ -84,7 +84,7 @@ For any Kanban epic:
 
 ```markdown
    - `lib/domain/mapping` (`dfps_mapping`)
-   - `lib/app/cli` (`dfps_cli`)
+   - `lib/app/frontend/cli` (`dfps_cli`)
    - `lib/platform/observability` (`dfps_observability`)
 ```
 

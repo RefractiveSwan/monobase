@@ -45,7 +45,7 @@ CODEBASE-ROOT-END>>>
 
 <<<PATHS
 lib/domain/mapping/src/lib.rs
-lib/app/cli/src/main.rs
+lib/app/frontend/cli/src/main.rs
 lib/platform/test_suite/tests/integration/mapping_eval.rs
 docs/system-design/clinical/fhir/index.md
 PATHS-END>>>
@@ -131,7 +131,7 @@ Describe what you have actually changed on disk. Use:
     - Added `MappingEngine::map_with_vector_backend` to use an injected `CandidateRanker`.
     - Refactored `map_staging_codes_with_summary` to accept an optional vector-backed ranker without changing default behavior.
     - Added doc comments linking to MAP-04 in the mapping Kanban.
-- path: lib/app/cli/src/main.rs
+- path: lib/app/frontend/cli/src/main.rs
   summary:
     - Added `eval-mapping` subcommand wiring to `dfps_eval::run_eval_with_mapper`.
 - path: lib/platform/test_suite/tests/integration/mapping_eval.rs

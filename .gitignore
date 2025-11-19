@@ -52,5 +52,10 @@ Desktop.ini
 .env.*
 *.local
 *.secret
-# allow tracked templates
+
+# Templates
 !data/environment/.env.*.example
+!data/clinical/**/*.example.*
+
+# Ontologies
+data/clinical/*

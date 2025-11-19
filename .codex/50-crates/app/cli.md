@@ -1,4 +1,4 @@
-# Crate: lib/app/cli — `dfps_cli`
+# Crate: lib/app/frontend/cli — `dfps_cli`
 
 **Purpose**  
 Small CLIs for local ingestion + mapping workflows.

@@ -44,7 +44,7 @@ flowchart LR
 ### VEC-01 – VectorStore abstraction & wiring
 Define the shared VectorStore crate/config so vector search can be toggled on without breaking offline determinism; expose capacity hooks to watch geometry health (Targets A1/A3/B).
 - Implementation
-  - [x] Create `dfps_vector_store` under `lib/platform/vector_store` with FOSS-only deps; add `VectorStore` trait (`health`, `index_items`, `search`) and optional `EmbeddingProvider`, all `Send + Sync` and namespace-required.
+  - [x] Create `dfps_vector_store` under `lib/app/servers/vector_store` with FOSS-only deps; add `VectorStore` trait (`health`, `index_items`, `search`) and optional `EmbeddingProvider`, all `Send + Sync` and namespace-required.
   - [x] Ship `VectorStoreConfig` (`DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_POOL_MAX`, `DFPS_VECTOR_HEALTH_TIMEOUT_MS`, `DFPS_VECTOR_ENABLED`) plus validation for backend/namespace combinations and pool/timeout bounds.
   - [x] Add `VectorRankerBackend` in `dfps_mapping` implementing `CandidateRanker` via `VectorStore::search`; deterministic ordering on ties and explicit namespace resolution per code.
 - Metrics/tests/docs
@@ -58,7 +58,7 @@ Define the shared VectorStore crate/config so vector search can be toggled on wi
 
 - **Engineering Targets:** A1, A3, B
 - **Crates & Paths:**
-  - `lib/platform/vector_store` (`dfps_vector_store`)
+  - `lib/app/servers/vector_store` (`dfps_vector_store`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`
@@ -87,7 +87,7 @@ Implement and harden the first FOSS backend (Qdrant) behind a feature flag with 
 
 - **Engineering Targets:** A1, A2, B
 - **Crates & Paths:**
-  - `lib/platform/vector_store` (`dfps_vector_store`)
+  - `lib/app/servers/vector_store` (`dfps_vector_store`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`
@@ -117,8 +117,8 @@ Provide a deterministic index builder CLI that loads NCIt/UMLS references, gener
 
 - **Engineering Targets:** A1, A3, D
 - **Crates & Paths:**
-  - `lib/app/cli` (`dfps_cli`)
-  - `lib/platform/vector_store` (`dfps_vector_store`)
+  - `lib/app/frontend/cli` (`dfps_cli`)
+  - `lib/app/servers/vector_store` (`dfps_vector_store`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `geom_centroid_cos`
   - `vector_queries`, `vector_fallbacks`
@@ -147,7 +147,7 @@ Wire the optional backend ranker into `MappingEngine` with feature flags, determ
 - **Engineering Targets:** A3, B, D
 - **Crates & Paths:**
   - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/platform/vector_store` (`dfps_vector_store`)
+  - `lib/app/servers/vector_store` (`dfps_vector_store`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`
   - `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`

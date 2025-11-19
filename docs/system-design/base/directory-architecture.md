@@ -88,7 +88,7 @@ code/lib/app/
 * `app/web/`
 
   * Web-facing UI or HTTP-gateway shells (e.g., web dashboards, admin panels).
-  * Path: `code/lib/app/web/frontend`.
+  * Path: `code/lib/app/frontend/web`.
   * Crate: `dfps_web_frontend`.
   * Actix-web UI that renders a Tailwind/HTMX dashboard for bundle uploads and mapping review.
   * Reads `DFPS_API_BASE_URL` to reach the backend API, `DFPS_FRONTEND_LISTEN_ADDR` for its bind address, and `DFPS_API_CLIENT_TIMEOUT_SECS` for the reqwest client timeout.
@@ -97,7 +97,7 @@ code/lib/app/
   * When `DFPS_DOCS_URL` is set (see `.env.app.web.frontend.<profile>`), `/docs` issues a redirect to the mdBook server so documentation is visible alongside the UI.
   * `src/views.rs` holds the Maud templates, `src/routes.rs` hosts the paste/upload endpoints, and `src/client.rs` houses the reqwest wrapper that talks to the backend. For a full end-to-end runbook, see `docs/runbook/web-quickstart.md`.
 
-* `web/backend/api/`
+* `servers/api/`
 
   * Crate: `dfps_api`.
   * HTTP API gateway that exposes the DFPS pipeline over `/api/map-bundles`, `/health`, and `/metrics/summary`.

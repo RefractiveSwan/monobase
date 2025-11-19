@@ -111,7 +111,7 @@
 - **Crates & Paths:**
   - `lib/domain/ontologies/terminology` (`dfps_terminology`)
   - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/app/cli` (`dfps_cli`)
+  - `lib/app/frontend/cli` (`dfps_cli`)
 - **Shared Metrics & Signals:**
   - `mapping_precision`, `mapping_recall`, `mapping_f1`
   - `auto_mapped`, `needs_review`, `no_match`

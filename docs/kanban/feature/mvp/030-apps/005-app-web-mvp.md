@@ -1,7 +1,7 @@
 # Kanban - feature/app/web-mvp
 
 **Epic:** Web surface for the FHIR -> NCIt pipeline, implemented as:
-- Backend API: `feature/app/web/backend-mvp`
+- Backend API: `feature/app/servers-mvp`
 - Frontend UI: `feature/app/web/frontend-mvp`
 
 ### Columns
@@ -47,7 +47,7 @@ _Working branch: `feature/app/web/frontend-mvp`_
 ## INPROGRESS
 
 ### Backend – HTTP API gateway (`dfps_api`)
-_Working branch: `feature/app/web/backend-mvp`_
+_Working branch: `feature/app/servers-mvp`_
 
 ---
 
@@ -85,10 +85,10 @@ _Working branch: `feature/app/web/frontend-mvp`_
 ## REVIEW
 
 ### Backend – HTTP API gateway (`dfps_api`)
-_Working branch: `feature/app/web/backend-mvp`_
+_Working branch: `feature/app/servers-mvp`_
 
 #### WEB-BE-01 – Scaffold web backend crate
-- [x] Create `code/lib/app/web/backend/api` (or similar) with `Cargo.toml` + `src/main.rs`.
+- [x] Create `code/lib/app/servers/api` (or similar) with `Cargo.toml` + `src/main.rs`.
 - [x] Add the crate to the root `[workspace].members` under the `app` section.
 - [x] Expose a `run()` function that `main()` delegates to so tests can drive the server in-process.
 
@@ -121,7 +121,7 @@ _Working branch: `feature/app/web/backend-mvp`_
 
 #### WEB-BE-05 – Directory-architecture alignment (backend)
 - [x] Update `docs/system-design/base/directory-architecture.md` to:
-  - [x] Add a “web backend” entry under `lib/app` (e.g., `app/web/backend/api`).
+  - [x] Add a “web backend” entry under `lib/app` (e.g., `app/servers/api`).
   - [x] Describe its responsibilities as an HTTP gateway over the FHIR -> NCIt pipeline.
 
 ---

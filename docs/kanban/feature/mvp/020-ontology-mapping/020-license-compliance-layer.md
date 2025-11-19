@@ -103,7 +103,7 @@ Apply the policy layer to the mapping flow without changing ranking logic from 0
 - **Crates & Paths:**
   - `lib/domain/mapping` (`dfps_mapping`)
   - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/app/cli` (`dfps_cli`)
+  - `lib/app/frontend/cli` (`dfps_cli`)
   - `lib/platform/observability` (`dfps_observability`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`, `mapping_f1`
@@ -138,8 +138,8 @@ Provide guardrails for downstream warehouse/BI work (017) without redefining exp
 - **Engineering Targets:** B, C, D
 - **Crates & Paths:**
   - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/app/web/backend/datamart` (`dfps_datamart`)
-  - `lib/app/cli` (`dfps_cli`)
+  - `lib/app/servers/datamart` (`dfps_datamart`)
+  - `lib/app/frontend/cli` (`dfps_cli`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`
 - **Docs & Kanbans Touched:**

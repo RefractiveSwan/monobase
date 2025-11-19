@@ -1,4 +1,4 @@
-# Crate: lib/app/web/frontend — `dfps_web_frontend`
+# Crate: lib/app/frontend/web — `dfps_web_frontend`
 
 **Purpose**  
 Actix‑Web UI (HTMX + Tailwind) that talks to the backend.

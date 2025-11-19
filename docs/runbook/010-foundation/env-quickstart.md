@@ -18,8 +18,8 @@ Every crate calls `dfps_configuration::load_env(<namespace>)` during startup. Th
 
 | Namespace | Crate(s) | Typical file |
 | --- | --- | --- |
-| `app.web.api` | `dfps_api` (`lib/app/web/backend/api`) | `data/environment/.env.app.web.api.dev` |
-| `app.web.frontend` | `dfps_web_frontend` (`lib/app/web/frontend`) | `data/environment/.env.app.web.frontend.dev` |
+| `app.web.api` | `dfps_api` (`lib/app/servers/api`) | `data/environment/.env.app.web.api.dev` |
+| `app.web.frontend` | `dfps_web_frontend` (`lib/app/frontend/web`) | `data/environment/.env.app.web.frontend.dev` |
 | `app.cli` | `dfps_cli` binaries (`map_bundles`, `map_codes`) | `data/environment/.env.app.cli.dev` |
 | `domain.fake_data` | `dfps_eval::fake_data` generators | `data/environment/.env.domain.fake_data.dev` |
 | `platform.observability` | `dfps_observability` logging helpers | `data/environment/.env.platform.observability.dev` |

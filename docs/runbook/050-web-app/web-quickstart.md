@@ -8,8 +8,8 @@ This runbook teaches new contributors how to run the DFPS web experience locally
 
 | Component | Path | Crate | Purpose |
 | --- | --- | --- | --- |
-| Backend API | `code/lib/app/web/backend/api` | `dfps_api` | Axum HTTP gateway that exposes `/api/map-bundles`, `/metrics/summary`, and `/health` by delegating to `dfps_pipeline`. |
-| Frontend UI | `code/lib/app/web/frontend` | `dfps_web_frontend` | Actix server that renders Tailwind/HTMX pages, proxies uploads/paste actions to the backend, and shows metrics/NoMatch explorer views. |
+| Backend API | `code/lib/app/servers/api` | `dfps_api` | Axum HTTP gateway that exposes `/api/map-bundles`, `/metrics/summary`, and `/health` by delegating to `dfps_pipeline`. |
+| Frontend UI | `code/lib/app/frontend/web` | `dfps_web_frontend` | Actix server that renders Tailwind/HTMX pages, proxies uploads/paste actions to the backend, and shows metrics/NoMatch explorer views. |
 | Shared fixtures | `code/lib/platform/test_suite/src/regression.rs` | - | Contains helper functions that emit baseline FHIR bundles used in tests and manual runs. |
 
 Both binaries live in the main Cargo workspace, so `cargo run -p <crate>` works anywhere under `code/`.

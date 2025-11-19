@@ -25,7 +25,7 @@ erDiagram
 
 ## Implementation notes
 
-- The mart is materialized by `lib/app/web/backend/datamart` (`dfps_datamart`). Its
+- The mart is materialized by `lib/app/servers/datamart` (`dfps_datamart`). Its
   `from_pipeline_output` helper ingests `dfps_pipeline::PipelineOutput` and
   produces `(Dims, Vec<FactServiceRequest>)`.
 - Each dimension uses deterministic surrogate keys derived from natural

@@ -33,7 +33,7 @@ sequenceDiagram
   each Bundle.
 - Explainability helpers (MAP-11) expose the candidate list generated during the
   Vec/UMLS steps so reviewers can audit why a given state was produced.
-- `lib/app/cli` supplies:
+- `lib/app/frontend/cli` supplies:
   - `map_bundles` - streams Bundles through ingestion + mapping, emitting staging/mapping rows plus metrics.
   - `map_codes --explain` - prints the final `MappingResult` and JSON explanations (top-N candidates per code).
 - Observability metrics (`PipelineMetrics`) ensure every run reports AutoMapped / NeedsReview / NoMatch counts.

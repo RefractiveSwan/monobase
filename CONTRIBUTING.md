@@ -11,9 +11,9 @@ Thank you for your interest in contributing! This document explains how to set u
 
 This repository is a Rust workspace containing:
 
-- **Backend API (Axum):** `lib/app/web/backend/api`
-- **Frontend UI (Actix + Maud + HTMX/Tailwind):** `lib/app/web/frontend`
-- **CLI tools:** `lib/app/cli` (`map_bundles`, `map_codes`)
+- **Backend API (Axum):** `lib/app/servers/api`
+- **Frontend UI (Actix + Maud + HTMX/Tailwind):** `lib/app/frontend/web`
+- **CLI tools:** `lib/app/frontend/cli` (`map_bundles`, `map_codes`)
 - **Domain/Platform crates:** `lib/domain/*`, `lib/platform/*` (ingestion, mapping, pipeline, configuration, observability, test suite)
 
 See the runbook: `docs/runbook/web-quickstart.md`.

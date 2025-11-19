@@ -1,7 +1,7 @@
 # Kanban - feature/warehouse-sql-integration (016)
 
 **Theme:** Warehouse & analytics platform - DB schema, loaders, SQL integration  
-**Branch:** `feature/app/web/backend/warehouse-sql-integration`  
+**Branch:** `feature/app/servers/warehouse-sql-integration`  
 **Goal:** Persist `dfps_datamart` dims/facts into a relational database (e.g., Postgres) with minimal migrations, loaders, and tests, turning the in-memory mart into a queryable warehouse.
 
 ### Columns

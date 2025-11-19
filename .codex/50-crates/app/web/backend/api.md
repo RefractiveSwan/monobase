@@ -1,4 +1,4 @@
-# Crate: lib/app/web/backend/api — `dfps_api`
+# Crate: lib/app/servers/api — `dfps_api`
 
 **Purpose**  
 Axum HTTP API for mapping requests and metrics.

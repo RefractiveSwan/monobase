@@ -25,7 +25,7 @@
 
 - [ ] For each of the following crates, work through organizing and refactoring the primary logic base:
   - [ ] `lib/app/`
-    - [ ] `lib/app/cli` (`dfps_cli`)
+    - [ ] `lib/app/frontend/cli` (`dfps_cli`)
       - [ ] Extract shared NDJSON streaming/logging/compliance helpers (used in map_bundles/map_codes/validate_fhir/load_datamart) into an internal module to cut duplication.
       - [ ] Avoid double-validation in `map_bundles` by plumbing ingestion validation data from `bundle_to_mapped_sr` instead of re-running `validate_bundle`.
       - [ ] Add a streaming mapping path in `map_codes` (no upfront Vec) that still propagates vector usage metrics and compliance failures.
@@ -33,18 +33,18 @@
     - [ ] `lib/app/web`
       - [ ] Add app-level README describing the split between frontend (Actix) and backend (Axum) and where shared DTOs/configs live.
       - [ ] Introduce a shared web DTO module so frontend client types, backend API responses, and analytics structs do not diverge.
-      - [ ] `lib/app/web/frontend` (`dfps_web_frontend`)
+      - [ ] `lib/app/frontend/web` (`dfps_web_frontend`)
         - [ ] Replace manual env parsing in `config.rs` with a typed config sourced from `dfps_configuration` (timeout validation, docs URL normalization).
         - [ ] Centralize backend client error handling/logging (currently inline in routes) and emit analytics request metrics via `dfps_observability`.
         - [ ] Add regression test for `/analytics` error handling (backend 5xx/timeout) to keep user-facing messages stable.
-      - [ ] `lib/app/web/backend` (`dfps_web_backend`)
+      - [ ] `lib/app/servers` (`dfps_web_backend`)
         - [ ] Document ownership/boundaries for API vs datamart crates and the expected env namespaces for each.
         - [ ] Hoist shared analytics DTOs into a reusable module so API handlers and frontend client structs stay in sync.
-        - [ ] `lib/app/web/backend/api` (`dfps_api`)
+        - [ ] `lib/app/servers/api` (`dfps_api`)
           - [ ] Add a config module (using `dfps_configuration`) for host/port/warehouse/compliance instead of scattered `std::env::var` lookups in `server.rs`.
           - [ ] Extract analytics persistence/state management into a component with eviction/metrics to avoid unbounded HashMap growth.
           - [ ] Load compliance policy once at startup and thread it through handlers instead of calling `load_policy_from_env` per request.
-        - [ ] `lib/app/web/backend/datamart` (`dfps_datamart`)
+        - [ ] `lib/app/servers/datamart` (`dfps_datamart`)
           - [ ] Refactor `WarehouseConfig::from_env` to use `dfps_configuration` validation (url/schema/pool) and cover it with unit tests.
           - [ ] Add idempotent migration/load tests for NO_MATCH handling, duplicate SR rows, and compliance export filtering.
           - [ ] Provide a streaming insert API so CLI/API callers don’t buffer full PipelineOutput lists before writing to SQLite.
@@ -98,7 +98,7 @@
     - [ ] `lib/platform/test_suite` (`dfps_test_suite`)
       - [ ] Remove the unsafe `set_var` in `TEST_SUITE_ENV`; inject DFPS_EVAL_DATA_ROOT via config/setup helpers instead.
       - [ ] Provide helpers for spinning up temporary SQLite datamart instances to share across API/CLI integration tests.
-    - [ ] `lib/platform/vector_store` (`dfps_vector_store`)
+    - [ ] `lib/app/servers/vector_store` (`dfps_vector_store`)
       - [ ] Rework env parsing into a typed config builder using `dfps_configuration` (replace manual `env_flag`/parse) with per-backend unit tests.
       - [ ] Add backend health/index abstractions so unsupported backends (Milvus) fail fast and CLI/pipeline share indexing code paths.
 
@@ -111,10 +111,10 @@
 - [ ] Verify no platform crate imports domain/app types (except shared primitives) and codify this as a CI check.
 - [ ] Add a “dependency seams” doc mapping DTO ownership: FHIR/staging (dfps_core/dfps_ingestion), mapping (dfps_core/dfps_mapping), analytics (dfps_datamart/dfps_api), UI views (dfps_web_frontend).
   - [ ] Hex-port flow – lib/app (ports = HTTP/CLI; adapters = domain orchestration)
-    - [ ] `lib/app/cli` — classify each bin: define hexagonal ports (commands) for ingestion/mapping/eval/vector-index and move IO/NDJSON parsing into adapters; replace direct domain calls with orchestrator traits in `dfps_pipeline`.
-    - [ ] `lib/app/web/frontend` — treat reqwest client as outbound adapter; ensure routes/views depend only on frontend-facing ports (DTOs) and never on domain structs directly; document adapter boundary in `routes.rs`, `client.rs`.
-    - [ ] `lib/app/web/backend/api` — expose inbound ports as axum handlers; push pipeline/datamart/compliance into injected application services; ensure `server.rs` only wires adapters (HTTP ↔ app services).
-    - [ ] `lib/app/web/backend/datamart` — model DB as outbound adapter; keep fact/dim builders as domain mappers; surface a port trait (`DatamartSink`) consumed by API/CLI.
+    - [ ] `lib/app/frontend/cli` — classify each bin: define hexagonal ports (commands) for ingestion/mapping/eval/vector-index and move IO/NDJSON parsing into adapters; replace direct domain calls with orchestrator traits in `dfps_pipeline`.
+    - [ ] `lib/app/frontend/web` — treat reqwest client as outbound adapter; ensure routes/views depend only on frontend-facing ports (DTOs) and never on domain structs directly; document adapter boundary in `routes.rs`, `client.rs`.
+    - [ ] `lib/app/servers/api` — expose inbound ports as axum handlers; push pipeline/datamart/compliance into injected application services; ensure `server.rs` only wires adapters (HTTP ↔ app services).
+    - [ ] `lib/app/servers/datamart` — model DB as outbound adapter; keep fact/dim builders as domain mappers; surface a port trait (`DatamartSink`) consumed by API/CLI.
   - [ ] Hex-port flow – lib/domain (core hex core; ports = traits; adapters live in app/platform)
     - [ ] `lib/domain/core` — mark entities/value objects as core; add constructors/invariants; ensure zero IO/env.
     - [ ] `lib/domain/ingestion` — define trait ports for validation/profile lookup; keep transforms pure; move external validator adapter to app layer.
@@ -124,7 +124,7 @@
   - [ ] Hex-port flow – lib/platform (adapters & infra)
     - [ ] `lib/platform/configuration` — provide config-loading adapters; no domain coupling.
     - [ ] `lib/platform/observability` — treat logging/metrics as outbound adapter; expose trait(s) consumable by app/domain.
-    - [ ] `lib/platform/vector_store` — pure adapter for vector backends implementing domain port; validate configs; document boundaries to mapping/pipeline/app.
+    - [ ] `lib/app/servers/vector_store` — pure adapter for vector backends implementing domain port; validate configs; document boundaries to mapping/pipeline/app.
     - [ ] `lib/platform/compliance` — policy loader as adapter; enforcement callable from app/domain ports without env.
     - [ ] `lib/platform/test_suite` — test-only adapters (datasets/db), no production env mutation.
 
@@ -201,7 +201,7 @@
 
 **Goal:** Provide a cohesive, well-tested vector backend abstraction where env/config parsing is centralized, backends are pluggable, and usage metrics/capacity proxies integrate cleanly with domain mapping and observability.
 
-- [ ] Add `lib/platform/vector_store/README.md` describing:
+- [ ] Add `lib/app/servers/vector_store/README.md` describing:
   - [ ] Supported backends (Qdrant, PgVector, Milvus, Mock), their env variables, and deployment expectations.
   - [ ] The `VectorStore` trait, `VectorStoreConfig`, and how they are consumed by mapping and pipeline.
 - [ ] Refactor `VectorStoreConfig::from_env`:
@@ -241,7 +241,7 @@
 
 **Goal:** Treat `dfps_cli` as a thin orchestration layer over domain + platform crates, with shared IO/config/compliance handling and consistent UX across all binaries.
 
-- [ ] Add/expand `lib/app/cli/README.md` to:
+- [ ] Add/expand `lib/app/frontend/cli/README.md` to:
   - [ ] Map each bin (`map_bundles`, `map_codes`, `eval_mapping`, `validate_fhir`, `load_datamart`, `build_vector_index`) to its underlying domain flows (ingestion, mapping, eval, datamart load, vector index).
   - [ ] Document common flags (env namespace, log level, compliance behavior) and how they relate to API/web behavior.
 - [ ] Introduce a small internal “CLI core” module (e.g., `src/cli_core.rs`) that:

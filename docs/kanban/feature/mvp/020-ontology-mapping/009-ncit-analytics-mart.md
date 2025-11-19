@@ -1,6 +1,6 @@
 # Kanban - feature/ncit-analytics-mart (009)
 
-**Branch:** `feature/app/web/backend/ncit-analytics-mart`  
+**Branch:** `feature/app/servers/ncit-analytics-mart`  
 **Goal:** Materialize an NCIt-aware analytics mart (dim/fact layer) fed by `dfps_pipeline::bundle_to_mapped_sr`, aligned with the NCIt ERD docs.
 
 ### Columns
@@ -35,7 +35,7 @@
 ## DONE
 
 ### MART-01 - Datamart crate scaffold
-- [x] Created `lib/app/web/backend/datamart` crate (`dfps_datamart`).
+- [x] Created `lib/app/servers/datamart` crate (`dfps_datamart`).
 - [x] Wired into `[workspace].members` in `Cargo.toml`.
 - [x] Exposed top-level modules (`dim`, `fact`, `keys`) plus baseline key helpers.
 

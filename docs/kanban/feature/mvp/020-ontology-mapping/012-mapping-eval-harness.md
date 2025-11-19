@@ -70,7 +70,7 @@
   - [x] Accepts an NDJSON gold file path (`--input`).
   - [x] Prints summary metrics (precision, recall, counts by MappingState).
   - [x] Optional `--dump-details` flag to emit per-code results.
-- [x] `lib/app/cli/src/bin/eval_mapping.rs` streams JSON summary rows that CI/scripts can consume.
+- [x] `lib/app/frontend/cli/src/bin/eval_mapping.rs` streams JSON summary rows that CI/scripts can consume.
 
 ### EVAL-05 - Docs & requirements link
 - [x] Add `docs/runbook/mapping-eval-quickstart.md` describing:

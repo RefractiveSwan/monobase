@@ -17,7 +17,7 @@ The block MUST follow this structure:
 
 - **Engineering Targets:** A1, A3, B
 - **Crates & Paths:**
-  - `lib/platform/vector_store` (`dfps_vector_store`)
+  - `lib/app/servers/vector_store` (`dfps_vector_store`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - Geometry: `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `geom_centroid_cos`
@@ -101,9 +101,9 @@ IMPORTANT RULES:
 
 5. For **Crates & Paths**, list the specific Rust crates and paths this card touches, using the form:
 
-   * `` `lib/platform/vector_store` (`dfps_vector_store`) ``
+   * `` `lib/app/servers/vector_store` (`dfps_vector_store`) ``
    * `` `lib/domain/mapping` (`dfps_mapping`) ``
-   * `` `lib/app/cli` (`dfps_cli`) ``
+   * `` `lib/app/frontend/cli` (`dfps_cli`) ``
    * `` `lib/domain/eval` (`dfps_eval`) ``
      etc.
 

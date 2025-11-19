@@ -200,7 +200,7 @@ The block MUST follow this structure:
 
 - **Engineering Targets:** A1, A3, B
 - **Crates & Paths:**
-  - `lib/platform/vector_store` (`dfps_vector_store`)
+  - `lib/app/servers/vector_store` (`dfps_vector_store`)
   - `lib/domain/mapping` (`dfps_mapping`)
 - **Shared Metrics & Signals:**
   - Geometry: `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `geom_centroid_cos`
@@ -284,9 +284,9 @@ IMPORTANT RULES:
 
 5. For **Crates & Paths**, list the specific Rust crates and paths this card touches, using the form:
 
-   * `` `lib/platform/vector_store` (`dfps_vector_store`) ``
+   * `` `lib/app/servers/vector_store` (`dfps_vector_store`) ``
    * `` `lib/domain/mapping` (`dfps_mapping`) ``
-   * `` `lib/app/cli` (`dfps_cli`) ``
+   * `` `lib/app/frontend/cli` (`dfps_cli`) ``
    * `` `lib/domain/eval` (`dfps_eval`) ``
      etc.
 
@@ -472,7 +472,7 @@ References:
 
 ## Crate Responsibilities
 
-# Crate: lib/app/cli — `dfps_cli`
+# Crate: lib/app/frontend/cli — `dfps_cli`
 
 **Purpose**  
 Small CLIs for local ingestion + mapping workflows.
@@ -517,7 +517,7 @@ Small CLIs for local ingestion + mapping workflows.
   - Dataset tiers: bronze/silver/gold splits (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) are documented in `lib/domain/evaluation/fake_data/data/eval/README.md`.
 
 
-# Crate: lib/app/web/backend/api — `dfps_api`
+# Crate: lib/app/servers/api — `dfps_api`
 
 **Purpose**  
 Axum HTTP API for mapping requests and metrics.
@@ -550,7 +550,7 @@ cargo run -p dfps_api --bin dfps_api
 - Warns per `NoMatch` via `dfps_observability::log_no_match`.
 
 
-# Crate: lib/app/web/backend/datamart — `dfps_datamart`
+# Crate: lib/app/servers/datamart — `dfps_datamart`
 
 **Purpose**  
 Build a small star schema from `PipelineOutput` for analytics/UI rendering.
@@ -575,7 +575,7 @@ Build a small star schema from `PipelineOutput` for analytics/UI rendering.
 - Integrity + NO_MATCH sentinel coverage included.
 
 
-# Crate: lib/app/web/frontend — `dfps_web_frontend`
+# Crate: lib/app/frontend/web — `dfps_web_frontend`
 
 **Purpose**  
 Actix‑Web UI (HTMX + Tailwind) that talks to the backend.

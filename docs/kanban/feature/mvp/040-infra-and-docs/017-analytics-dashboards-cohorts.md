@@ -38,8 +38,8 @@
 
 - **Engineering Targets:** B, C, D
 - **Crates & Paths:**
-  - `lib/app/web/backend/api` (`dfps_api`)
-  - `lib/app/web/backend/datamart` (`dfps_datamart`)
+  - `lib/app/servers/api` (`dfps_api`)
+  - `lib/app/servers/datamart` (`dfps_datamart`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -78,8 +78,8 @@
 
 - **Engineering Targets:** B, C
 - **Crates & Paths:**
-  - `lib/app/web/frontend` (`dfps_web_frontend`)
-  - `lib/app/web/backend/api` (`dfps_api`)
+  - `lib/app/frontend/web` (`dfps_web_frontend`)
+  - `lib/app/servers/api` (`dfps_api`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -109,8 +109,8 @@
 
 - **Engineering Targets:** C, D
 - **Crates & Paths:**
-  - `lib/app/web/backend/datamart` (`dfps_datamart`)
-  - `lib/app/web/backend/api` (`dfps_api`)
+  - `lib/app/servers/datamart` (`dfps_datamart`)
+  - `lib/app/servers/api` (`dfps_api`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -139,7 +139,7 @@
 - **Engineering Targets:** C, D
 - **Crates & Paths:**
   - `lib/platform/observability` (`dfps_observability`)
-  - `lib/app/web/backend/api` (`dfps_api`)
+  - `lib/app/servers/api` (`dfps_api`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -174,7 +174,7 @@
 - **Engineering Targets:** B, C
 - **Crates & Paths:**
   - `lib/platform/test_suite` (`dfps_test_suite`)
-  - `lib/app/web/frontend` (`dfps_web_frontend`)
+  - `lib/app/frontend/web` (`dfps_web_frontend`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review

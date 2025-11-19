@@ -18,8 +18,8 @@ This index summarizes every crate documented under `50-crates/` and links to the
   - [`dfps_cli`](app/cli.md)
   - *Web*
     - *Backend*
-        - [`dfps_api`](app/web/backend/api.md)
-        - [`dfps_datamart`](app/web/backend/datamart.md)
+        - [`dfps_api`](app/servers/api.md)
+        - [`dfps_datamart`](app/servers/datamart.md)
   - [`dfps_web_frontend`](app/web/frontend.md)
 - *Platform*
   - [`dfps_configuration`](platform/configuration.md)
@@ -96,14 +96,14 @@ Shell‑friendly tools:
 - `map_bundles`: ingest + map Bundles; emits NDJSON records (including `metrics_summary`).
 - `map_codes`: map `StgSrCodeExploded` rows; optional explanation output.
 
-### [`dfps_api`](app/web/backend/api.md)
+### [`dfps_api`](app/servers/api.md)
 Axum HTTP gateway:
 - `POST /api/map-bundles` (Bundle object/array/NDJSON)
 - `GET /metrics/summary`
 - `GET /health`
 Maintains global `PipelineMetrics`.
 
-### [`dfps_datamart`](app/web/backend/datamart.md)
+### [`dfps_datamart`](app/servers/datamart.md)
 Builds a small star schema (Dims + Facts) from `PipelineOutput`, including a `NO_MATCH` sentinel concept.
 
 ### [`dfps_web_frontend`](app/web/frontend.md)
