@@ -145,9 +145,9 @@ mod tests {
         assert!(response.status().is_success());
         let body = test::read_body(response).await;
         let html = String::from_utf8(body.to_vec()).expect("html");
-        assert!(html.contains("Analytics overview"));
+        assert!(html.contains("Analytics Summary"));
         assert!(html.contains("FDG Uptake"));
         assert!(html.contains("C1234"));
-        assert!(html.contains("Matched 1 orders"));
+        assert!(html.contains("Found 1 matching records"));
     }
 }

@@ -26,51 +26,49 @@ pub(crate) async fn build_base_context(
     client: &BackendClient,
     store: &dfps_eval::FileDatasetStore,
 ) -> PageContext {
-    let mut ctx = PageContext::default();
-    ctx.datasets = client.eval_datasets().await.unwrap_or_default();
-    if let Some(first) = ctx.datasets.first() {
-        ctx.selected_eval_dataset = first.name.clone();
-    }
+    let datasets = client.eval_datasets().await.unwrap_or_default();
+    let selected_dataset = datasets
+        .first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| DEFAULT_EVAL_DATASET.to_string());
+    let metrics = client.metrics_summary().await.ok();
 
-    ctx.metrics = client.metrics_summary().await.ok();
-
-    match client.health().await {
+    let (health, health_error) = match client.health().await {
         Ok(resp) => {
             let status = resp.status;
             let ok = status == "ok";
-            ctx.health = Some(HealthOverview {
-                status: status.clone(),
-                ok,
-            });
+            let mut error = None;
             if !ok {
-                ctx.health_error = Some(format!(
-                    "Health endpoint returned status '{status}'. See backend logs for details."
+                error = Some(format!(
+                    "Health endpoint returned status '{}'. See backend logs for details.",
+                    status
                 ));
             }
+            (Some(HealthOverview { status, ok }), error)
         }
-        Err(err) => {
-            ctx.health_error = Some(format!(
+        Err(err) => (
+            None,
+            Some(format!(
                 "Health endpoint unreachable: {}",
                 err.user_message()
-            ));
-        }
+            )),
+        ),
+    };
+
+    let (eval_report_html, eval_panel_error) =
+        match render_eval_report_fragment(client, store, selected_dataset.as_str()).await {
+            Ok(html) => (Some(html), None),
+            Err(err) => (None, Some(err)),
+        };
+
+    PageContext {
+        datasets,
+        metrics,
+        health,
+        health_error,
+        eval_report_html,
+        eval_panel_error,
+        selected_eval_dataset: selected_dataset,
+        ..PageContext::default()
     }
-
-    let selected_dataset = ctx
-        .datasets
-        .first()
-        .map(|m| m.name.as_str())
-        .unwrap_or(DEFAULT_EVAL_DATASET);
-
-    match render_eval_report_fragment(client, store, selected_dataset).await {
-        Ok(html) => {
-            ctx.eval_report_html = Some(html);
-            ctx.selected_eval_dataset = selected_dataset.to_string();
-        }
-        Err(err) => {
-            ctx.eval_panel_error = Some(err);
-        }
-    }
-
-    ctx
 }

@@ -176,12 +176,9 @@ async fn read_bundle_file(payload: &mut Multipart) -> Result<Option<String>, Str
 mod tests {
     use super::*;
     use actix_web::{App, test, web};
-    use dfps_core::{
-        mapping::{
-            DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
-            MappingThresholds,
-        },
-        staging::{StgServiceRequestFlat, StgSrCodeExploded},
+    use dfps_contracts::pipeline::{
+        DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
+        MappingThresholds, StgServiceRequestFlat, StgSrCodeExploded,
     };
     use dfps_observability::PipelineMetrics;
     use serde_json::json;
@@ -313,7 +310,7 @@ mod tests {
         assert!(response.status().is_success());
         let body = test::read_body(response).await;
         let html = String::from_utf8(body.to_vec()).expect("html");
-        assert!(html.contains("MappingResult rows"));
+        assert!(html.contains("Mapping Results"));
         assert!(html.contains("C1234"));
         assert!(html.contains("AutoMapped"));
     }

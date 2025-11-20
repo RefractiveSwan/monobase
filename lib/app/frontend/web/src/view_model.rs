@@ -1,11 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
-use dfps_contracts::PipelineMetrics;
-use dfps_core::{
-    mapping::{CodeElement, MappingState},
-    staging::StgServiceRequestFlat,
+use dfps_contracts::{
+    PipelineMetrics,
+    eval::{DatasetManifest, EvalSummary},
+    pipeline::{MappingState, StgServiceRequestFlat, StgSrCodeExploded},
 };
-use dfps_eval::{DatasetManifest, EvalSummary};
 
 use crate::client::{AnalyticsSummaryResponse, CohortFilters, CohortResponse, MapBundlesResponse};
 
@@ -161,7 +160,7 @@ pub struct NoMatchRowView {
 impl MappingResultsView {
     pub fn from_response(response: &MapBundlesResponse) -> Self {
         let request_summary = summarize_flats(&response.flats);
-        let code_lookup = build_code_lookup(&response);
+        let code_lookup = build_code_lookup(response);
         let concept_lookup = response
             .dim_concepts
             .iter()
@@ -240,9 +239,8 @@ fn build_code_lookup(response: &MapBundlesResponse) -> HashMap<String, CodeInfo>
         .exploded_codes
         .iter()
         .map(|code| {
-            let element = CodeElement::from(code);
             (
-                element.id.clone(),
+                code_element_id(code),
                 CodeInfo {
                     sr_id: code.sr_id.clone(),
                     system: code.system.clone(),
@@ -260,6 +258,18 @@ struct CodeInfo {
     system: Option<String>,
     code: Option<String>,
     display: Option<String>,
+}
+
+fn code_element_id(code: &StgSrCodeExploded) -> String {
+    format!(
+        "{}::{}::{}",
+        code.sr_id,
+        code.system.as_deref().unwrap_or("unknown-system"),
+        code.code
+            .as_deref()
+            .or(code.display.as_deref())
+            .unwrap_or("unknown-code")
+    )
 }
 
 impl CodeInfo {
@@ -387,12 +397,9 @@ impl CohortView {
 mod tests {
     use super::*;
     use crate::client::MapBundlesResponse;
-    use dfps_core::{
-        mapping::{
-            DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
-            MappingThresholds,
-        },
-        staging::{StgServiceRequestFlat, StgSrCodeExploded},
+    use dfps_contracts::pipeline::{
+        DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
+        MappingThresholds, StgServiceRequestFlat, StgSrCodeExploded,
     };
 
     fn sample_response() -> MapBundlesResponse {

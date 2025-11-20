@@ -1,10 +1,7 @@
-use dfps_contracts::PipelineMetrics;
-use dfps_core::mapping::MappingState;
+use dfps_contracts::{PipelineMetrics, eval::EvalSummary, pipeline::MappingState};
 use maud::{DOCTYPE, Markup, PreEscaped, html};
 
-use crate::view_model::{
-    AlertKind, AlertMessage, CohortRowView, CohortView, MappingResultsView, PageContext,
-};
+use crate::view_model::{AlertKind, AlertMessage, CohortView, MappingResultsView, PageContext};
 
 pub fn render_page(ctx: &PageContext) -> String {
     html! {
@@ -23,7 +20,28 @@ pub fn render_page(ctx: &PageContext) -> String {
                 script src="https://cdn.tailwindcss.com" {}
                 script src="https://unpkg.com/htmx.org@1.9.12" {}
 
-                // Academic Theme Configuration
+                // HTMX Loading Indicator Styles
+                style {
+                    (PreEscaped(r#"
+                        .htmx-indicator {
+                            display: none;
+                        }
+                        .htmx-request .htmx-indicator {
+                            display: inline-block;
+                        }
+                        .htmx-request.htmx-indicator {
+                            display: inline-block;
+                        }
+                        @keyframes spin {
+                            to { transform: rotate(360deg); }
+                        }
+                        .animate-spin {
+                            animation: spin 1s linear infinite;
+                        }
+                    "#))
+                }
+
+                // Academic Theme Configuration - Enhanced for Accessibility
                 script {
                     (PreEscaped(r#"
                         tailwind.config = {
@@ -38,18 +56,26 @@ pub fn render_page(ctx: &PageContext) -> String {
                                         navy: {
                                             50: '#f0f4f8',
                                             100: '#d9e2ec',
-                                            800: '#1e293b',
-                                            900: '#0f172a',
+                                            600: '#334155',  // Better contrast for secondary text
+                                            700: '#1e293b',  // Better contrast for body text
+                                            800: '#0f172a',
+                                            900: '#020617',  // Deeper for maximum contrast
                                         },
                                         gold: {
+                                            50: '#fefce8',
                                             100: '#fbf3db',
-                                            500: '#b49b57',
-                                            600: '#967d3f',
+                                            500: '#a78b4a',  // Adjusted for better contrast
+                                            600: '#8b7239',
                                         },
-                                        paper: '#f8f9fa',
+                                        paper: '#fafafa',  // Slightly lighter for better contrast
                                     },
                                     boxShadow: {
                                         'academic': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                                        'academic-lg': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                    },
+                                    spacing: {
+                                        '18': '4.5rem',
+                                        '22': '5.5rem',
                                     }
                                 }
                             }
@@ -65,20 +91,38 @@ pub fn render_page(ctx: &PageContext) -> String {
                             div class="h-8 w-8 rounded bg-gold-500 flex items-center justify-center text-navy-900 font-bold font-serif text-sm" { "D" }
                             h1 class="text-xl font-serif font-bold tracking-wide" { "DFPS Workbench" }
                         }
-                        nav class="text-sm font-medium text-navy-100 space-x-6" {
-                            a href="/" class="hover:text-white transition-colors" { "Mapping" }
-                            a href="/analytics" class="hover:text-white transition-colors" { "Analytics" }
-                            a href="/eval" class="hover:text-white transition-colors" { "Evaluation" }
+                        nav class="flex items-center gap-6 text-sm font-medium" {
+                            a href="/" class="flex items-center gap-1.5 text-gray-300 hover:text-white hover:underline underline-offset-4 transition-all duration-200" {
+                                // Map icon (Heroicons: map)
+                                svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                                    path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" {}
+                                }
+                                span { "Mapping" }
+                            }
+                            a href="/analytics" class="flex items-center gap-1.5 text-gray-300 hover:text-white hover:underline underline-offset-4 transition-all duration-200" {
+                                // Chart bar icon (Heroicons: chart-bar)
+                                svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                                    path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" {}
+                                }
+                                span { "Analytics" }
+                            }
+                            a href="/eval" class="flex items-center gap-1.5 text-gray-300 hover:text-white hover:underline underline-offset-4 transition-all duration-200" {
+                                // Beaker icon (Heroicons: beaker)
+                                svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                                    path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" {}
+                                }
+                                span { "Evaluation" }
+                            }
                         }
                     }
                 }
 
-                main class="mx-auto max-w-7xl px-6 py-8 space-y-8" {
+                main class="mx-auto max-w-7xl px-6 lg:px-8 py-10 space-y-10" {
                     // Hero / Intro Section
                     section class="bg-white shadow-academic rounded-md border border-gray-200 p-6" {
                         div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4" {
-                            div class="space-y-2 max-w-3xl" {
-                                h2 class="text-2xl font-serif font-bold text-navy-900" { "Clinical Mapping Pipeline" }
+                            div class="space-y-3 max-w-3xl" {
+                                h2 class="text-3xl font-serif font-bold text-navy-900 leading-tight" { "Clinical Mapping Pipeline" }
                                 p class="text-slate-600 leading-relaxed" {
                                     "Ingest FHIR Bundles to flatten ServiceRequests into "
                                     code class="font-mono text-xs bg-navy-50 px-1 py-0.5 rounded text-navy-800" { "stg_servicerequest_flat" }
@@ -129,10 +173,23 @@ pub fn render_page(ctx: &PageContext) -> String {
                             }
                             div class="p-6 flex-1" {
                                 form hx-post="/map/paste" hx-target="#results" hx-swap="innerHTML" method="post" class="h-full flex flex-col space-y-4" {
-                                    textarea name="bundle_text" id="bundle_text" rows="8" class="w-full flex-1 rounded-md border border-gray-300 p-3 font-mono text-xs leading-relaxed focus:border-navy-900 focus:ring-1 focus:ring-navy-900 bg-gray-50" placeholder="Paste FHIR Bundle JSON here..." {}
+                                    label class="block" for="bundle_text" {
+                                        span class="text-xs font-semibold text-gray-700 uppercase tracking-wide" { "JSON Payload" }
+                                        span class="text-xs text-gray-500 ml-2" { "(Paste FHIR Bundle)" }
+                                    }
+                                    textarea id="bundle_text" name="bundle_text" rows="8" placeholder="{\"resourceType\": \"Bundle\", \"type\": \"collection\", ...}" class="w-full rounded-md border-2 border-gray-300 p-3 font-mono text-xs focus:border-navy-900 focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all" {}
                                     div class="flex justify-end" {
-                                        button type="submit" class="inline-flex items-center rounded-md bg-navy-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-navy-800 transition-all" {
-                                            "Process Bundle"
+                                        button type="submit" class="inline-flex items-center gap-2 rounded-md bg-navy-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-navy-800 hover:scale-[1.02] active:scale-[0.98] focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all duration-200" {
+                                        // Paper airplane icon (Heroicons: paper-airplane)
+                                        svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                                            path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" {}
+                                        }
+                                        span { "Submit & Map" }
+                                        // Loading spinner
+                                        svg class="htmx-indicator w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" {
+                                            circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" {}
+                                            path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" {}
+                                        }
                                         }
                                     }
                                 }
@@ -144,13 +201,23 @@ pub fn render_page(ctx: &PageContext) -> String {
                             }
                             div class="p-6 flex-1" {
                                 form hx-post="/map/upload" hx-target="#results" hx-swap="innerHTML" method="post" enctype="multipart/form-data" class="space-y-4" {
-                                    label class="block text-sm font-medium text-slate-700" for="bundle_file" {
-                                        "JSON file"
+                                    label class="block" {
+                                        span class="text-xs font-semibold text-gray-700 uppercase tracking-wide" { "JSON File" }
+                                        span class="text-xs text-gray-500 ml-2" { "(Bundle or NDJSON)" }
                                     }
-                                    input type="file" id="bundle_file" name="bundle_file" accept="application/json,.json,.ndjson" class="w-full rounded-md border border-gray-300 p-2 text-sm" {}
+                                    input type="file" id="bundle_file" name="bundle_file" accept="application/json,.json,.ndjson" class="w-full rounded-md border-2 border-gray-300 p-3 text-sm focus:border-navy-900 focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all" {}
                                     div class="flex justify-end" {
-                                        button type="submit" class="inline-flex items-center rounded-md bg-white border border-gray-300 px-5 py-2 text-sm font-medium text-navy-900 shadow-sm hover:bg-gray-50 transition-all" {
-                                            "Upload & Map"
+                                        button type="submit" class="inline-flex items-center gap-2 rounded-md bg-navy-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-navy-800 hover:scale-[1.02] active:scale-[0.98] focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all duration-200" {
+                                        // Upload icon (Heroicons: arrow-up-tray)
+                                        svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                                            path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" {}
+                                        }
+                                        span { "Upload & Map" }
+                                        // Loading spinner
+                                        svg class="htmx-indicator w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" {
+                                            circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" {}
+                                            path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" {}
+                                        }
                                         }
                                     }
                                 }
@@ -234,7 +301,7 @@ fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
                         (secondary_metric("License Blocked", metrics.license_blocked, "text-rose-700"))
                         (secondary_metric("Vector Queries", metrics.vector_queries, "text-gray-700"))
                         (secondary_metric("Cohort Queries", metrics.cohort_queries, "text-gray-700"))
-                        (secondary_metric_avg("Avg Cohort Size", metrics.avg_cohort_size, "text-gray-700"))
+                        (secondary_metric_avg("Avg Cohort Size", metrics.avg_cohort_size.map(|v| v as f64), "text-gray-700"))
                     }
                 }
             } @else {
@@ -412,7 +479,7 @@ fn render_cohort_table(cohort: &CohortView) -> Markup {
                 }
                 tbody class="bg-white divide-y divide-gray-200" {
                     @for row in &cohort.rows {
-                        tr class="hover:bg-gray-50" {
+                        tr class="hover:bg-gray-50 hover:border-l-4 hover:border-l-navy-900 transition-all duration-150 cursor-pointer" {
                             td class="px-3 py-2 font-mono text-xs text-navy-900" { (row.sr_id.clone()) }
                             td class="px-3 py-2 text-xs text-gray-600" { (row.patient_id.clone()) }
                             td class="px-3 py-2 text-xs text-gray-600" { (row.encounter_id.clone()) }
@@ -511,7 +578,14 @@ fn render_no_match_explorer(results: Option<&MappingResultsView>) -> Markup {
                         }
                     }
                 } @else {
-                    p class="text-sm text-gray-500 italic" { "Submit data to identify unmapped codes." }
+                    div class="text-center py-12" {
+                        // Magnifying glass icon (Heroicons: magnifying-glass)
+                        svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                            path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" {}
+                        }
+                        h3 class="mt-4 text-sm font-semibold text-gray-900" { "No Data Yet" }
+                        p class="mt-2 text-sm text-gray-500 max-w-sm mx-auto" { "Submit a FHIR Bundle to identify codes that couldn't be mapped to NCIt concepts." }
+                    }
                 }
             }
         }
@@ -607,7 +681,7 @@ fn render_eval_section(ctx: &PageContext) -> Markup {
     }
 }
 
-fn render_eval_summary(summary: &dfps_eval::EvalSummary, dataset: &str) -> Markup {
+fn render_eval_summary(summary: &EvalSummary, dataset: &str) -> Markup {
     html! {
         div class="space-y-6" {
             div class="flex items-center justify-between" {
@@ -721,7 +795,7 @@ fn render_results_panel(results: &MappingResultsView) -> Markup {
                             }
                         } @else {
                             @for row in &results.rows {
-                                tr class="hover:bg-gray-50 transition-colors" {
+                                tr class="hover:bg-gray-50 hover:border-l-4 hover:border-l-navy-900 transition-all duration-150 cursor-pointer" {
                                     td class="px-6 py-4 align-top" {
                                         div class="font-mono text-xs font-medium text-navy-900" { (&row.sr_id) }
                                         div class="text-xs text-gray-500 mt-0.5" { (&row.system) }
@@ -790,12 +864,31 @@ fn state_chip_compact(state: String) -> Markup {
 }
 
 fn metric_card(title: &str, value: usize, suffix: &str, text_class: &str) -> Markup {
+    // Determine if this is a percentage metric
+    let is_percentage = suffix == "%";
+    let progress_color = if is_percentage {
+        if value >= 90 {
+            "bg-emerald-500"
+        } else if value >= 70 {
+            "bg-amber-500"
+        } else {
+            "bg-rose-500"
+        }
+    } else {
+        "bg-navy-900"
+    };
+
     html! {
-        div class="rounded-md border border-gray-200 p-4 bg-white hover:border-gray-300 transition-colors" {
+        div class="rounded-md border border-gray-200 p-4 bg-white hover:border-gray-300 hover:shadow-md transition-all" {
             p class="text-xs font-bold text-gray-500 uppercase tracking-wide" { (title) }
-            div class="mt-1 flex items-baseline gap-1" {
+            div class="mt-2 flex items-baseline gap-1" {
                 span class={(format!("text-2xl font-serif font-bold {}", text_class))} { (value) }
                 span class="text-sm text-gray-400" { (suffix) }
+            }
+            @if is_percentage {
+                div class="mt-3 w-full bg-gray-200 rounded-full h-2 overflow-hidden" {
+                    div class={(format!("h-full rounded-full transition-all duration-500 {}", progress_color))} style={(format!("width: {}%", value))} {}
+                }
             }
         }
     }
@@ -841,6 +934,7 @@ mod tests {
         AnalyticsConceptTile, AnalyticsSummaryView, CohortRowView, CohortView, CountStat,
         MappingResultsView, MappingRowView, NoMatchRowView, PageContext, ServiceRequestSummary,
     };
+    use dfps_contracts::eval::DatasetManifest;
     use insta::assert_snapshot;
 
     fn sample_results_view() -> MappingResultsView {
@@ -890,20 +984,23 @@ mod tests {
 
     #[test]
     fn render_page_shows_metrics_and_no_match_details() {
-        let mut metrics = PipelineMetrics::default();
-        metrics.bundle_count = 3;
-        metrics.flats_count = 4;
-        metrics.mapping_count = 5;
-        metrics.auto_mapped = 2;
-        metrics.needs_review = 1;
-        metrics.no_match = 2;
+        let metrics = PipelineMetrics {
+            bundle_count: 3,
+            flats_count: 4,
+            mapping_count: 5,
+            auto_mapped: 2,
+            needs_review: 1,
+            no_match: 2,
+            ..PipelineMetrics::default()
+        };
 
-        let mut ctx = PageContext::default();
-        ctx.health = None;
-        ctx.health_error = Some("Health endpoint unreachable: test".into());
-        ctx.metrics = Some(metrics);
-        ctx.results = Some(sample_results_view());
-        ctx.eval_report_html = Some("<div>Eval report</div>".into());
+        let ctx = PageContext {
+            health_error: Some("Health endpoint unreachable: test".into()),
+            metrics: Some(metrics),
+            results: Some(sample_results_view()),
+            eval_report_html: Some("<div>Eval report</div>".into()),
+            ..PageContext::default()
+        };
 
         let html = render_page(&ctx);
         assert!(html.contains("Pipeline Metrics"));
@@ -916,32 +1013,34 @@ mod tests {
 
     #[test]
     fn render_eval_page_shows_dataset_picker_and_metrics() {
-        let mut ctx = PageContext::default();
-        ctx.datasets = vec![dfps_eval::DatasetManifest {
-            name: "pet_ct_small".into(),
-            version: "20240601".into(),
-            license: Some("test-license".into()),
-            source: Some("test-source".into()),
-            n_cases: 3,
-            sha256: "abc123".into(),
-            notes: None,
-        }];
-        ctx.selected_eval_dataset = "pet_ct_small".into();
-        ctx.eval = Some(super::super::view_model::EvalContext {
-            dataset: "pet_ct_small".into(),
-            summary: dfps_eval::EvalSummary {
-                total_cases: 3,
-                precision: 0.97,
-                recall: 0.97,
-                coverage: 1.0,
-                top1_accuracy: 0.97,
-                top3_accuracy: 0.97,
-                auto_mapped_precision: 0.98,
-                state_counts: [("auto_mapped".into(), 3)].into_iter().collect(),
-                reason_counts: [("missing_system_or_code".into(), 1)].into_iter().collect(),
-                ..dfps_eval::EvalSummary::default()
-            },
-        });
+        let ctx = PageContext {
+            datasets: vec![DatasetManifest {
+                name: "pet_ct_small".into(),
+                version: "20240601".into(),
+                license: Some("test-license".into()),
+                source: Some("test-source".into()),
+                n_cases: 3,
+                sha256: "abc123".into(),
+                notes: None,
+            }],
+            selected_eval_dataset: "pet_ct_small".into(),
+            eval: Some(super::super::view_model::EvalContext {
+                dataset: "pet_ct_small".into(),
+                summary: EvalSummary {
+                    total_cases: 3,
+                    precision: 0.97,
+                    recall: 0.97,
+                    coverage: 1.0,
+                    top1_accuracy: 0.97,
+                    top3_accuracy: 0.97,
+                    auto_mapped_precision: 0.98,
+                    state_counts: [("auto_mapped".into(), 3)].into_iter().collect(),
+                    reason_counts: [("missing_system_or_code".into(), 1)].into_iter().collect(),
+                    ..EvalSummary::default()
+                },
+            }),
+            ..PageContext::default()
+        };
 
         let html = render_eval_page(&ctx);
         assert!(html.contains("Dataset: pet_ct_small"));
@@ -952,8 +1051,10 @@ mod tests {
 
     #[test]
     fn mapping_results_fragment_snapshot() {
-        let mut ctx = PageContext::default();
-        ctx.results = Some(sample_results_view());
+        let ctx = PageContext {
+            results: Some(sample_results_view()),
+            ..PageContext::default()
+        };
         assert_snapshot!("mapping_results_fragment", render_results_fragment(&ctx));
     }
 
@@ -968,39 +1069,41 @@ mod tests {
 
     #[test]
     fn analytics_panels_snapshot() {
-        let mut ctx = PageContext::default();
-        ctx.analytics_summary = Some(AnalyticsSummaryView {
-            top_concepts: vec![AnalyticsConceptTile {
-                ncit_id: "C1234".into(),
-                preferred_name: "FDG Uptake".into(),
-                total: 3,
-            }],
-            state_counts: vec![
-                CountStat {
-                    label: "auto_mapped".into(),
-                    count: 3,
-                },
-                CountStat {
-                    label: "needs_review".into(),
-                    count: 1,
-                },
-            ],
-            time_buckets: vec![],
-        });
-        ctx.cohort = Some(CohortView {
-            total: 1,
-            rows: vec![CohortRowView {
-                sr_id: "SR-1".into(),
-                patient_id: "P1".into(),
-                encounter_id: "E1".into(),
-                ncit_id: "C1234".into(),
-                description: "FDG".into(),
-                status: "active".into(),
-                intent: "order".into(),
-                ordered_at: "2024-05-01T12:00:00Z".into(),
-                mapping_state: "auto_mapped".into(),
-            }],
-        });
+        let ctx = PageContext {
+            analytics_summary: Some(AnalyticsSummaryView {
+                top_concepts: vec![AnalyticsConceptTile {
+                    ncit_id: "C1234".into(),
+                    preferred_name: "FDG Uptake".into(),
+                    total: 3,
+                }],
+                state_counts: vec![
+                    CountStat {
+                        label: "auto_mapped".into(),
+                        count: 3,
+                    },
+                    CountStat {
+                        label: "needs_review".into(),
+                        count: 1,
+                    },
+                ],
+                time_buckets: vec![],
+            }),
+            cohort: Some(CohortView {
+                total: 1,
+                rows: vec![CohortRowView {
+                    sr_id: "SR-1".into(),
+                    patient_id: "P1".into(),
+                    encounter_id: "E1".into(),
+                    ncit_id: "C1234".into(),
+                    description: "FDG".into(),
+                    status: "active".into(),
+                    intent: "order".into(),
+                    ordered_at: "2024-05-01T12:00:00Z".into(),
+                    mapping_state: "auto_mapped".into(),
+                }],
+            }),
+            ..PageContext::default()
+        };
         assert_snapshot!(
             "analytics_panels_fragment",
             render_analytics_panels(&ctx).into_string()
@@ -1009,18 +1112,20 @@ mod tests {
 
     #[test]
     fn eval_panel_snapshot() {
-        let mut ctx = PageContext::default();
-        ctx.datasets = vec![dfps_eval::DatasetManifest {
-            name: "gold_pet_ct_small".into(),
-            version: "20240501".into(),
-            license: Some("test".into()),
-            source: Some("demo".into()),
-            n_cases: 3,
-            sha256: "abc123".into(),
-            notes: None,
-        }];
-        ctx.selected_eval_dataset = "gold_pet_ct_small".into();
-        ctx.eval_report_html = Some("<div>metrics</div>".into());
+        let ctx = PageContext {
+            datasets: vec![DatasetManifest {
+                name: "gold_pet_ct_small".into(),
+                version: "20240501".into(),
+                license: Some("test".into()),
+                source: Some("demo".into()),
+                n_cases: 3,
+                sha256: "abc123".into(),
+                notes: None,
+            }],
+            selected_eval_dataset: "gold_pet_ct_small".into(),
+            eval_report_html: Some("<div>metrics</div>".into()),
+            ..PageContext::default()
+        };
         assert_snapshot!("eval_panel_fragment", render_eval_panel(&ctx).into_string());
     }
 }

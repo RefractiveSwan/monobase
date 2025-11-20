@@ -17,20 +17,24 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 }
 
 pub async fn eval_page(state: web::Data<AppState>) -> Result<HttpResponse> {
-    let mut ctx = PageContext::default();
-    ctx.datasets = state.client.eval_datasets().await.unwrap_or_default();
-    let selected = ctx
-        .datasets
+    let datasets = state.client.eval_datasets().await.unwrap_or_default();
+    let selected = datasets
         .first()
         .map(|m| m.name.clone())
         .unwrap_or_else(|| DEFAULT_EVAL_DATASET.to_string());
-    ctx.selected_eval_dataset = selected.clone();
-    if let Ok(run) = state.client.eval_run(&selected, 1).await {
-        ctx.eval = Some(EvalContext {
+    let eval = match state.client.eval_run(&selected, 1).await {
+        Ok(run) => Some(EvalContext {
             dataset: selected.clone(),
             summary: run.summary,
-        });
-    }
+        }),
+        Err(_) => None,
+    };
+    let ctx = PageContext {
+        datasets,
+        selected_eval_dataset: selected,
+        eval,
+        ..PageContext::default()
+    };
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(views::render_eval_page(&ctx)))
