@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AnalyticsSummaryResponse",
+  "description": "Response containing aggregated NCIt summary rows.",
+  "type": "object",
+  "required": [
+    "rows"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/AnalyticsSummaryRow"
+      }
+    }
+  },
+  "definitions": {
+    "AnalyticsSummaryRow": {
+      "description": "Row returned by analytics summary queries.",
+      "type": "object",
+      "required": [
+        "count",
+        "ncit_id"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "mapping_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ncit_id": {
+          "type": "string"
+        },
+        "preferred_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "time_bucket": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

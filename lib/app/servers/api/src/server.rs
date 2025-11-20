@@ -16,17 +16,18 @@ use axum::{
 };
 use chrono::{DateTime, NaiveDate};
 use dfps_compliance::{ComplianceConfig, assert_export_allowed};
+use dfps_contracts::{ErrorCode, ErrorKind, PipelineMetrics, VectorUsageSnapshot};
 use dfps_core::{
     fhir::Bundle,
     mapping::{DimNCITConcept, MappingResult, MappingState},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
 use dfps_datamart::{
-    DimCode, DimCodeKey, DimEncounter, DimEncounterKey, DimNCIT, DimNCITKey, DimPatient,
-    DimPatientKey, FactServiceRequest, WarehouseConfig, connect_sqlite, from_pipeline_output,
-    load_from_pipeline_output, migrate,
+    CohortFilters, DimCode, DimCodeKey, DimEncounter, DimEncounterKey, DimNCIT, DimNCITKey,
+    DimPatient, DimPatientKey, FactServiceRequest, WarehouseConfig, connect_sqlite,
+    from_pipeline_output, load_from_pipeline_output, migrate,
 };
-use dfps_observability::{PipelineMetrics, log_no_match, log_pipeline_output};
+use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::{
     PipelineError, PipelineOutput, VectorPipelineContext, bundle_to_mapped_sr_with_vector_context,
 };
@@ -46,7 +47,7 @@ use tokio::{
 use uuid::Uuid;
 
 use crate::dto::{
-    AnalyticsNcitSummaryRow, AnalyticsSummaryResponse, CohortResponse, CohortRow, EvalRunResponse,
+    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, EvalRunResponse,
 };
 /// Runtime configuration for the HTTP server.
 #[derive(Debug, Clone)]
@@ -143,6 +144,28 @@ impl AnalyticsPersistence {
             warn!(target: "dfps_api", "analytics persistence failed: {err}");
         }
     }
+
+    async fn query_ncit_summary(&self) -> Option<AnalyticsSummaryResponse> {
+        let pool = self.pool().await?;
+        match dfps_datamart::ncit_summary(&pool).await {
+            Ok(response) => Some(response),
+            Err(err) => {
+                warn!(target: "dfps_api", "analytics summary query failed: {err}");
+                None
+            }
+        }
+    }
+
+    async fn query_cohort(&self, filters: &CohortFilters) -> Option<CohortResponse> {
+        let pool = self.pool().await?;
+        match dfps_datamart::cohort(&pool, filters).await {
+            Ok(response) => Some(response),
+            Err(err) => {
+                warn!(target: "dfps_api", "cohort query failed: {err}");
+                None
+            }
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -193,10 +216,10 @@ impl AnalyticsState {
             *counts.entry(key).or_default() += 1;
         }
 
-        let mut rows: Vec<AnalyticsNcitSummaryRow> = counts
+        let mut rows: Vec<AnalyticsSummaryRow> = counts
             .into_iter()
             .map(
-                |((ncit_id, mapping_state, time_bucket), count)| AnalyticsNcitSummaryRow {
+                |((ncit_id, mapping_state, time_bucket), count)| AnalyticsSummaryRow {
                     preferred_name: self.lookup_ncit_name(&ncit_id),
                     ncit_id,
                     mapping_state,
@@ -436,6 +459,17 @@ struct CohortQuery {
     date_to: Option<String>,
 }
 
+impl From<&CohortQuery> for CohortFilters {
+    fn from(query: &CohortQuery) -> Self {
+        Self {
+            ncit_id: query.ncit_id.clone(),
+            status: query.status.clone(),
+            date_from: query.date_from.clone(),
+            date_to: query.date_to.clone(),
+        }
+    }
+}
+
 async fn health() -> impl IntoResponse {
     let request_id = Uuid::new_v4();
     info!(target: "dfps_api", "request_id={request_id} health");
@@ -448,6 +482,9 @@ async fn analytics_ncit_summary(State(state): State<ApiState>) -> Result<Respons
     {
         let mut metrics = state.metrics.lock().await;
         metrics.analytics_requests += 1;
+    }
+    if let Some(response) = state.analytics_persistence.query_ncit_summary().await {
+        return Ok(Json(response).into_response());
     }
     let summary = {
         let analytics = state.analytics.lock().await;
@@ -469,7 +506,11 @@ async fn analytics_cohort(
         query.date_from,
         query.date_to
     );
-    let response = {
+    let filters = CohortFilters::from(&query);
+    let response = if let Some(response) = state.analytics_persistence.query_cohort(&filters).await
+    {
+        response
+    } else {
         let analytics = state.analytics.lock().await;
         analytics.cohort(&query)
     };
@@ -640,7 +681,6 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     );
 
     let mut response = MapBundlesResponse::default();
-    let mut dims_seen: HashSet<String> = HashSet::new();
     let mut request_metrics = PipelineMetrics {
         compliance_mode: Some(state.compliance_policy.mode.as_str().to_string()),
         ..PipelineMetrics::default()
@@ -674,20 +714,12 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             analytics.record_output(&output);
         }
 
-        response.flats.extend(output.flats);
-        response.exploded_codes.extend(output.exploded_codes);
         for mapping in &output.mapping_results {
             if matches!(mapping.state, MappingState::NoMatch) {
                 log_no_match(mapping);
             }
         }
-        response.mapping_results.extend(output.mapping_results);
-
-        for concept in output.dim_concepts {
-            if dims_seen.insert(concept.ncit_id.clone()) {
-                response.dim_concepts.push(concept);
-            }
-        }
+        response.record_output(output);
     }
 
     {
@@ -711,12 +743,18 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             .vector_latency_ms_p95
             .or(request_metrics.vector_latency_ms_p95);
     }
+    let total_flats = response.flats.len();
+    let total_mappings = response.mapping_results.len();
+    let total_dim_concepts = response.dim_concepts.len();
+    let payload = response.into_pipeline_output();
+
     info!(
         target: "dfps_api",
-        "request_id={request_id} map_bundles complete bundles={} flats={} mappings={} automap={} needs_review={} no_match={} license_blocked={} compliance_mode={}",
+        "request_id={request_id} map_bundles complete bundles={} flats={} mappings={} dim_concepts={} automap={} needs_review={} no_match={} license_blocked={} compliance_mode={}",
         request_metrics.bundle_count,
-        response.flats.len(),
-        response.mapping_results.len(),
+        total_flats,
+        total_mappings,
+        total_dim_concepts,
         request_metrics.auto_mapped,
         request_metrics.needs_review,
         request_metrics.no_match,
@@ -732,7 +770,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         );
     }
 
-    Ok(Json(response).into_response())
+    Ok(Json(payload).into_response())
 }
 
 async fn shutdown_signal() {
@@ -742,17 +780,46 @@ async fn shutdown_signal() {
     }
 }
 
-#[derive(Default, Serialize)]
+#[derive(Default)]
 struct MapBundlesResponse {
     flats: Vec<StgServiceRequestFlat>,
     exploded_codes: Vec<StgSrCodeExploded>,
     mapping_results: Vec<MappingResult>,
     dim_concepts: Vec<DimNCITConcept>,
+    seen_dim_ids: HashSet<String>,
+    vector_usage: Option<VectorUsageSnapshot>,
+}
+
+impl MapBundlesResponse {
+    fn record_output(&mut self, output: PipelineOutput) {
+        self.flats.extend(output.flats);
+        self.exploded_codes.extend(output.exploded_codes);
+        self.mapping_results.extend(output.mapping_results);
+        for concept in output.dim_concepts {
+            if self.seen_dim_ids.insert(concept.ncit_id.clone()) {
+                self.dim_concepts.push(concept);
+            }
+        }
+        if self.vector_usage.is_none() {
+            self.vector_usage = output.vector_usage;
+        }
+    }
+
+    fn into_pipeline_output(self) -> PipelineOutput {
+        PipelineOutput {
+            flats: self.flats,
+            exploded_codes: self.exploded_codes,
+            mapping_results: self.mapping_results,
+            dim_concepts: self.dim_concepts,
+            vector_usage: self.vector_usage,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
 struct ErrorResponse {
-    code: &'static str,
+    code: ErrorCode,
+    kind: ErrorKind,
     message: String,
     request_id: Uuid,
 }
@@ -847,68 +914,68 @@ impl ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        match self {
+        let (status, code, kind, message, request_id) = match self {
             ApiError::InvalidJson {
                 message,
                 request_id,
             } => (
                 StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    code: "invalid_json",
-                    message,
-                    request_id,
-                }),
-            )
-                .into_response(),
+                ErrorCode::InvalidJson,
+                ErrorKind::AppHttpServer,
+                message,
+                request_id,
+            ),
             ApiError::Ingestion {
                 message,
                 request_id,
             } => (
                 StatusCode::UNPROCESSABLE_ENTITY,
-                Json(ErrorResponse {
-                    code: "invalid_fhir",
-                    message,
-                    request_id,
-                }),
-            )
-                .into_response(),
+                ErrorCode::InvalidFhir,
+                ErrorKind::DomainIngestion,
+                message,
+                request_id,
+            ),
             ApiError::InvalidDataset {
                 message,
                 request_id,
             } => (
                 StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    code: "invalid_dataset",
-                    message,
-                    request_id,
-                }),
-            )
-                .into_response(),
+                ErrorCode::InvalidDataset,
+                ErrorKind::DomainMapping,
+                message,
+                request_id,
+            ),
             ApiError::Compliance {
                 message,
                 request_id,
             } => (
                 StatusCode::FORBIDDEN,
-                Json(ErrorResponse {
-                    code: "compliance_blocked",
-                    message,
-                    request_id,
-                }),
-            )
-                .into_response(),
+                ErrorCode::ComplianceBlocked,
+                ErrorKind::DomainCompliance,
+                message,
+                request_id,
+            ),
             ApiError::Internal {
                 message,
                 request_id,
             } => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    code: "internal_error",
-                    message,
-                    request_id,
-                }),
-            )
-                .into_response(),
-        }
+                ErrorCode::InternalError,
+                ErrorKind::AppHttpServer,
+                message,
+                request_id,
+            ),
+        };
+        (
+            status,
+            Json(ErrorResponse {
+                code,
+                kind,
+                message,
+                request_id,
+            }),
+        )
+            .into_response()
     }
 }
 

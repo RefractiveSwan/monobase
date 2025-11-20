@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LoadSummary",
+  "description": "Summary of rows inserted or updated during a warehouse load.",
+  "type": "object",
+  "required": [
+    "codes",
+    "encounters",
+    "facts",
+    "ncit",
+    "patients"
+  ],
+  "properties": {
+    "codes": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "encounters": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "facts": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "ncit": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "patients": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  }
+}

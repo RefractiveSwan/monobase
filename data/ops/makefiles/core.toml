@@ -67,7 +67,7 @@ script = [
 
 [tasks.ci]
 description = "CI convenience target (fmt + clippy + test)"
-dependencies = ["fmt", "clippy", "test"]
+dependencies = ["fmt", "clippy", "contracts-check", "test"]
 
 [tasks.clean]
 description = "Clean target dir and book output"
@@ -90,3 +90,8 @@ args = [
     "-Command",
     "cargo clean; if (Test-Path 'docs/book/book') { Remove-Item -Recurse -Force 'docs/book/book' }",
 ]
+
+[tasks.contracts-check]
+description = "Verify dfps_contracts schema snapshots are current"
+command = "cargo"
+args = ["run", "-p", "dfps_contracts", "--bin", "contracts-schema", "--", "--check"]

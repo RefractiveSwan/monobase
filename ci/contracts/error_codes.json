@@ -1,0 +1,9 @@
+[
+  "invalid_json",
+  "invalid_fhir",
+  "compliance_blocked",
+  "invalid_dataset",
+  "vector_backend_unavailable",
+  "warehouse_export_blocked",
+  "internal_error"
+]

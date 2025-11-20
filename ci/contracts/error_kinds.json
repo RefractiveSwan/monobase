@@ -1,0 +1,14 @@
+[
+  "domain_ingestion",
+  "domain_mapping",
+  "domain_compliance",
+  "domain_vector",
+  "domain_warehouse",
+  "platform_config",
+  "platform_store",
+  "platform_terminology",
+  "app_http_client",
+  "app_http_server",
+  "app_cli_usage",
+  "app_cli_runtime"
+]

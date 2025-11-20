@@ -1,9 +1,10 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{MappingSourceVersion, MappingState, MappingStrategy, MappingThresholds};
 
 /// Candidate concept returned by a ranker/mapper.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct MappingCandidate {
     pub target_system: String,
     pub target_code: String,
@@ -12,7 +13,7 @@ pub struct MappingCandidate {
 }
 
 /// Overall mapping output, including NCIt concept selection + provenance.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct MappingResult {
     pub code_element_id: String,
     pub cui: Option<String>,

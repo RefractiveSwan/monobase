@@ -13,6 +13,7 @@ fake.workspace = true
 once_cell.workspace = true
 clap.workspace = true
 dfps_configuration = { path = "../../platform/configuration" }
+schemars = { version = "0.8.21", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.5"

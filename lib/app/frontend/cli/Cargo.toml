@@ -38,7 +38,7 @@ dfps_eval = { path = "../../../domain/eval" }
 dfps_datamart = { path = "../../servers/datamart" }
 dfps_vector_store = { path = "../../servers/vector_store" }
 dfps_compliance = { path = "../../../platform/compliance" }
-dfps_terminology = { path = "../../../domain/ontologies/terminology" }
+dfps_contracts = { path = "../../../domain/contracts" }
 serde.workspace = true
 serde_json.workspace = true 
 reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls-tls"] }

@@ -3,15 +3,12 @@ use std::io::{BufReader, Read};
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_compliance::{ComplianceConfig, assert_export_allowed};
+use dfps_compliance::ComplianceConfig;
 use dfps_configuration::load_env;
-use dfps_datamart::{
-    LoadSummary, WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate,
-};
-use dfps_pipeline::{
-    PipelineOutput, VectorPipelineContext, bundle_to_mapped_sr_with_vector_context,
-};
-use serde::Deserialize;
+use dfps_contracts::{LoadSummary, PipelineOutput};
+use dfps_datamart::{WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate};
+use dfps_pipeline::{VectorPipelineContext, bundle_to_mapped_sr_with_vector_context};
+use serde::{Deserialize, Serialize};
 
 mod vector_ctx;
 use vector_ctx::pipeline_vector_context_from_env;
@@ -36,23 +33,11 @@ enum InputKind {
     Bundle,
 }
 
-#[derive(Default)]
-struct AggregateSummary {
-    patients: u64,
-    encounters: u64,
-    codes: u64,
-    ncit: u64,
-    facts: u64,
-}
-
-impl AggregateSummary {
-    fn add(&mut self, summary: LoadSummary) {
-        self.patients += summary.patients;
-        self.encounters += summary.encounters;
-        self.codes += summary.codes;
-        self.ncit += summary.ncit;
-        self.facts += summary.facts;
-    }
+#[derive(Serialize)]
+struct OutputRecord<'a, T> {
+    kind: &'a str,
+    #[serde(flatten)]
+    value: &'a T,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -68,22 +53,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let pool = connect_sqlite(&cfg).await?;
         migrate(&pool).await?;
 
-        let mut agg = AggregateSummary::default();
+        let mut agg = LoadSummary::default();
         for output in outputs {
-            enforce_export_policy(&output, &policy)?;
             let summary = load_from_pipeline_output(&pool, &output, &policy).await?;
-            agg.add(summary);
+            agg.accumulate(&summary);
         }
 
-        let summary_line = serde_json::json!({
-            "kind": "load_summary",
-            "patients": agg.patients,
-            "encounters": agg.encounters,
-            "codes": agg.codes,
-            "ncit": agg.ncit,
-            "facts": agg.facts
-        });
-        println!("{}", serde_json::to_string(&summary_line)?);
+        emit_summary(&agg)?;
         Ok::<(), Box<dyn std::error::Error>>(())
     })?;
 
@@ -131,27 +107,11 @@ fn read_inputs(
     Ok(outputs)
 }
 
-fn enforce_export_policy(
-    output: &PipelineOutput,
-    policy: &dfps_compliance::Policy,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut tiers = std::collections::BTreeSet::new();
-    for result in &output.mapping_results {
-        if let Some(label) = result.license_tier.as_deref() {
-            if let Some(tier) = parse_license_tier(label) {
-                tiers.insert(tier);
-            }
-        }
-    }
-    assert_export_allowed(&tiers.into_iter().collect::<Vec<_>>(), policy)
-        .map_err(|err| format!("export blocked by compliance policy: {err}").into())
-}
-
-fn parse_license_tier(value: &str) -> Option<dfps_terminology::codesystem::LicenseTier> {
-    match value.trim() {
-        "licensed" => Some(dfps_terminology::codesystem::LicenseTier::Licensed),
-        "open" => Some(dfps_terminology::codesystem::LicenseTier::Open),
-        "internal_only" => Some(dfps_terminology::codesystem::LicenseTier::InternalOnly),
-        _ => None,
-    }
+fn emit_summary(summary: &LoadSummary) -> Result<(), Box<dyn std::error::Error>> {
+    let record = OutputRecord {
+        kind: "load_summary",
+        value: summary,
+    };
+    println!("{}", serde_json::to_string(&record)?);
+    Ok(())
 }

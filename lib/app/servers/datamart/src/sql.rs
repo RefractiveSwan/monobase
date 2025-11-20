@@ -1,9 +1,12 @@
 use dfps_compliance::{Policy, assert_export_allowed};
 use dfps_configuration::load_env;
-use dfps_pipeline::PipelineOutput;
+use dfps_contracts::{
+    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, LoadSummary,
+    PipelineOutput,
+};
 use dfps_terminology::codesystem::LicenseTier;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, Pool, Sqlite, SqlitePool, Transaction};
+use sqlx::{FromRow, Pool, Row, Sqlite, SqlitePool, Transaction};
 use thiserror::Error;
 
 use crate::{DimCode, DimEncounter, DimNCIT, DimPatient, FactServiceRequest};
@@ -45,6 +48,7 @@ CREATE TABLE IF NOT EXISTS fact_service_request (
   encounter_key INTEGER REFERENCES dim_encounter(encounter_key),
   code_key INTEGER NOT NULL REFERENCES dim_code(code_key),
   ncit_key INTEGER REFERENCES dim_ncit(ncit_key),
+  mapping_state TEXT NOT NULL,
   status TEXT,
   intent TEXT,
   description TEXT,
@@ -60,6 +64,8 @@ pub fn ddl_statements() -> &'static [&'static str] {
         CREATE_FACT_SERVICE_REQUEST,
     ]
 }
+
+const ORDER_DAY_EXPR: &str = "CASE WHEN fsr.ordered_at IS NULL OR LENGTH(fsr.ordered_at) < 10 THEN NULL ELSE substr(fsr.ordered_at, 1, 10) END";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WarehouseConfig {
@@ -88,21 +94,20 @@ impl WarehouseConfig {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct CohortFilters {
+    pub ncit_id: Option<String>,
+    pub status: Option<String>,
+    pub date_from: Option<String>,
+    pub date_to: Option<String>,
+}
+
 pub async fn migrate(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
     for stmt in ddl_statements() {
         sqlx::query(stmt).execute(pool).await?;
     }
+    ensure_fact_mapping_state_column(pool).await?;
     Ok(())
-}
-
-/// Summary of rows inserted or updated during a load.
-#[derive(Debug, Default, Clone, Serialize)]
-pub struct LoadSummary {
-    pub patients: u64,
-    pub encounters: u64,
-    pub codes: u64,
-    pub ncit: u64,
-    pub facts: u64,
 }
 
 #[derive(Debug, Error)]
@@ -235,6 +240,101 @@ fn parse_license_tier(value: &str) -> Option<LicenseTier> {
     }
 }
 
+pub async fn ncit_summary(pool: &Pool<Sqlite>) -> Result<AnalyticsSummaryResponse, sqlx::Error> {
+    let sql = format!(
+        r#"
+SELECT
+    COALESCE(dn.ncit_id, 'NO_MATCH') AS ncit_id,
+    dn.preferred_name,
+    fsr.mapping_state,
+    {order_day_expr} AS order_day,
+    COUNT(*) AS total_count
+FROM fact_service_request fsr
+LEFT JOIN dim_ncit dn ON fsr.ncit_key = dn.ncit_key
+GROUP BY ncit_id, dn.preferred_name, fsr.mapping_state, order_day
+ORDER BY total_count DESC, ncit_id ASC
+"#,
+        order_day_expr = ORDER_DAY_EXPR
+    );
+
+    let rows = sqlx::query(&sql).fetch_all(pool).await?;
+    let mut summary_rows = Vec::new();
+    for row in rows {
+        let ncit_id: String = row.try_get("ncit_id")?;
+        let preferred_name: Option<String> = row.try_get("preferred_name")?;
+        let mapping_state: Option<String> = row.try_get("mapping_state")?;
+        let time_bucket: Option<String> = row.try_get("order_day")?;
+        let count: i64 = row.try_get("total_count")?;
+        summary_rows.push(AnalyticsSummaryRow {
+            ncit_id,
+            preferred_name,
+            mapping_state,
+            time_bucket,
+            count: count as usize,
+        });
+    }
+    Ok(AnalyticsSummaryResponse { rows: summary_rows })
+}
+
+pub async fn cohort(
+    pool: &Pool<Sqlite>,
+    filters: &CohortFilters,
+) -> Result<CohortResponse, sqlx::Error> {
+    let sql = format!(
+        r#"
+SELECT
+    fsr.sr_id,
+    dp.patient_id,
+    de.encounter_id,
+    dn.ncit_id,
+    fsr.status,
+    fsr.intent,
+    fsr.description,
+    fsr.ordered_at,
+    fsr.mapping_state
+FROM fact_service_request fsr
+JOIN dim_patient dp ON dp.patient_key = fsr.patient_key
+LEFT JOIN dim_encounter de ON de.encounter_key = fsr.encounter_key
+LEFT JOIN dim_ncit dn ON fsr.ncit_key = dn.ncit_key
+WHERE
+    (?1 IS NULL OR dn.ncit_id = ?1)
+    AND (?2 IS NULL OR fsr.status = ?2)
+    AND (?3 IS NULL OR {order_day_expr} >= ?3)
+    AND (?4 IS NULL OR {order_day_expr} <= ?4)
+ORDER BY fsr.ordered_at ASC, fsr.sr_id ASC
+"#,
+        order_day_expr = ORDER_DAY_EXPR
+    );
+
+    let rows = sqlx::query(&sql)
+        .bind(filters.ncit_id.as_deref())
+        .bind(filters.status.as_deref())
+        .bind(filters.date_from.as_deref())
+        .bind(filters.date_to.as_deref())
+        .fetch_all(pool)
+        .await?;
+
+    let mut cohort_rows = Vec::new();
+    for row in rows {
+        cohort_rows.push(CohortRow {
+            sr_id: row.try_get("sr_id")?,
+            patient_id: Some(row.try_get::<String, _>("patient_id")?),
+            encounter_id: row.try_get("encounter_id")?,
+            ncit_id: row.try_get("ncit_id")?,
+            status: row.try_get("status")?,
+            intent: row.try_get("intent")?,
+            description: row.try_get("description")?,
+            ordered_at: row.try_get("ordered_at")?,
+            mapping_state: row.try_get("mapping_state")?,
+        });
+    }
+
+    Ok(CohortResponse {
+        total: cohort_rows.len(),
+        rows: cohort_rows,
+    })
+}
+
 #[derive(Debug, FromRow)]
 pub struct FactServiceRequestRow {
     pub sr_id: String,
@@ -242,6 +342,7 @@ pub struct FactServiceRequestRow {
     pub encounter_key: Option<i64>,
     pub code_key: i64,
     pub ncit_key: Option<i64>,
+    pub mapping_state: String,
     pub status: String,
     pub intent: String,
     pub description: String,
@@ -256,6 +357,7 @@ impl From<&FactServiceRequest> for FactServiceRequestRow {
             encounter_key: fact.encounter_key.map(|k| k.0 as i64),
             code_key: fact.code_key.0 as i64,
             ncit_key: fact.ncit_key.map(|k| k.0 as i64),
+            mapping_state: fact.mapping_state.clone(),
             status: fact.status.clone(),
             intent: fact.intent.clone(),
             description: fact.description.clone(),
@@ -355,13 +457,14 @@ async fn insert_facts(
     for fact in facts {
         let row: FactServiceRequestRow = fact.into();
         let res = sqlx::query(
-            "INSERT OR REPLACE INTO fact_service_request (sr_id, patient_key, encounter_key, code_key, ncit_key, status, intent, description, ordered_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO fact_service_request (sr_id, patient_key, encounter_key, code_key, ncit_key, mapping_state, status, intent, description, ordered_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(row.sr_id)
         .bind(row.patient_key)
         .bind(row.encounter_key)
         .bind(row.code_key)
         .bind(row.ncit_key)
+        .bind(row.mapping_state)
         .bind(row.status)
         .bind(row.intent)
         .bind(row.description)
@@ -371,4 +474,131 @@ async fn insert_facts(
         inserted += res.rows_affected();
     }
     Ok(inserted)
+}
+
+async fn ensure_fact_mapping_state_column(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
+    let columns = sqlx::query("PRAGMA table_info('fact_service_request')")
+        .fetch_all(pool)
+        .await?;
+    let has_column = columns.iter().any(|row| {
+        row.try_get::<String, _>("name")
+            .map(|name| name == "mapping_state")
+            .unwrap_or(false)
+    });
+    if !has_column {
+        sqlx::query(
+            "ALTER TABLE fact_service_request ADD COLUMN mapping_state TEXT NOT NULL DEFAULT 'unknown'",
+        )
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dfps_compliance::{ComplianceMode, Policy};
+    use dfps_contracts::{
+        DimNCITConcept, MappingResult, MappingState, PipelineOutput, StgSrCodeExploded,
+    };
+    use dfps_core::{
+        mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},
+        staging::StgServiceRequestFlat,
+    };
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    fn sample_output() -> PipelineOutput {
+        PipelineOutput {
+            flats: vec![StgServiceRequestFlat {
+                sr_id: "SR-1".into(),
+                patient_id: "PAT-1".into(),
+                encounter_id: Some("ENC-1".into()),
+                status: "active".into(),
+                intent: "order".into(),
+                description: "PET-CT".into(),
+                ordered_at: Some("2024-05-01T12:00:00Z".into()),
+            }],
+            exploded_codes: vec![StgSrCodeExploded {
+                sr_id: "SR-1".into(),
+                system: Some("http://loinc.org".into()),
+                code: Some("24606-6".into()),
+                display: Some("FDG uptake".into()),
+            }],
+            mapping_results: vec![MappingResult {
+                code_element_id: "SR-1::http://loinc.org::24606-6".into(),
+                cui: Some("C0001".into()),
+                ncit_id: Some("C1234".into()),
+                score: 0.98,
+                strategy: MappingStrategy::Lexical,
+                state: MappingState::AutoMapped,
+                thresholds: MappingThresholds::default(),
+                source_version: MappingSourceVersion::new("ncit", "umls"),
+                reason: None,
+                license_tier: None,
+                source_kind: None,
+            }],
+            dim_concepts: vec![DimNCITConcept {
+                ncit_id: "C1234".into(),
+                preferred_name: "FDG Uptake".into(),
+                semantic_group: "Procedure".into(),
+            }],
+            vector_usage: None,
+        }
+    }
+
+    async fn seed_pool() -> Pool<Sqlite> {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect sqlite");
+        super::migrate(&pool).await.expect("migrate memory db");
+        let policy = Policy::default_for_mode(ComplianceMode::Internal);
+        super::load_from_pipeline_output(&pool, &sample_output(), &policy)
+            .await
+            .expect("load pipeline output");
+        pool
+    }
+
+    #[tokio::test]
+    async fn ncit_summary_reports_rows() {
+        let pool = seed_pool().await;
+        let response = super::ncit_summary(&pool).await.expect("summary query");
+        assert!(!response.rows.is_empty());
+        let row = &response.rows[0];
+        assert_eq!(row.ncit_id, "C1234");
+        assert_eq!(row.mapping_state.as_deref(), Some("auto_mapped"));
+        assert_eq!(row.count, 1);
+    }
+
+    #[tokio::test]
+    async fn cohort_filters_by_ncit_id() {
+        let pool = seed_pool().await;
+        let response = super::cohort(
+            &pool,
+            &CohortFilters {
+                ncit_id: Some("C1234".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("cohort query");
+        assert_eq!(response.total, 1);
+        let row = &response.rows[0];
+        assert_eq!(row.sr_id, "SR-1");
+        assert_eq!(row.ncit_id.as_deref(), Some("C1234"));
+        assert_eq!(row.mapping_state.as_deref(), Some("auto_mapped"));
+
+        let empty = super::cohort(
+            &pool,
+            &CohortFilters {
+                ncit_id: Some("UNKNOWN".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("empty filters");
+        assert_eq!(empty.total, 0);
+    }
 }

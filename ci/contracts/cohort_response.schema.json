@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CohortResponse",
+  "description": "Response payload for cohort queries.",
+  "type": "object",
+  "required": [
+    "rows",
+    "total"
+  ],
+  "properties": {
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CohortRow"
+      }
+    },
+    "total": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0.0
+    }
+  },
+  "definitions": {
+    "CohortRow": {
+      "description": "Row returned by cohort queries.",
+      "type": "object",
+      "required": [
+        "description",
+        "intent",
+        "sr_id",
+        "status"
+      ],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "encounter_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "intent": {
+          "type": "string"
+        },
+        "mapping_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ncit_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ordered_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "patient_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sr_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,576 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EvalRunResponse",
+  "description": "Payload returned when running an eval job.",
+  "type": "object",
+  "required": [
+    "dataset",
+    "summary"
+  ],
+  "properties": {
+    "dataset": {
+      "type": "string"
+    },
+    "manifest": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DatasetManifest"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "$ref": "#/definitions/EvalSummary"
+    }
+  },
+  "definitions": {
+    "AdvancedStats": {
+      "type": "object",
+      "required": [
+        "bootstrap_iterations",
+        "f1_ci",
+        "precision_ci",
+        "recall_ci"
+      ],
+      "properties": {
+        "bootstrap_iterations": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "f1_ci": {
+          "type": "array",
+          "items": [
+            {
+              "type": "number",
+              "format": "float"
+            },
+            {
+              "type": "number",
+              "format": "float"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "precision_ci": {
+          "type": "array",
+          "items": [
+            {
+              "type": "number",
+              "format": "float"
+            },
+            {
+              "type": "number",
+              "format": "float"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "recall_ci": {
+          "type": "array",
+          "items": [
+            {
+              "type": "number",
+              "format": "float"
+            },
+            {
+              "type": "number",
+              "format": "float"
+            }
+          ],
+          "maxItems": 2,
+          "minItems": 2
+        }
+      }
+    },
+    "DatasetManifest": {
+      "type": "object",
+      "required": [
+        "n_cases",
+        "name",
+        "sha256",
+        "version"
+      ],
+      "properties": {
+        "license": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "n_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "name": {
+          "type": "string"
+        },
+        "notes": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "EvalCase": {
+      "type": "object",
+      "required": [
+        "code",
+        "display",
+        "expected_ncit_id",
+        "system"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string"
+        },
+        "expected_ncit_id": {
+          "type": "string"
+        },
+        "system": {
+          "type": "string"
+        }
+      }
+    },
+    "EvalResult": {
+      "type": "object",
+      "required": [
+        "case",
+        "correct",
+        "mapping"
+      ],
+      "properties": {
+        "case": {
+          "$ref": "#/definitions/EvalCase"
+        },
+        "correct": {
+          "type": "boolean"
+        },
+        "mapping": {
+          "$ref": "#/definitions/MappingResult"
+        }
+      }
+    },
+    "EvalSummary": {
+      "type": "object",
+      "required": [
+        "accuracy",
+        "auto_mapped_correct",
+        "auto_mapped_precision",
+        "auto_mapped_total",
+        "by_license_tier",
+        "by_system",
+        "correct",
+        "coverage",
+        "f1",
+        "incorrect",
+        "precision",
+        "predicted_cases",
+        "reason_counts",
+        "recall",
+        "results",
+        "score_buckets",
+        "state_counts",
+        "system_confusion",
+        "top1_accuracy",
+        "top3_accuracy",
+        "total_cases"
+      ],
+      "properties": {
+        "accuracy": {
+          "type": "number",
+          "format": "float"
+        },
+        "advanced": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AdvancedStats"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "auto_mapped_correct": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "auto_mapped_precision": {
+          "type": "number",
+          "format": "float"
+        },
+        "auto_mapped_total": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "by_license_tier": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/StratifiedMetrics"
+          }
+        },
+        "by_system": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/StratifiedMetrics"
+          }
+        },
+        "correct": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "coverage": {
+          "type": "number",
+          "format": "float"
+        },
+        "f1": {
+          "type": "number",
+          "format": "float"
+        },
+        "incorrect": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "precision": {
+          "type": "number",
+          "format": "float"
+        },
+        "predicted_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "reason_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0.0
+          }
+        },
+        "recall": {
+          "type": "number",
+          "format": "float"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EvalResult"
+          }
+        },
+        "score_buckets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScoreBucket"
+          }
+        },
+        "state_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0.0
+          }
+        },
+        "system_confusion": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/SystemConfusion"
+          }
+        },
+        "top1_accuracy": {
+          "type": "number",
+          "format": "float"
+        },
+        "top3_accuracy": {
+          "type": "number",
+          "format": "float"
+        },
+        "total_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    },
+    "MappingResult": {
+      "description": "Overall mapping output, including NCIt concept selection + provenance.",
+      "type": "object",
+      "required": [
+        "code_element_id",
+        "score",
+        "source_version",
+        "state",
+        "strategy",
+        "thresholds"
+      ],
+      "properties": {
+        "code_element_id": {
+          "type": "string"
+        },
+        "cui": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "license_tier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ncit_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "score": {
+          "type": "number",
+          "format": "float"
+        },
+        "source_kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_version": {
+          "$ref": "#/definitions/MappingSourceVersion"
+        },
+        "state": {
+          "$ref": "#/definitions/MappingState"
+        },
+        "strategy": {
+          "$ref": "#/definitions/MappingStrategy"
+        },
+        "thresholds": {
+          "$ref": "#/definitions/MappingThresholds"
+        }
+      }
+    },
+    "MappingSourceVersion": {
+      "description": "Versions of the vocabularies involved in mapping decisions.",
+      "type": "object",
+      "required": [
+        "ncit",
+        "umls"
+      ],
+      "properties": {
+        "ncit": {
+          "type": "string"
+        },
+        "umls": {
+          "type": "string"
+        }
+      }
+    },
+    "MappingState": {
+      "description": "State assigned to the mapping after thresholds are applied.",
+      "type": "string",
+      "enum": [
+        "auto_mapped",
+        "needs_review",
+        "no_match"
+      ]
+    },
+    "MappingStrategy": {
+      "description": "Strategies used by the mapping engine. Keeps provenance readable.",
+      "type": "string",
+      "enum": [
+        "lexical",
+        "vector",
+        "rule",
+        "composite",
+        "manual",
+        "unmapped"
+      ]
+    },
+    "MappingThresholds": {
+      "description": "Threshold configuration used to derive the `MappingState`.",
+      "type": "object",
+      "required": [
+        "auto_map_min",
+        "needs_review_min"
+      ],
+      "properties": {
+        "auto_map_min": {
+          "type": "number",
+          "format": "float"
+        },
+        "needs_review_min": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
+    "ScoreBucket": {
+      "type": "object",
+      "required": [
+        "accuracy",
+        "bucket",
+        "correct",
+        "total"
+      ],
+      "properties": {
+        "accuracy": {
+          "type": "number",
+          "format": "float"
+        },
+        "bucket": {
+          "type": "string"
+        },
+        "correct": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "lower_bound": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "total": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "upper_bound": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        }
+      }
+    },
+    "StratifiedMetrics": {
+      "type": "object",
+      "required": [
+        "correct",
+        "f1",
+        "precision",
+        "predicted_cases",
+        "recall",
+        "total_cases"
+      ],
+      "properties": {
+        "correct": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "f1": {
+          "type": "number",
+          "format": "float"
+        },
+        "precision": {
+          "type": "number",
+          "format": "float"
+        },
+        "predicted_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "recall": {
+          "type": "number",
+          "format": "float"
+        },
+        "total_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    },
+    "SystemConfusion": {
+      "type": "object",
+      "required": [
+        "accuracy",
+        "auto_mapped",
+        "correct",
+        "coverage",
+        "needs_review",
+        "no_match",
+        "predicted_cases",
+        "total_cases"
+      ],
+      "properties": {
+        "accuracy": {
+          "type": "number",
+          "format": "float"
+        },
+        "auto_mapped": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "correct": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "coverage": {
+          "type": "number",
+          "format": "float"
+        },
+        "needs_review": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "no_match": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "predicted_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "total_cases": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

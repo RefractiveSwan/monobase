@@ -5,21 +5,21 @@ pub mod sql;
 
 use std::collections::{BTreeMap, HashMap};
 
+use dfps_contracts::{MappingState, PipelineOutput, StgServiceRequestFlat};
 use dfps_core::{
     encounter::Encounter,
-    mapping::{CodeElement, MappingState},
+    mapping::CodeElement,
     patient::Patient,
-    staging::StgServiceRequestFlat,
     value::{EncounterId, PatientId},
 };
-use dfps_pipeline::PipelineOutput;
 
+pub use dfps_contracts::LoadSummary;
 pub use dim::*;
 pub use fact::*;
 pub use keys::*;
 pub use sql::{
-    LoadError, LoadSummary, WarehouseConfig, connect_sqlite, ddl_statements,
-    load_from_pipeline_output, migrate,
+    CohortFilters, LoadError, WarehouseConfig, cohort, connect_sqlite, ddl_statements,
+    load_from_pipeline_output, migrate, ncit_summary,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -120,6 +120,7 @@ pub fn from_pipeline_output(output: &PipelineOutput) -> (Dims, Vec<FactServiceRe
                 encounter_key,
                 code_key: *code_key,
                 ncit_key,
+                mapping_state: mapping_state_label(result.state).to_string(),
                 status: flat.status.clone(),
                 intent: flat.intent.clone(),
                 description: flat.description.clone(),
@@ -138,15 +139,21 @@ pub fn from_pipeline_output(output: &PipelineOutput) -> (Dims, Vec<FactServiceRe
     (dims, facts)
 }
 
+fn mapping_state_label(state: MappingState) -> &'static str {
+    match state {
+        MappingState::AutoMapped => "auto_mapped",
+        MappingState::NeedsReview => "needs_review",
+        MappingState::NoMatch => "no_match",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dfps_contracts::{DimNCITConcept, MappingResult, MappingState, StgSrCodeExploded};
     use dfps_core::{
-        mapping::{
-            DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
-            MappingThresholds,
-        },
-        staging::{StgServiceRequestFlat, StgSrCodeExploded},
+        mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},
+        staging::StgServiceRequestFlat,
     };
 
     fn sample_output() -> PipelineOutput {
@@ -200,6 +207,7 @@ mod tests {
         let fact = &facts[0];
         assert!(fact.ncit_key.is_some());
         assert_eq!(fact.status, "active");
+        assert_eq!(fact.mapping_state, "auto_mapped");
     }
 
     fn sample_no_match_output() -> PipelineOutput {
@@ -250,5 +258,6 @@ mod tests {
             .find(|dim| dim.key == ncit_key)
             .expect("no-match dim present");
         assert_eq!(sentinel.ncit_id, "NO_MATCH");
+        assert_eq!(fact.mapping_state, "no_match");
     }
 }

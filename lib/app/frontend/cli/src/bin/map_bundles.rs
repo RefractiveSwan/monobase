@@ -6,9 +6,10 @@ use std::path::PathBuf;
 use clap::Parser;
 use dfps_compliance::ComplianceConfig;
 use dfps_configuration::load_env;
+use dfps_contracts::{MappingState, PipelineMetrics};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
-use dfps_observability::{PipelineMetrics, log_no_match, log_pipeline_output};
+use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::bundle_to_mapped_sr_with_vector_context;
 use log::{LevelFilter, info, warn};
 use serde::Serialize;
@@ -104,7 +105,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         for mapping in &output.mapping_results {
             write_json(&mut handle, "mapping_result", mapping)?;
-            if matches!(mapping.state, dfps_core::mapping::MappingState::NoMatch) {
+            if matches!(mapping.state, MappingState::NoMatch) {
                 log_no_match(mapping);
             }
         }

@@ -247,56 +247,56 @@ This gives:
 
 ##### 03.A – Create `dfps_contracts`
 
-* [ ] Add `lib/domain/contracts` crate:
+* [x] Add `lib/domain/contracts` crate:
 
-  * [ ] Define modules:
+  * [x] Define modules:
 
     * `pipeline.rs` – `PipelineOutput` re-export + associated mapping summary contracts.
     * `analytics.rs` – `AnalyticsSummaryRow`, `AnalyticsSummaryResponse`, `CohortRow`, `CohortResponse`.
     * `eval.rs` – `DatasetManifest`, `EvalSummary`, `EvalRunResponse`.
     * `metrics.rs` – `PipelineMetrics`, `VectorUsageSnapshot`, `VectorCapacitySnapshot`.
     * `errors.rs` – `ErrorKind`, `ErrorCode` (string) and mapping helpers.
-  * [ ] Re-export domain types from `dfps_core`, `dfps_pipeline`, `dfps_eval`, `dfps_observability` instead of copying shapes.
+  * [x] Re-export domain types from `dfps_core`, `dfps_pipeline`, `dfps_eval`, `dfps_observability` instead of copying shapes.
 
 ##### 03.B – Wire contracts into app/servers
 
-* [ ] `dfps_api`:
+* [x] `dfps_api`:
 
-  * [ ] Replace `AnalyticsSummaryResponse`, `AnalyticsNcitSummaryRow`, `CohortResponse`, `CohortRow`, `EvalRunResponse` in `src/dto.rs` with re-exports or thin wrappers around `dfps_contracts`.
-  * [ ] `MapBundlesResponse`:
+  * [x] Replace `AnalyticsSummaryResponse`, `AnalyticsNcitSummaryRow`, `CohortResponse`, `CohortRow`, `EvalRunResponse` in `src/dto.rs` with re-exports or thin wrappers around `dfps_contracts`.
+  * [x] `MapBundlesResponse`:
 
-    * [ ] Represent as “pipeline output envelope” referencing `PipelineOutput` fields (or drop it in favor of `PipelineOutput` when appropriate).
-  * [ ] `ErrorResponse.code`:
+    * [x] Represent as “pipeline output envelope” referencing `PipelineOutput` fields (or drop it in favor of `PipelineOutput` when appropriate).
+  * [x] `ErrorResponse.code`:
 
-    * [ ] Map `ApiError` variants to `ErrorKind + ErrorCode`.
-    * [ ] Ensure `code` is drawn from `dfps_contracts::ErrorCode`.
+    * [x] Map `ApiError` variants to `ErrorKind + ErrorCode`.
+    * [x] Ensure `code` is drawn from `dfps_contracts::ErrorCode`.
 
 * [ ] `dfps_datamart`:
 
-  * [ ] Provide analytic query APIs returning `dfps_contracts::AnalyticsSummaryRow` / `CohortRow`, not bespoke structs.
-  * [ ] Add `LoadSummary` as part of a “warehouse contract” for CLI/HTTP responses.
+  * [x] Provide analytic query APIs returning `dfps_contracts::AnalyticsSummaryRow` / `CohortRow`, not bespoke structs.
+  * [x] Add `LoadSummary` as part of a “warehouse contract” for CLI/HTTP responses.
 
 ##### 03.C – CLI & eval alignment
 
-* [ ] Update CLI bins (`map_bundles`, `eval_mapping`, `load_datamart`) to:
+* [x] Update CLI bins (`map_bundles`, `eval_mapping`, `load_datamart`) to:
 
-  * [ ] Produce NDJSON whose payload records conform exactly to `dfps_contracts` types:
+  * [x] Produce NDJSON whose payload records conform exactly to `dfps_contracts` types:
 
     * Mapping results: `MappingResult` from `dfps_core`.
     * Analytics: same `AnalyticsSummaryRow` as HTTP.
     * Eval: `EvalSummary`, `EvalRunResponse`.
-  * [ ] Add tests that run CLI commands in-process (`dfps_test_suite`) and deserialize results using `dfps_contracts`.
+  * [x] Add tests that run CLI commands in-process (`dfps_test_suite`) and deserialize results using `dfps_contracts`.
 
 ##### 03.D – Schema snapshots & CI
 
-* [ ] Add a small `contracts-schema` test binary that:
+* [x] Add a small `contracts-schema` test binary that:
 
-  * [ ] Generates JSON Schema (or stable hashes) for all public contracts.
-  * [ ] Writes them under `code/ci/contracts/*.json`.
+  * [x] Generates JSON Schema (or stable hashes) for all public contracts.
+  * [x] Writes them under `code/ci/contracts/*.json`.
 * [ ] CI job:
 
-  * [ ] Compare generated schemas against committed ones.
-  * [ ] If any breaking changes occur (field removed/renamed), fail CI and require version bump + migration doc.
+  * [x] Compare generated schemas against committed ones.
+  * [x] If any breaking changes occur (field removed/renamed), fail CI and require version bump + migration doc.
 
 #### Acceptance criteria
 

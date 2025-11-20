@@ -9,6 +9,7 @@ pub struct FactServiceRequest {
     pub encounter_key: Option<DimEncounterKey>,
     pub code_key: DimCodeKey,
     pub ncit_key: Option<DimNCITKey>,
+    pub mapping_state: String,
     pub status: String,
     pub intent: String,
     pub description: String,

@@ -21,6 +21,7 @@ dfps_core = { path = "../../domain/core" }
 dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
 dfps_mapping = { path = "../../domain/ontologies/mapping" }
 dfps_terminology= { path = "../../domain/ontologies/terminology" }
+dfps_contracts = { path = "../../domain/contracts" }
 dfps_pipeline = { path = "../../domain/pipeline" }
 dfps_observability = { path = "../observability" }
 dfps_configuration = { path = "../configuration" }
@@ -31,4 +32,8 @@ dfps_eval = { path = "../../domain/eval" }
 
 [features]
 backend-pgvector = ["dfps_vector_store/backend-pgvector"]
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.10"
 

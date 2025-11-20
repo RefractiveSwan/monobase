@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use dfps_configuration::load_env;
-use dfps_eval::{self, AdvancedStats, StratifiedMetrics};
+use dfps_contracts::{DatasetManifest, EvalRunResponse, EvalSummary};
 use dfps_mapping::map_staging_codes;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[derive(Parser)]
 #[command(
@@ -47,35 +47,6 @@ struct Args {
     top_k: usize,
 }
 
-#[derive(Serialize)]
-struct SummaryView<'a> {
-    total_cases: usize,
-    predicted_cases: usize,
-    correct: usize,
-    incorrect: usize,
-    precision: f32,
-    recall: f32,
-    f1: f32,
-    accuracy: f32,
-    coverage: f32,
-    top1_accuracy: f32,
-    top3_accuracy: f32,
-    auto_mapped_total: usize,
-    auto_mapped_correct: usize,
-    auto_mapped_precision: f32,
-    system_confusion: &'a std::collections::BTreeMap<String, dfps_eval::SystemConfusion>,
-    #[serde(rename = "state_counts")]
-    states: &'a std::collections::BTreeMap<String, usize>,
-    by_system: &'a std::collections::BTreeMap<String, StratifiedMetrics>,
-    #[serde(rename = "by_license_tier")]
-    by_license: &'a std::collections::BTreeMap<String, StratifiedMetrics>,
-    #[serde(rename = "score_buckets")]
-    buckets: &'a [dfps_eval::ScoreBucket],
-    #[serde(rename = "reason_counts")]
-    reasons: &'a std::collections::BTreeMap<String, usize>,
-    advanced: &'a Option<AdvancedStats>,
-}
-
 #[derive(Debug, Deserialize)]
 struct ThresholdConfig {
     min_precision: Option<f32>,
@@ -94,7 +65,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dataset_store = dataset_store_from_env();
 
     let chunk_size = args.chunk_size as usize;
-    let summary = if let Some(name) = &args.dataset {
+    let mut manifest: Option<DatasetManifest> = None;
+    let (summary, dataset_name): (EvalSummary, String) = if let Some(name) = &args.dataset {
         let outcome = dataset_store
             .load_dataset_with_manifest(name)
             .map_err(|err| format!("failed to load dataset {name}: {err}"))?;
@@ -104,53 +76,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 outcome.manifest.sha256, outcome.computed_sha256
             );
         }
+        manifest = Some(outcome.manifest.clone());
         let file = File::open(&outcome.data_path)?;
         let reader = BufReader::new(file);
-        dfps_eval::run_eval_streaming_with_mapper(
+        let summary = dfps_eval::run_eval_streaming_with_mapper(
             reader,
             |rows| map_staging_codes(rows).0,
             chunk_size,
-        )?
+        )?;
+        (summary, name.clone())
     } else if let Some(path) = &args.input {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
-        dfps_eval::run_eval_streaming_with_mapper(
+        let summary = dfps_eval::run_eval_streaming_with_mapper(
             reader,
             |rows| map_staging_codes(rows).0,
             chunk_size,
-        )?
+        )?;
+        (summary, path.display().to_string())
     } else {
         return Err("either --input or --dataset must be provided".into());
     };
-    let summary_view = SummaryView {
-        total_cases: summary.total_cases,
-        predicted_cases: summary.predicted_cases,
-        correct: summary.correct,
-        incorrect: summary.incorrect,
-        precision: summary.precision,
-        recall: summary.recall,
-        f1: summary.f1,
-        accuracy: summary.accuracy,
-        coverage: summary.coverage,
-        top1_accuracy: summary.top1_accuracy,
-        top3_accuracy: summary.top3_accuracy,
-        auto_mapped_total: summary.auto_mapped_total,
-        auto_mapped_correct: summary.auto_mapped_correct,
-        auto_mapped_precision: summary.auto_mapped_precision,
-        system_confusion: &summary.system_confusion,
-        states: &summary.state_counts,
-        by_system: &summary.by_system,
-        by_license: &summary.by_license_tier,
-        buckets: &summary.score_buckets,
-        reasons: &summary.reason_counts,
-        advanced: &summary.advanced,
+    let dataset_name = if dataset_name.is_empty() {
+        "adhoc_eval".into()
+    } else {
+        dataset_name
+    };
+    let response = EvalRunResponse {
+        dataset: dataset_name.clone(),
+        manifest,
+        summary: summary.clone(),
     };
 
     println!(
         "{}",
         serde_json::to_string(&serde_json::json!({
             "kind": "eval_summary",
-            "value": summary_view
+            "value": &response
         }))?
     );
 
@@ -167,13 +129,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(base_dir) = &args.out_dir {
-        persist_artifacts(base_dir, &args, &summary_view, &summary.results)?;
+        persist_artifacts(base_dir, &args, &response, &summary.results)?;
     }
 
     if let Some(report_path) = &args.report {
         write_report(
             report_path,
-            &summary_view,
+            &summary,
             args.dataset.as_deref(),
             &dataset_store,
         )?;
@@ -345,15 +307,16 @@ fn ensure_not_regressed(
 fn persist_artifacts(
     base_dir: &Path,
     args: &Args,
-    summary_view: &SummaryView,
+    response: &EvalRunResponse,
     results: &[dfps_eval::EvalResult],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let dir = resolve_out_dir(base_dir, args);
     create_dir_all(&dir)?;
     let summary_payload = serde_json::json!({
-        "dataset": args.dataset,
+        "dataset": &response.dataset,
         "input": args.input.as_ref().map(|p| p.display().to_string()),
-        "summary": summary_view
+        "manifest": &response.manifest,
+        "summary": &response.summary
     });
 
     let mut summary_file = File::create(dir.join("eval_summary.json"))?;
@@ -382,25 +345,10 @@ fn resolve_out_dir(base: &Path, args: &Args) -> PathBuf {
 
 fn write_report(
     path: &Path,
-    summary: &SummaryView,
+    summary: &EvalSummary,
     dataset: Option<&str>,
     store: &dfps_eval::FileDatasetStore,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut summary_owned = dfps_eval::EvalSummary::default();
-    summary_owned.total_cases = summary.total_cases;
-    summary_owned.predicted_cases = summary.predicted_cases;
-    summary_owned.correct = summary.correct;
-    summary_owned.incorrect = summary.incorrect;
-    summary_owned.precision = summary.precision;
-    summary_owned.recall = summary.recall;
-    summary_owned.f1 = summary.f1;
-    summary_owned.accuracy = summary.accuracy;
-    summary_owned.auto_mapped_total = summary.auto_mapped_total;
-    summary_owned.auto_mapped_correct = summary.auto_mapped_correct;
-    summary_owned.auto_mapped_precision = summary.auto_mapped_precision;
-    summary_owned.score_buckets = summary.buckets.to_vec();
-    summary_owned.reason_counts = summary.reasons.clone();
-    summary_owned.advanced = summary.advanced.clone();
     let baseline = dataset.and_then(|name| {
         match dfps_eval::report::load_baseline_snapshot_from(store.root(), name) {
             Ok(snapshot) => Some(snapshot),
@@ -411,7 +359,7 @@ fn write_report(
         }
     });
     let markdown = dfps_eval::report::render_markdown_with_baseline(
-        &summary_owned,
+        summary,
         baseline.as_ref().map(|snap| &snap.summary),
     );
     std::fs::write(path, markdown)?;

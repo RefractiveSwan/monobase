@@ -13,6 +13,7 @@ use dfps_core::{
 };
 #[cfg(feature = "eval-advanced")]
 use rand::{Rng, SeedableRng, rngs::StdRng};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -253,7 +254,7 @@ impl std::error::Error for DatasetError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct DatasetManifest {
     pub name: String,
     pub version: String,
@@ -336,7 +337,7 @@ pub fn load_cases_from_reader<R: BufRead>(reader: R) -> Result<Vec<EvalCase>, Da
     Ok(cases)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct EvalCase {
     pub system: String,
     pub code: String,
@@ -355,14 +356,14 @@ impl EvalCase {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct EvalResult {
     pub case: EvalCase,
     pub mapping: dfps_core::mapping::MappingResult,
     pub correct: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct EvalSummary {
     pub total_cases: usize,
     pub predicted_cases: usize,
@@ -417,7 +418,7 @@ impl Default for EvalSummary {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ScoreBucket {
     pub bucket: String,
     pub lower_bound: Option<f32>,
@@ -427,7 +428,7 @@ pub struct ScoreBucket {
     pub accuracy: f32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AdvancedStats {
     pub precision_ci: (f32, f32),
     pub recall_ci: (f32, f32),
@@ -435,7 +436,7 @@ pub struct AdvancedStats {
     pub bootstrap_iterations: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct StratifiedMetrics {
     pub total_cases: usize,
     pub predicted_cases: usize,
@@ -482,7 +483,7 @@ impl StratifiedMetrics {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SystemConfusion {
     pub total_cases: usize,
     pub predicted_cases: usize,
