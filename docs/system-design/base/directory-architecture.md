@@ -49,6 +49,7 @@ At a glance:
 * `app/` – entrypoints and interfaces facing humans or external callers.
 * `domain/` – the problem-space logic and data flow.
 * `platform/` – cross-cutting support: observability, testing, infra-style helpers.
+* `docs/system-design/base/dependency-seams.md` – DTO ownership & adapter seams (keep it updated when adding contracts).
 
 ### Layer boundaries & dependency hygiene
 
