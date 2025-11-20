@@ -1,0 +1,113 @@
+# Warehouse and BI tasks
+# Aligns with docs/runbook/040-warehouse-and-bi/warehouse-quickstart.md
+
+# 🟢 BEGINNER: Setup warehouse (run migrations)
+[tasks.warehouse-setup]
+description = "🟢 Run warehouse migrations on configured database"
+command = "cargo"
+args = ["test", "-p", "dfps_datamart", "--", "--nocapture"]
+
+# 🟡 INTERMEDIATE: Load pipeline output to warehouse
+[tasks.warehouse-load]
+description = "🟡 Load pipeline output NDJSON to warehouse (requires INPUT env var)"
+condition = { env_set = ["INPUT"] }
+linux_alias = "warehouse-load-unix"
+mac_alias = "warehouse-load-unix"
+windows_alias = "warehouse-load-windows"
+
+[tasks.warehouse-load-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+echo "Loading pipeline output to warehouse..."
+if [ ! -f "$INPUT" ]; then
+  echo "ERROR: Input file not found: $INPUT"
+  exit 1
+fi
+cargo run -p dfps_cli --bin load_datamart -- --input "$INPUT" --input-kind pipeline
+    '''
+]
+
+[tasks.warehouse-load-windows]
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+Write-Host "Loading pipeline output to warehouse..."
+if (-not (Test-Path $env:INPUT)) {
+    Write-Error "ERROR: Input file not found: $env:INPUT"
+    exit 1
+}
+cargo run -p dfps_cli --bin load_datamart -- --input $env:INPUT --input-kind pipeline
+'''
+
+# 🟡 INTERMEDIATE: Run warehouse integration tests
+[tasks.warehouse-test]
+description = "🟡 Run warehouse integration tests"
+command = "cargo"
+args = ["test", "-p", "dfps_test_suite", "--test", "integration_tests", "warehouse"]
+
+# 🔴 ADVANCED: Map bundles and load to warehouse in one flow
+[tasks.warehouse-load-bundles]
+description = "🔴 Map FHIR bundles and load results to warehouse (requires INPUT env var)"
+condition = { env_set = ["INPUT"] }
+linux_alias = "warehouse-load-bundles-unix"
+mac_alias = "warehouse-load-bundles-unix"
+windows_alias = "warehouse-load-bundles-windows"
+
+[tasks.warehouse-load-bundles-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+echo "Mapping bundles and loading to warehouse..."
+if [ ! -f "$INPUT" ]; then
+  echo "ERROR: Input file not found: $INPUT"
+  exit 1
+fi
+cargo run -p dfps_cli --bin load_datamart -- --input "$INPUT" --input-kind bundle
+    '''
+]
+
+[tasks.warehouse-load-bundles-windows]
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+Write-Host "Mapping bundles and loading to warehouse..."
+if (-not (Test-Path $env:INPUT)) {
+    Write-Error "ERROR: Input file not found: $env:INPUT"
+    exit 1
+}
+cargo run -p dfps_cli --bin load_datamart -- --input $env:INPUT --input-kind bundle
+'''
+
+# 🔴 ADVANCED: Inspect warehouse contents
+[tasks.warehouse-inspect]
+description = "🔴 Show warehouse table counts and sample rows"
+linux_alias = "warehouse-inspect-unix"
+mac_alias = "warehouse-inspect-unix"
+windows_alias = "warehouse-inspect-windows"
+
+[tasks.warehouse-inspect-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+echo "Warehouse inspection requires direct database access"
+echo "For SQLite: sqlite3 \$DFPS_WAREHOUSE_URL"
+echo "  .tables"
+echo "  select count(*) from fact_service_request;"
+echo "  select count(*) from dim_ncit_concept;"
+    '''
+]
+
+[tasks.warehouse-inspect-windows]
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+Write-Host "Warehouse inspection requires direct database access"
+Write-Host "For SQLite: sqlite3 `$env:DFPS_WAREHOUSE_URL"
+Write-Host "  .tables"
+Write-Host "  select count(*) from fact_service_request;"
+Write-Host "  select count(*) from dim_ncit_concept;"
+'''

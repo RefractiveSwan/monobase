@@ -1,0 +1,211 @@
+# Foundation tasks - Environment setup and tooling
+# Aligns with docs/runbook/010-foundation/
+
+# 🟢 BEGINNER: Validate environment configuration
+[tasks.validate-env]
+description = "🟢 Check all required .env files exist and are valid"
+linux_alias = "validate-env-unix"
+mac_alias = "validate-env-unix"
+windows_alias = "validate-env-windows"
+
+[tasks.validate-env-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+echo "Validating DFPS environment files..."
+ENV_DIR="${DFPS_ENV_DIR:-data/environment}"
+PROFILE="${DFPS_ENV:-dev}"
+
+missing_count=0
+for namespace in app.web.api app.web.frontend app.cli; do
+  file="${ENV_DIR}/.env.${namespace}.${PROFILE}"
+  if [ ! -f "$file" ]; then
+    echo "  ❌ Missing: $file"
+    missing_count=$((missing_count + 1))
+  else
+    echo "  ✓ Found: $file"
+  fi
+done
+
+if [ $missing_count -gt 0 ]; then
+  echo ""
+  echo "Missing $missing_count env file(s). See docs/runbook/010-foundation/env-quickstart.md"
+  exit 1
+fi
+
+echo "✅ All required env files present"
+    '''
+]
+
+[tasks.validate-env-windows]
+command = "powershell"
+args = [
+    "-NoLogo",
+    "-NoProfile",
+    "-Command",
+    "$ENV_DIR = if ($env:DFPS_ENV_DIR) { $env:DFPS_ENV_DIR } else { 'data/environment' }; $PROFILE_NAME = if ($env:DFPS_ENV) { $env:DFPS_ENV } else { 'dev' }; Write-Host 'Validating DFPS environment files...'; $missingCount = 0; @('app.web.api', 'app.web.frontend', 'app.cli') | ForEach-Object { $file = \"$ENV_DIR/.env.$_.$PROFILE_NAME\"; if (-not (Test-Path $file)) { Write-Host \"  ❌ Missing: $file\" -ForegroundColor Red; $script:missingCount++ } else { Write-Host \"  ✓ Found: $file\" -ForegroundColor Green } }; if ($missingCount -gt 0) { Write-Host ''; Write-Host \"Missing $missingCount env file(s). See docs/runbook/010-foundation/env-quickstart.md\" -ForegroundColor Yellow; exit 1 }; Write-Host '✅ All required env files present' -ForegroundColor Green"
+]
+
+
+# 🟢 BEGINNER: Interactive environment wizard
+[tasks.setup-env]
+description = "🟢 Interactive wizard to create .env files from examples"
+linux_alias = "setup-env-unix"
+mac_alias = "setup-env-unix"
+windows_alias = "setup-env-windows"
+
+[tasks.setup-env-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+echo "DFPS Environment Setup Wizard"
+echo "============================="
+ENV_DIR="${DFPS_ENV_DIR:-data/environment}"
+PROFILE="${DFPS_ENV:-dev}"
+
+if [ ! -d "$ENV_DIR" ]; then
+  echo "Creating $ENV_DIR..."
+  mkdir -p "$ENV_DIR"
+fi
+
+cd "$ENV_DIR"
+
+for namespace in app.web.api app.web.frontend app.cli; do
+  example_file=".env.${namespace}.example"
+  target_file=".env.${namespace}.${PROFILE}"
+  
+  if [ -f "$target_file" ]; then
+    echo "  ⚠️  $target_file already exists, skipping..."
+    continue
+  fi
+  
+  if [ -f "$example_file" ]; then
+    echo "  Creating $target_file from $example_file"
+    cp "$example_file" "$target_file"
+  else
+    echo "  ⚠️  No example file found for $namespace, skipping..."
+  fi
+done
+
+echo ""
+echo "✅ Environment files created for profile: $PROFILE"
+echo "Edit files in $ENV_DIR as needed"
+    '''
+]
+
+[tasks.setup-env-windows]
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+Write-Host "DFPS Environment Setup Wizard" -ForegroundColor Cyan
+Write-Host "=============================" -ForegroundColor Cyan
+$ENV_DIR = if ($env:DFPS_ENV_DIR) { $env:DFPS_ENV_DIR } else { "data/environment" }
+$PROFILE = if ($env:DFPS_ENV) { $env:DFPS_ENV } else { "dev" }
+
+if (-not (Test-Path $ENV_DIR)) {
+    Write-Host "Creating $ENV_DIR..."
+    New-Item -ItemType Directory -Force -Path $ENV_DIR | Out-Null
+}
+
+Set-Location $ENV_DIR
+
+$namespaces = @("app.web.api", "app.web.frontend", "app.cli")
+
+foreach ($namespace in $namespaces) {
+    $exampleFile = ".env.$namespace.example"
+    $targetFile = ".env.$namespace.$PROFILE"
+    
+    if (Test-Path $targetFile) {
+        Write-Host "  ⚠️  $targetFile already exists, skipping..." -ForegroundColor Yellow
+        continue
+    }
+    
+    if (Test-Path $exampleFile) {
+        Write-Host "  Creating $targetFile from $exampleFile"
+        Copy-Item $exampleFile $targetFile
+    } else {
+        Write-Host "  ⚠️  No example file found for $namespace, skipping..." -ForegroundColor Yellow
+    }
+}
+
+Write-Host ""
+Write-Host "✅ Environment files created for profile: $PROFILE" -ForegroundColor Green
+Write-Host "Edit files in $ENV_DIR as needed"
+'''
+
+# 🟡 INTERMEDIATE: Setup required tooling
+[tasks.setup-tooling]
+description = "🟡 Install required development tools (cargo-make, mdbook, etc.)"
+script = [
+    "cargo install cargo-make --version 0.37.22 --locked || echo 'cargo-make already installed'",
+    "cargo install mdbook --version 0.4.40 --locked || echo 'mdbook already installed'",
+    "cargo install cargo-watch --version 8.5.3 --locked || echo 'cargo-watch already installed'",
+]
+
+# 🔴 ADVANCED: Generate custom env template
+[tasks.env-template]
+description = "🔴 Generate custom .env template for new namespace (NAMESPACE=app.new.service)"
+condition = { env_set = ["NAMESPACE"] }
+linux_alias = "env-template-unix"
+mac_alias = "env-template-unix"
+windows_alias = "env-template-windows"
+
+[tasks.env-template-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+ENV_DIR="${DFPS_ENV_DIR:-data/environment}"
+NAMESPACE="${NAMESPACE}"
+PROFILE="${DFPS_ENV:-dev}"
+
+template_file="${ENV_DIR}/.env.${NAMESPACE}.example"
+echo "Creating template: $template_file"
+
+cat > "$template_file" <<EOF
+# Environment configuration for ${NAMESPACE}
+# Copy this to .env.${NAMESPACE}.${PROFILE} and fill in values
+
+# Common settings
+RUST_LOG=${NAMESPACE}=info
+DFPS_ENV=${PROFILE}
+
+# Add namespace-specific variables below:
+# EXAMPLE_VAR=value
+EOF
+
+echo "✅ Template created: $template_file"
+echo "Now copy to .env.${NAMESPACE}.${PROFILE} and customize"
+    '''
+]
+
+[tasks.env-template-windows]
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+$ENV_DIR = if ($env:DFPS_ENV_DIR) { $env:DFPS_ENV_DIR } else { "data/environment" }
+$NAMESPACE = $env:NAMESPACE
+$PROFILE = if ($env:DFPS_ENV) { $env:DFPS_ENV } else { "dev" }
+
+$templateFile = "$ENV_DIR/.env.$NAMESPACE.example"
+Write-Host "Creating template: $templateFile"
+
+$content = @"
+# Environment configuration for $NAMESPACE
+# Copy this to .env.$NAMESPACE.$PROFILE and fill in values
+
+# Common settings
+RUST_LOG=$NAMESPACE=info
+DFPS_ENV=$PROFILE
+
+# Add namespace-specific variables below:
+# EXAMPLE_VAR=value
+"@
+
+Set-Content -Path $templateFile -Value $content
+
+Write-Host "✅ Template created: $templateFile" -ForegroundColor Green
+Write-Host "Now copy to .env.$NAMESPACE.$PROFILE and customize"
+'''

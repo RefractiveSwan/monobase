@@ -1,0 +1,215 @@
+# MVP Conjoined Workflows
+# Orchestrates multiple services and components for MVP development
+
+# =============================================================================
+# 🟢 BEGINNER LEVEL - One-command flows
+# =============================================================================
+
+# Start web frontend + API backend together
+[tasks.mvp-up]
+description = "🟢 Start web frontend + API backend (parallel)"
+run_task = { name = ["mvp-start-api", "mvp-start-web"], parallel = true }
+
+[tasks.mvp-start-api]
+description = "Start API backend server"
+command = "cargo"
+args = ["run", "-p", "dfps_api", "--bin", "dfps_api"]
+
+[tasks.mvp-start-web]
+description = "Start web frontend server"
+command = "cargo"
+args = ["run", "-p", "dfps_web_frontend", "--bin", "dfps_web_frontend"]
+
+# Convenience aliases for individual services
+[tasks.mvp-api]
+description = "🟢 Start only the API backend"
+extend = "api"
+
+[tasks.mvp-web]
+description = "🟢 Start only the web frontend"
+extend = "web"
+
+# =============================================================================
+# 🟡 INTERMEDIATE LEVEL - Multi-component flows
+# =============================================================================
+
+# Complete stack: docs server + API + web frontend
+[tasks.mvp-full]
+description = "🟡 Start complete stack: docs + API + web (parallel)"
+dependencies = ["docs-sync", "graphviz-render"]
+run_task = { name = ["mvp-serve-docs", "mvp-start-api", "mvp-start-web"], parallel = true }
+
+[tasks.mvp-serve-docs]
+description = "Serve mdBook documentation"
+command = "mdbook"
+args = ["serve", "docs/book", "--open"]
+
+# Complete validation pipeline
+[tasks.mvp-validate]
+description = "🟡 Complete validation: env check + fmt + clippy + contracts + tests"
+dependencies = [
+    "validate-env",
+    "fmt",
+    "clippy",
+    "contracts-check",
+    "test"
+]
+
+# End-to-end flow: validate → build → start services (separate steps)
+[tasks.mvp-e2e]
+description = "🟡 End-to-end: validate → build → ready to start services"
+dependencies = ["mvp-validate", "build"]
+script = [
+    "echo ''",
+    "echo '✅ All validations passed, workspace built'",
+    "echo 'Ready to start services with: cargo make mvp-up'",
+    "echo ''"
+]
+
+# Health check for running services
+[tasks.mvp-health]
+description = "🟡 Check health of running API and web services"
+linux_alias = "mvp-health-unix"
+mac_alias = "mvp-health-unix"
+windows_alias = "mvp-health-windows"
+
+[tasks.mvp-health-unix]
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+echo "Checking MVP service health..."
+echo ""
+
+# Check API
+API_URL="http://127.0.0.1:8080/health"
+if curl -s -f "$API_URL" > /dev/null 2>&1; then
+  echo "✅ API backend healthy: $API_URL"
+else
+  echo "❌ API backend unreachable: $API_URL"
+fi
+
+# Check Web
+WEB_URL="http://127.0.0.1:8090"
+if curl -s -f "$WEB_URL" > /dev/null 2>&1; then
+  echo "✅ Web frontend healthy: $WEB_URL"
+else
+  echo "❌ Web frontend unreachable: $WEB_URL"
+fi
+
+echo ""
+    '''
+]
+
+[tasks.mvp-health-windows]
+script_runner = "powershell"
+script_extension = "ps1"
+script = '''
+Write-Host "Checking MVP service health..."
+Write-Host ""
+
+# Check API
+$apiUrl = "http://127.0.0.1:8080/health"
+try {
+    $response = Invoke-WebRequest -Uri $apiUrl -UseBasicParsing -TimeoutSec 2
+    Write-Host "✅ API backend healthy: $apiUrl" -ForegroundColor Green
+} catch {
+    Write-Host "❌ API backend unreachable: $apiUrl" -ForegroundColor Red
+}
+
+# Check Web
+$webUrl = "http://127.0.0.1:8090"
+try {
+    $response = Invoke-WebRequest -Uri $webUrl -UseBasicParsing -TimeoutSec 2
+    Write-Host "✅ Web frontend healthy: $webUrl" -ForegroundColor Green
+} catch {
+    Write-Host "❌ Web frontend unreachable: $webUrl" -ForegroundColor Red
+}
+
+Write-Host ""
+'''
+
+# =============================================================================
+# 🔴 ADVANCED LEVEL - Complex orchestrated pipelines
+# =============================================================================
+
+# Complete data pipeline: eval → load warehouse → start API/web
+[tasks.mvp-pipeline-full]
+description = "🔴 Complete pipeline: eval → load warehouse → start services"
+dependencies = ["eval-report", "warehouse-setup"]
+script = [
+    "echo ''",
+    "echo '✅ Evaluation complete, warehouse ready'",
+    "echo 'Starting services...'",
+    "echo ''",
+    "cargo make mvp-up"
+]
+
+# Complete CI pipeline
+[tasks.mvp-ci-full]
+description = "🔴 Complete CI: validate-env + fmt + clippy + contracts + test + eval-ci"
+dependencies = [
+    "validate-env",
+    "fmt",
+    "clippy",
+    "contracts-check",
+    "test",
+    "eval-ci"
+]
+script = [
+    "echo ''",
+    "echo '✅ All CI checks passed'",
+    "echo ''"
+]
+
+# Development watch mode (requires cargo-watch)
+[tasks.mvp-dev-loop]
+description = "🔴 Development loop: watch for changes, auto-restart web frontend"
+command = "cargo"
+args = [
+    "watch",
+    "-w", "lib/app/frontend/web",
+    "-w", "lib/platform",
+    "-i", "target/*",
+    "-x", "run -p dfps_web_frontend --bin dfps_web_frontend"
+]
+
+# Quick iteration: format + check + test changed files
+[tasks.mvp-quick-check]
+description = "🔴 Quick iteration: fmt + check (faster than full CI)"
+dependencies = ["fmt", "check"]
+script = [
+    "echo '✅ Quick check complete'"
+]
+
+# Pre-commit hook simulation
+[tasks.mvp-pre-commit]
+description = "🔴 Pre-commit checks: fmt + clippy + quick tests"
+script = [
+    "cargo fmt --all -- --check",
+    "cargo clippy --all-targets -- -D warnings",
+    "cargo test -p dfps_core --lib",
+    "cargo test -p dfps_api --lib",
+    "cargo test -p dfps_web_frontend --lib"
+]
+
+# =============================================================================
+# Helper tasks for orchestration
+# =============================================================================
+
+[tasks.mvp-banner]
+description = "Show MVP startup banner"
+script = [
+    "echo ''",
+    "echo '╔════════════════════════════════════════════════════════╗'",
+    "echo '║  DFPS MVP Development Environment                     ║'",
+    "echo '╚════════════════════════════════════════════════════════╝'",
+    "echo ''",
+    "echo 'API Backend:     http://127.0.0.1:8080'",
+    "echo 'Web Frontend:    http://127.0.0.1:8090'",
+    "echo 'Docs (if running): http://127.0.0.1:3000'",
+    "echo ''",
+    "echo 'Health check:    cargo make mvp-health'",
+    "echo 'Stop services:   Ctrl+C in each terminal'",
+    "echo ''"
+]

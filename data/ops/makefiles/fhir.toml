@@ -1,0 +1,54 @@
+# FHIR validation tasks
+# Aligns with docs/runbook/020-fhir/fhir-profiles-quickstart.md
+
+# 🟢 BEGINNER: Validate FHIR bundles with embedded profiles
+[tasks.fhir-validate]
+description = "🟢 Validate FHIR bundles using embedded profiles (requires INPUT=path/to/bundle.json)"
+condition = { env_set = ["INPUT"] }
+command = "cargo"
+args = ["run", "-p", "dfps_cli", "--bin", "validate_fhir", "--", "${INPUT}"]
+
+# 🟡 INTERMEDIATE: Run all FHIR validation tests
+[tasks.fhir-test]
+description = "🟡 Run FHIR validation tests (profile validation + ingestion)"
+dependencies = ["fhir-test-profile", "fhir-test-ingestion"]
+
+[tasks.fhir-test-profile]
+description = "Run FHIR profile loader tests"
+command = "cargo"
+args = [
+    "test",
+    "-p", "dfps_ingestion",
+    "--features", "profile_validation",
+    "--",
+    "--nocapture"
+]
+
+[tasks.fhir-test-ingestion]
+description = "Run FHIR ingestion validation tests"
+script = [
+    "cargo test -p dfps_ingestion",
+    "cargo test -p dfps_test_suite --test integration_tests validation"
+]
+
+# 🔴 ADVANCED: Validate against external FHIR validator
+[tasks.fhir-validate-external]
+description = "🔴 Validate using external FHIR validator (requires DFPS_FHIR_VALIDATOR_BASE_URL, DFPS_FHIR_VALIDATOR_PROFILE, INPUT)"
+condition = { env_set = ["DFPS_FHIR_VALIDATOR_BASE_URL", "DFPS_FHIR_VALIDATOR_PROFILE", "INPUT"] }
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "validate_fhir",
+    "--",
+    "--profile", "${DFPS_FHIR_VALIDATOR_PROFILE}",
+    "${INPUT}"
+]
+
+# 🔴 ADVANCED: Test profile changes
+[tasks.fhir-profile-update]
+description = "🔴 Test FHIR profile changes (run after editing data/fhir/profiles/*.json)"
+dependencies = ["fhir-test"]
+script = [
+    "echo 'Profile tests passed. Update docs/system-design/clinical/fhir/requirements/ingestion-requirements.md if needed'"
+]

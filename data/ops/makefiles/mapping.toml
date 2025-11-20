@@ -1,0 +1,94 @@
+# Mapping and Terminology evaluation tasks
+# Aligns with docs/runbook/030-mapping-and-terminology/mapping-eval-quickstart.md
+
+# 🟢 BEGINNER: Quick evaluation on small dataset
+[tasks.eval-quick]
+description = "🟢 Run quick mapping evaluation on pet_ct_small dataset"
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "eval_mapping",
+    "--",
+    "--dataset", "pet_ct_small",
+    "--dump-details"
+]
+
+# 🟡 INTERMEDIATE: Full evaluation pipeline
+[tasks.eval-full]
+description = "🟡 Run full evaluation on all datasets (bronze/silver/gold)"
+script = [
+    "cargo run -p dfps_cli --bin eval_mapping -- --dataset bronze_pet_ct_small --dump-details",
+    "cargo run -p dfps_cli --bin eval_mapping -- --dataset silver_pet_ct_extended --dump-details",
+    "cargo run -p dfps_cli --bin eval_mapping -- --dataset gold_pet_ct_comprehensive --dump-details"
+]
+
+# 🟡 INTERMEDIATE: Generate evaluation report with baseline comparison
+[tasks.eval-report]
+description = "🟡 Generate evaluation report with baseline comparison"
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "eval_mapping",
+    "--",
+    "--dataset", "gold_pet_ct_small",
+    "--out-dir", "target/eval",
+    "--report", "target/eval/report.md",
+    "--dump-details"
+]
+
+# 🔴 ADVANCED: CI-ready evaluation with thresholds
+[tasks.eval-ci]
+description = "🔴 CI evaluation with thresholds and deterministic checks"
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "eval_mapping",
+    "--",
+    "--dataset", "pet_ct_small",
+    "--thresholds", "lib/domain/evaluation/fake_data/data/meta/eval_thresholds.json",
+    "--deterministic", "target/eval/pet_ct_small.fingerprint"
+]
+
+# 🔴 ADVANCED: Evaluate custom dataset
+[tasks.eval-custom]
+description = "🔴 Evaluate custom dataset (requires DATASET or INPUT env var)"
+condition = { env_set = ["INPUT"] }
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "eval_mapping",
+    "--",
+    "--input", "${INPUT}",
+    "--dump-details"
+]
+
+[tasks.eval-custom-dataset]
+description = "🔴 Evaluate named custom dataset (requires DATASET env var)"
+condition = { env_set = ["DATASET"] }
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "eval_mapping",
+    "--",
+    "--dataset", "${DATASET}",
+    "--dump-details"
+]
+
+# 🔴 ADVANCED: Evaluation with bootstrap confidence intervals
+[tasks.eval-advanced]
+description = "🔴 Run evaluation with advanced statistics (bootstrap CI)"
+command = "cargo"
+args = [
+    "run",
+    "-p", "dfps_cli",
+    "--bin", "eval_mapping",
+    "--features", "eval-advanced",
+    "--",
+    "--dataset", "pet_ct_small",
+    "--dump-details"
+]
