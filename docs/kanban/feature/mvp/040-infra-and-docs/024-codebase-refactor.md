@@ -49,20 +49,20 @@
           - [x] Add idempotent migration/load tests for NO_MATCH handling, duplicate SR rows, and compliance export filtering.
           - [x] Provide a streaming insert API so CLI/API callers don’t buffer full PipelineOutput lists before writing to SQLite.
   - [ ] `lib/domain`
-    - [ ] Document domain layering (core/ingestion/mapping/eval/terminology) and keep domain crates free of direct environment reads.
-    - [ ] Align error/reporting semantics across domain crates (ValidationError/Policy errors) to simplify pipeline/app boundaries.
+    - [x] Document domain layering (core/ingestion/mapping/eval/terminology) and keep domain crates free of direct environment reads. (Directory architecture doc now calls out the layering + env-free constraints.)
+    - [x] Align error/reporting semantics across domain crates (ValidationError/Policy errors) to simplify pipeline/app boundaries. (`EvalMetrics` splits results vs metrics; dataset/config errors now use the shared `thiserror` pattern.)
     - [ ] `lib/domain/core` (`dfps_core`)
-      - [ ] Add a `MappingResult` builder/constructor to standardize reason/state handling instead of duplicating logic in downstream crates.
-      - [ ] Expose a helper for constructing stable `CodeElement` IDs so ingestion/mapping/datamart share the same format.
-      - [ ] Add a crate README tying modules to system-design docs and clarifying staging vs mapping vs order invariants.
+      - [x] Add a `MappingResult` builder/constructor to standardize reason/state handling instead of duplicating logic in downstream crates. (Documented in `README.md`; builders already in `result.rs`.)
+      - [x] Expose a helper for constructing stable `CodeElement` IDs so ingestion/mapping/datamart share the same format. (`CodeElement::id_for` documented + referenced by README.)
+      - [x] Add a crate README tying modules to system-design docs and clarifying staging vs mapping vs order invariants.
     - [ ] `lib/domain/evaluation/eval` (`dfps_eval`)
       - [x] Replace raw `std::env` dataset root resolution with a config struct built via `dfps_configuration` (still honoring DFPS_EVAL_DATA_ROOT).
-      - [ ] Split IO/parsing from scoring so eval functions accept injected readers/writers instead of reading files directly.
-      - [ ] Add determinism/benchmark tests for fingerprint computation across chunk sizes and `top_k` settings.
+      - [x] Split IO/parsing from scoring so eval functions accept injected readers/writers instead of reading files directly. (`run_eval_streaming[_metrics]_with_mapper` accept `BufRead`; summary/metrics aggregation separated.)
+      - [x] Add determinism/benchmark tests for fingerprint computation across chunk sizes and `top_k` settings. (New fingerprint bench + streaming tests verifying chunk-size parity.)
     - [ ] `lib/domain/evaluation/eval::fake_data` (`dfps_eval::fake_data`)
       - [x] Add module docs describing generator outputs/seed controls and link them from `data/eval/README.md`.
       - [x] Centralize RNG seeding helpers to keep fixtures deterministic across modules and CLI bins.
-      - [ ] Provide a thin config wrapper over `dfps_configuration` for the generators instead of ad-hoc env access.
+      - [x] Provide a thin config wrapper over `dfps_configuration` for the generators instead of ad-hoc env access. (`FakeDataConfig` now wraps `DFPS_FAKE_DATA_*`.)
     - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
       - [x] Embed FHIR profiles under `dfps_ingestion::profiles` with tests for required snapshot elements and documented URLs.
       - [x] Add a crate README and crate-level docs describing the Bundle → staging/domain flow and profile hook.

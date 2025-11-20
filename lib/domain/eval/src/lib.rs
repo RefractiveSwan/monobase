@@ -17,6 +17,7 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use thiserror::Error;
 use std::{
     collections::BTreeMap,
     fs::File,
@@ -216,49 +217,31 @@ mod advanced_tests {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum DatasetError {
+    #[error("failed to read dataset {path}: {source}")]
     Io {
         source: std::io::Error,
         path: PathBuf,
     },
+    #[error("failed to parse EvalCase on line {line}: {source}")]
     Parse {
         line: usize,
         source: serde_json::Error,
     },
+    #[error("failed to parse dataset manifest {path}: {source}")]
     ManifestParse {
         path: PathBuf,
         source: serde_json::Error,
     },
 }
 
-impl std::fmt::Display for DatasetError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl DatasetError {
+    pub fn context(&self) -> String {
         match self {
-            DatasetError::Io { path, source } => {
-                write!(f, "failed to read dataset {}: {}", path.display(), source)
-            }
-            DatasetError::Parse { line, source } => {
-                write!(f, "failed to parse EvalCase on line {}: {}", line, source)
-            }
-            DatasetError::ManifestParse { path, source } => {
-                write!(
-                    f,
-                    "failed to parse dataset manifest {}: {}",
-                    path.display(),
-                    source
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for DatasetError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            DatasetError::Io { source, .. } => Some(source),
-            DatasetError::Parse { source, .. } => Some(source),
-            DatasetError::ManifestParse { source, .. } => Some(source),
+            DatasetError::Io { path, .. } => format!("dataset {}", path.display()),
+            DatasetError::Parse { line, .. } => format!("line {}", line),
+            DatasetError::ManifestParse { path, .. } => format!("manifest {}", path.display()),
         }
     }
 }
