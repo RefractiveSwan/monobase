@@ -1,0 +1,5 @@
+---
+source: lib/app/frontend/web/src/views.rs
+expression: render_eval_panel(&ctx).into_string()
+---
+<section class="bg-white shadow-sm rounded-xl p-6 space-y-4" id="eval-panel"><div class="flex items-center justify-between"><h2 class="text-xl font-semibold">Mapping evaluation snapshot</h2><span class="text-sm text-slate-500">HTMX fragment from dfps_eval::report</span></div><div class="flex flex-wrap items-center gap-3 text-sm"><label class="text-slate-600" for="eval-dataset">Dataset</label><select id="eval-dataset" name="dataset" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" hx-get="/eval/report" hx-target="#eval-report-fragment" hx-swap="innerHTML" hx-trigger="change"><option value="gold_pet_ct_small" selected>gold_pet_ct_small</option></select></div><div id="eval-report-fragment" class="rounded-lg border border-slate-200 bg-slate-50 p-4"><div>metrics</div></div></section>

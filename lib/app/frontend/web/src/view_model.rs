@@ -1,14 +1,16 @@
 use std::collections::{BTreeMap, HashMap};
 
+use dfps_contracts::PipelineMetrics;
 use dfps_core::{
     mapping::{CodeElement, MappingState},
     staging::StgServiceRequestFlat,
 };
 use dfps_eval::{DatasetManifest, EvalSummary};
-use dfps_observability::PipelineMetrics;
 
 use crate::client::{AnalyticsSummaryResponse, CohortFilters, CohortResponse, MapBundlesResponse};
 
+/// Default dataset used when the API cannot list available eval datasets.
+/// Keep this aligned with docs/runbook/mapping-eval-quickstart.md examples.
 pub const DEFAULT_EVAL_DATASET: &str = "gold_pet_ct_small";
 
 #[derive(Debug, Clone)]
@@ -468,6 +470,7 @@ mod tests {
                 preferred_name: "FDG Uptake".into(),
                 semantic_group: "Test".into(),
             }],
+            vector_usage: None,
         }
     }
 

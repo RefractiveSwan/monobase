@@ -1,5 +1,6 @@
 pub mod client;
 pub mod config;
+pub mod handlers;
 pub mod routes;
 pub mod state;
 pub mod view_model;

@@ -1,5 +1,5 @@
+use dfps_contracts::PipelineMetrics;
 use dfps_core::mapping::MappingState;
-use dfps_observability::PipelineMetrics;
 use maud::{DOCTYPE, Markup, PreEscaped, html};
 
 use crate::view_model::{
@@ -131,6 +131,7 @@ pub fn render_page(ctx: &PageContext) -> String {
     .into_string()
 }
 
+/// HTMX fragment returned to `/map/paste` and `/map/upload` handlers.
 pub fn render_results_fragment(ctx: &PageContext) -> String {
     render_results(ctx).into_string()
 }
@@ -202,6 +203,7 @@ fn render_analytics_panels(ctx: &PageContext) -> Markup {
                     h2 class="text-xl font-semibold" { "Analytics overview" }
                     span class="text-sm text-slate-500" { "GET /analytics/ncit-summary" }
                 }
+                p class="text-xs text-slate-500" { "Mapping states mirror docs/system-design/ncit/behavior/sequence-servicerequest.md definitions so CLI/API screenshots remain accurate." }
                 @if let Some(error) = &ctx.analytics_error {
                     (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
                 } @else if let Some(summary) = &ctx.analytics_summary {
@@ -365,6 +367,7 @@ fn render_cohort_row(row: &CohortRowView) -> Markup {
     }
 }
 
+/// Renders the `/eval` page HTMX fragment (hx-get `/eval/report` + hx-post `/eval/run`).
 fn render_eval_panel(ctx: &PageContext) -> Markup {
     html! {
         section class="bg-white shadow-sm rounded-xl p-6 space-y-4" id="eval-panel" {
@@ -407,7 +410,7 @@ fn render_no_match_explorer(results: Option<&MappingResultsView>) -> Markup {
         section class="bg-white shadow-sm rounded-xl p-6 space-y-4" id="no-match-explorer" {
             div class="flex items-center justify-between" {
                 h2 class="text-xl font-semibold" { "NoMatch explorer" }
-                span class="text-sm text-slate-500" { "Codes that need NCIt follow-up" }
+                span class="text-sm text-slate-500" { "Codes that need NCIt follow-up (MappingState::NoMatch)" }
             }
             @if let Some(view) = results {
                 @if view.no_matches.is_empty() {
@@ -715,21 +718,13 @@ fn state_metric_card(title: &str, value: usize, classes: &str, tooltip: &str) ->
 mod tests {
     use super::*;
     use crate::view_model::{
-        CountStat, MappingResultsView, MappingRowView, NoMatchRowView, PageContext,
-        ServiceRequestSummary,
+        AnalyticsConceptTile, AnalyticsSummaryView, CohortRowView, CohortView, CountStat,
+        MappingResultsView, MappingRowView, NoMatchRowView, PageContext, ServiceRequestSummary,
     };
+    use insta::assert_snapshot;
 
-    #[test]
-    fn render_page_shows_metrics_and_no_match_details() {
-        let mut metrics = PipelineMetrics::default();
-        metrics.bundle_count = 3;
-        metrics.flats_count = 4;
-        metrics.mapping_count = 5;
-        metrics.auto_mapped = 2;
-        metrics.needs_review = 1;
-        metrics.no_match = 2;
-
-        let results = MappingResultsView {
+    fn sample_results_view() -> MappingResultsView {
+        MappingResultsView {
             request_summary: ServiceRequestSummary {
                 total: 2,
                 statuses: vec![CountStat {
@@ -770,13 +765,24 @@ mod tests {
                 display: "Unknown code".into(),
                 reason: Some("missing_system_or_code".into()),
             }],
-        };
+        }
+    }
+
+    #[test]
+    fn render_page_shows_metrics_and_no_match_details() {
+        let mut metrics = PipelineMetrics::default();
+        metrics.bundle_count = 3;
+        metrics.flats_count = 4;
+        metrics.mapping_count = 5;
+        metrics.auto_mapped = 2;
+        metrics.needs_review = 1;
+        metrics.no_match = 2;
 
         let mut ctx = PageContext::default();
         ctx.health = None;
         ctx.health_error = Some("Health endpoint unreachable: test".into());
         ctx.metrics = Some(metrics);
-        ctx.results = Some(results);
+        ctx.results = Some(sample_results_view());
         ctx.eval_report_html = Some("<div>Eval report</div>".into());
 
         let html = render_page(&ctx);
@@ -823,5 +829,79 @@ mod tests {
         assert!(html.contains("Run eval"));
         assert!(html.contains("Top1 accuracy"));
         assert!(html.contains("missing_system_or_code"));
+    }
+
+    #[test]
+    fn mapping_results_fragment_snapshot() {
+        let mut ctx = PageContext::default();
+        ctx.results = Some(sample_results_view());
+        assert_snapshot!("mapping_results_fragment", render_results_fragment(&ctx));
+    }
+
+    #[test]
+    fn no_match_explorer_snapshot() {
+        let view = sample_results_view();
+        assert_snapshot!(
+            "no_match_explorer_fragment",
+            render_no_match_explorer(Some(&view)).into_string()
+        );
+    }
+
+    #[test]
+    fn analytics_panels_snapshot() {
+        let mut ctx = PageContext::default();
+        ctx.analytics_summary = Some(AnalyticsSummaryView {
+            top_concepts: vec![AnalyticsConceptTile {
+                ncit_id: "C1234".into(),
+                preferred_name: "FDG Uptake".into(),
+                total: 3,
+            }],
+            state_counts: vec![
+                CountStat {
+                    label: "auto_mapped".into(),
+                    count: 3,
+                },
+                CountStat {
+                    label: "needs_review".into(),
+                    count: 1,
+                },
+            ],
+            time_buckets: vec![],
+        });
+        ctx.cohort = Some(CohortView {
+            total: 1,
+            rows: vec![CohortRowView {
+                sr_id: "SR-1".into(),
+                patient_id: "P1".into(),
+                encounter_id: "E1".into(),
+                ncit_id: "C1234".into(),
+                description: "FDG".into(),
+                status: "active".into(),
+                intent: "order".into(),
+                ordered_at: "2024-05-01T12:00:00Z".into(),
+                mapping_state: "auto_mapped".into(),
+            }],
+        });
+        assert_snapshot!(
+            "analytics_panels_fragment",
+            render_analytics_panels(&ctx).into_string()
+        );
+    }
+
+    #[test]
+    fn eval_panel_snapshot() {
+        let mut ctx = PageContext::default();
+        ctx.datasets = vec![dfps_eval::DatasetManifest {
+            name: "gold_pet_ct_small".into(),
+            version: "20240501".into(),
+            license: Some("test".into()),
+            source: Some("demo".into()),
+            n_cases: 3,
+            sha256: "abc123".into(),
+            notes: None,
+        }];
+        ctx.selected_eval_dataset = "gold_pet_ct_small".into();
+        ctx.eval_report_html = Some("<div>metrics</div>".into());
+        assert_snapshot!("eval_panel_fragment", render_eval_panel(&ctx).into_string());
     }
 }

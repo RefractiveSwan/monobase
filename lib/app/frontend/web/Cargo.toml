@@ -16,6 +16,7 @@ actix-web.workspace = true
 bytes.workspace = true
 dfps_core = { path = "../../../domain/core" }
 dfps_eval = { path = "../../../domain/eval" }
+dfps_contracts = { path = "../../../domain/contracts" }
 dfps_observability = { path = "../../../platform/observability" }
 dfps_configuration = { path = "../../../platform/configuration" }
 futures-util.workspace = true
@@ -27,3 +28,4 @@ thiserror = "2.0.17"
 
 [dev-dependencies]
 wiremock = "0.6"
+insta = { version = "1.39.0", features = ["yaml"] }

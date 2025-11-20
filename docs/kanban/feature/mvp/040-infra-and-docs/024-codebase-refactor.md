@@ -167,29 +167,6 @@
   - [ ] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
   - [ ] Share embedding/version metadata semantics with mapping/vector-store docs (documented in mdBook and CLI help).
 
-### REFR-17 – Web frontend & UX (`dfps_web_frontend`)
-
-**Goal:** Make `dfps_web_frontend` a thin, well-typed UI shell over `dfps_dataplane`{formerly `dfps_api`}, with configuration driven by `dfps_configuration`, clean DTO mapping, and views that reflect the system-design/analytics docs.
-
-- [ ] Add a top-level README section that:
-  - [ ] Maps each page/route (`/`, `/analytics`, `/eval`, `/docs`) to the backend endpoints it calls.
-  - [ ] Explains env variables (`DFPS_FRONTEND_LISTEN_ADDR`, `DFPS_API_BASE_URL`, `DFPS_API_CLIENT_TIMEOUT_SECS`, `DFPS_DOCS_URL`) and how they relate to configuration docs.
-- [ ] `config.rs`:
-  - [ ] Replace direct `env::var` parsing with helpers from `dfps_configuration` (bool/int/string) so error handling and defaults are consistent.
-  - [ ] Ensure all config errors are surfaced as structured IO errors in `run()`, not panics.
-- [ ] `client.rs`:
-  - [ ] Confirm DTOs (`MapBundlesResponse`, `EvalRunResponse`, `AnalyticsSummaryResponse`, `CohortResponse`) mirror backend DTOs; add tests that deserialize API responses from `dfps_dataplane`{formerly `dfps_api`} test fixtures.
-  - [ ] Normalize error reporting (`ClientError`) for use in views (short, user-friendly messages).
-  - [ ] Ensure timeouts and base URLs are fully driven by `AppConfig`.
-- [ ] `routes.rs` + `views.rs` + `view_model.rs`:
-  - [ ] Document how HTMX fragments map to API calls and eval/analytics flows.
-  - [ ] Audit Bundle upload/paste flows for size limits, error messaging, and alignment with CLI behavior (e.g., “no bundles found” vs “invalid JSON”).
-  - [ ] Ensure eval/analytics panels clearly surface compliance mode, mapping states, and NoMatch reasons consistent with docs.
-  - [ ] Clarify how default eval dataset (`DEFAULT_EVAL_DATASET`) is chosen and keep it in sync with doc examples.
-- [ ] Cross-surface DTO alignment:
-  - [ ] Verify that `MappingResultsView`, `AnalyticsSummaryView`, `CohortView`, and eval panels stay in sync with `dfps_dataplane`{formerly `dfps_api`} DTOs and CLI output (no divergent field names).
-  - [ ] Add snapshot tests (string-based) for key HTML fragments (mapping results, NoMatch explorer, analytics panels, eval panel) to guard against breaking UI contracts used in screenshots/docs.
-
 ---
 
 ## INPROGRESS
@@ -1089,6 +1066,9 @@ Ensure:
 * Analytics endpoints (`/analytics/*`) work with **no in-memory state** if the process is restarted; all data is persisted in SQLite and read from there.
 * `dfps_api` is the only server crate exposing HTTP; any future HTTP surfaces reuse its contracts (REFR-03).
 * Vector store + warehouse config errors are surfaced as documented HTTP errors / log messages, not panics.
+
+
+
 
 ## DONE
 - _Empty_

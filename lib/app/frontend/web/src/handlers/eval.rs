@@ -1,0 +1,113 @@
+use actix_web::{HttpResponse, Result, web};
+use serde::Deserialize;
+
+use crate::{
+    client::BackendClient,
+    state::AppState,
+    view_model::{DEFAULT_EVAL_DATASET, EvalContext, PageContext},
+    views,
+};
+use dfps_eval::report;
+
+/// Registers evaluation routes (page + HTMX fragments).
+pub fn configure(cfg: &mut web::ServiceConfig) {
+    cfg.service(web::resource("/eval").route(web::get().to(eval_page)))
+        .service(web::resource("/eval/report").route(web::get().to(eval_report)))
+        .service(web::resource("/eval/run").route(web::post().to(eval_run)));
+}
+
+pub async fn eval_page(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let mut ctx = PageContext::default();
+    ctx.datasets = state.client.eval_datasets().await.unwrap_or_default();
+    let selected = ctx
+        .datasets
+        .first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| DEFAULT_EVAL_DATASET.to_string());
+    ctx.selected_eval_dataset = selected.clone();
+    if let Ok(run) = state.client.eval_run(&selected, 1).await {
+        ctx.eval = Some(EvalContext {
+            dataset: selected.clone(),
+            summary: run.summary,
+        });
+    }
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_eval_page(&ctx)))
+}
+
+#[derive(Deserialize)]
+pub struct EvalReportQuery {
+    pub dataset: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct EvalRunForm {
+    pub dataset: String,
+    #[serde(default = "default_top_k")]
+    pub top_k: usize,
+}
+
+fn default_top_k() -> usize {
+    1
+}
+
+/// Returns the HTMX fragment for the eval report panel.
+pub async fn eval_report(
+    state: web::Data<AppState>,
+    query: web::Query<EvalReportQuery>,
+) -> Result<HttpResponse> {
+    let dataset = query
+        .dataset
+        .as_deref()
+        .unwrap_or(DEFAULT_EVAL_DATASET)
+        .to_string();
+    match render_eval_report_fragment(&state.client, &state.dataset_store, &dataset).await {
+        Ok(html) => Ok(HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(html)),
+        Err(err) => Ok(HttpResponse::InternalServerError()
+            .content_type("text/plain; charset=utf-8")
+            .body(format!("Eval report error: {err}"))),
+    }
+}
+
+/// Handles eval run submissions triggered by the HTMX eval form.
+pub async fn eval_run(
+    state: web::Data<AppState>,
+    form: web::Form<EvalRunForm>,
+) -> Result<HttpResponse> {
+    let dataset = form.dataset.clone();
+    match state.client.eval_run(&dataset, form.top_k).await {
+        Ok(run) => Ok(HttpResponse::Ok()
+            .content_type("text/html; charset=utf-8")
+            .body(views::render_eval_fragment(&run))),
+        Err(err) => Ok(HttpResponse::InternalServerError()
+            .content_type("text/plain; charset=utf-8")
+            .body(format!("Eval run error: {err}"))),
+    }
+}
+
+/// Builds the eval report fragment via dfps_eval helpers.
+pub(crate) async fn render_eval_report_fragment(
+    client: &BackendClient,
+    store: &dfps_eval::FileDatasetStore,
+    dataset: &str,
+) -> Result<String, String> {
+    let summary = client
+        .eval_summary(dataset)
+        .await
+        .map_err(|err| format!("Backend eval error: {err}"))?;
+    let baseline = match report::load_baseline_snapshot_from(store.root(), dataset) {
+        Ok(snapshot) => Some(snapshot),
+        Err(err) => {
+            eprintln!("warning: baseline load failed for {dataset}: {err}");
+            None
+        }
+    };
+    let html = report::render_html(
+        &summary,
+        baseline.as_ref().map(|snapshot| &snapshot.summary),
+    );
+    Ok(html)
+}
