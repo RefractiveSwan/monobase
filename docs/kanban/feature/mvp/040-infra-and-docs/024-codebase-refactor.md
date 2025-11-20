@@ -1,7 +1,7 @@
-# Kanban - feature/codebase-refactor (022)
+# Kanban - feature/codebase-refactor (024)
 
 **Theme:** Docs polish - public hosting, full-text search, theming  
-**Branch:** `feature/meta/REFR-022-codebase-refactor`  
+**Branch:** `feature/meta/REFR-024-codebase-refactor`  
 **Goal:** Turn the local mdBook into a searchable, themed, publicly hosted documentation site, integrated with `/docs` in the frontend.
 
 > Status: **INPROGRESS**  
@@ -40,7 +40,7 @@
       - [ ] `lib/app/servers` (`dfps_web_backend`)
         - [ ] Document ownership/boundaries for API vs datamart crates and the expected env namespaces for each.
         - [ ] Hoist shared analytics DTOs into a reusable module so API handlers and frontend client structs stay in sync.
-        - [ ] `lib/app/servers/api` (`dfps_api`)
+        - [ ] `lib/app/servers/api` (`dfps_dataplane`{formerly `dfps_api`})
           - [ ] Add a config module (using `dfps_configuration`) for host/port/warehouse/compliance instead of scattered `std::env::var` lookups in `server.rs`.
           - [ ] Extract analytics persistence/state management into a component with eviction/metrics to avoid unbounded HashMap growth.
           - [ ] Load compliance policy once at startup and thread it through handlers instead of calling `load_policy_from_env` per request.
@@ -128,74 +128,739 @@
     - [ ] `lib/platform/compliance` — policy loader as adapter; enforcement callable from app/domain ports without env.
     - [ ] `lib/platform/test_suite` — test-only adapters (datasets/db), no production env mutation.
 
+
+
 ### REFR-03 – Cross-surface contracts & DTO alignment
 
-- [ ] Define canonical DTOs for analytics/eval/mapping in a shared module (mirrored between `dfps_api` responses, `dfps_web_frontend` client types, and `dfps_cli` outputs) and document their owners.
-- [ ] Add regression tests that round-trip API responses (health/metrics/analytics/eval) through frontend client deserializers to prevent drift.
-- [ ] Establish contract tests for mapping invariants: pipeline output → datamart loader → analytics summaries must preserve mapping state, license tier, and vector_usage metadata.
-- [ ] Create a “compliance surface” checklist: every path emitting mapping results must show compliance mode, license-blocked counts, and export policy enforcement (CLI, API, datamart loader).
-- [ ] Add versioned schema snapshots (JSON Schema or Rust type hashes) for public structs: `PipelineOutput`, `MappingResult`, `PipelineMetrics`, analytics summary/cohort rows.
-- [ ] Document error taxonomies per surface (CLI exit codes, API status codes, frontend user messages) and map them back to domain errors (ingestion, mapping, compliance).
+**Epic ID**: `REFR-03`
+**Theme**: canonical DTOs & schemas across CLI / HTTP / datamart / eval / analytics
+**Touches**:
+
+* Domain:
+
+  * `lib/domain/core` (`dfps_core`) – `MappingResult`, `DimNCITConcept`, `Stg*` types.
+  * `lib/domain/pipeline` (`dfps_pipeline`) – `PipelineOutput`.
+  * `lib/domain/eval` (`dfps_eval`) – `EvalCase`, `EvalSummary`, `DatasetManifest`, `FileDatasetStore`.
+* App:
+
+  * `lib/app/servers/api/src/dto.rs` – `AnalyticsSummaryResponse`, `CohortResponse`, `EvalRunResponse`.
+  * `lib/app/servers/api/src/server.rs` – `MapBundlesResponse`, `ErrorResponse`, `ApiError`.
+  * `lib/app/servers/datamart` – dim/fact structs + SQL rows.
+  * (later) `lib/app/frontend/cli`, `lib/app/frontend/web`.
+* Platform (indirect):
+
+  * `dfps_configuration`, `dfps_compliance`, `dfps_observability` – referenced in error/metrics/compliance DTOs.
+
+#### Goal
+
+Define **one canonical set of contracts** (“Pipeline/Analytics/Eval contracts”) that:
+
+1. Travel unchanged across:
+
+   * `dfps_api` HTTP responses,
+   * CLI NDJSON outputs,
+   * datamart/warehouse schemas,
+   * eval fixtures,
+   * web UI clients.
+2. Are **schema-versioned** and **CI-guarded** against accidental breaking changes.
+3. Encode a **unified error taxonomy** that ties `ApiError` + CLI exit codes back to domain/platform error categories.
+
+#### Current problems in code
+
+* DTO duplication / drift risk:
+
+  * HTTP analytics DTOs live in `lib/app/servers/api/src/dto.rs`.
+  * Datamart structs (`DimPatient`, `DimNCIT`, `FactServiceRequest`) live in `dfps_datamart`.
+  * Domain structs (`MappingResult`, `DimNCITConcept`, staging rows, `PipelineOutput`) live in `dfps_core`/`dfps_pipeline`.
+  * Eval manifests and summaries live only in `dfps_eval`.
+* No explicit **contract crate**; nothing stops Web/CLI from inventing slightly divergent shapes.
+* Error taxonomy is implicit:
+
+  * `ApiError` categories exist but not mapped to a documented taxonomy.
+  * Datamart’s `LoadError` and vector errors (`VectorStoreError`) are not unified.
+
+#### Design
+
+##### 03.1 Canonical contracts crate
+
+Create a new crate (name exact paths up to you, but conceptually):
+
+* `lib/domain/contracts` (package: `dfps_contracts`).
+
+**Ownership rules:**
+
+* **Domain-level contracts** (no HTTP-specific wrapping, no CLI-only fields) live here:
+
+  * `PipelineOutput` *re-export* from `dfps_pipeline` (or a newtype alias if needed).
+  * `MappingResult`, `DimNCITConcept` *re-export* from `dfps_core`.
+  * Analytics contracts:
+
+    * `AnalyticsSummaryRow` (structurally equivalent to `AnalyticsNcitSummaryRow`).
+    * `AnalyticsSummaryResponse`.
+    * `CohortRow`, `CohortResponse`.
+  * Eval contracts:
+
+    * `DatasetManifest` (re-export from `dfps_eval`).
+    * `EvalSummary`, `EvalRunResponse`.
+  * Metrics & vector usage snapshots:
+
+    * `PipelineMetrics` (re-export from `dfps_observability`) as a “public metrics contract”.
+    * `VectorUsageSnapshot`, `VectorCapacitySnapshot`.
+* **Transport wrappers** remain with the transport:
+
+  * HTTP: `ErrorResponse { code, message, request_id }` stays in `dfps_api` but uses a *stable error code enum* from `dfps_contracts`.
+  * CLI: exit codes, human-readable messages remain in CLI.
+
+**Schema versioning:**
+
+* Each public contract struct derives:
+
+  * `Serialize`, `Deserialize`, and optionally `JsonSchema` (if you add `schemars`).
+* Add a tiny `schema` module that:
+
+  * Produces JSON Schema snapshots (or type hash manifests) under `target/contracts/`.
+  * Associates each schema with a semantic version (e.g. `dfps.contracts.PipelineOutput@v1`).
+
+##### 03.2 Error taxonomy & mapping
+
+Define a single `ErrorKind` enum in `dfps_contracts`:
+
+* Categories:
+
+  * `DomainIngestion`, `DomainMapping`, `DomainCompliance`, `DomainVector`, `DomainWarehouse`.
+  * `PlatformConfig`, `PlatformStore`, `PlatformTerminology`.
+  * `AppHttpClient`, `AppHttpServer`, `AppCliUsage`, `AppCliRuntime`.
+
+Add mapping tables:
+
+* `dfps_api::ApiError` → `(ErrorKind, http_status, code_string)`.
+* `dfps_datamart::LoadError` → `(ErrorKind, detail_string)` but no HTTP.
+* `dfps_vector_store::VectorStoreError` → `ErrorKind::DomainVector` / `PlatformStore`.
+* `dfps_compliance::ComplianceError` → `ErrorKind::DomainCompliance`.
+
+This gives:
+
+* Stable `code` strings for HTTP and CLI (e.g. `invalid_fhir`, `compliance_blocked`, `vector_backend_unavailable`, `warehouse_export_blocked`).
+* A documentation anchor for all error surfaces in the docs.
+
+#### Implementation tasks
+
+##### 03.A – Create `dfps_contracts`
+
+* [ ] Add `lib/domain/contracts` crate:
+
+  * [ ] Define modules:
+
+    * `pipeline.rs` – `PipelineOutput` re-export + associated mapping summary contracts.
+    * `analytics.rs` – `AnalyticsSummaryRow`, `AnalyticsSummaryResponse`, `CohortRow`, `CohortResponse`.
+    * `eval.rs` – `DatasetManifest`, `EvalSummary`, `EvalRunResponse`.
+    * `metrics.rs` – `PipelineMetrics`, `VectorUsageSnapshot`, `VectorCapacitySnapshot`.
+    * `errors.rs` – `ErrorKind`, `ErrorCode` (string) and mapping helpers.
+  * [ ] Re-export domain types from `dfps_core`, `dfps_pipeline`, `dfps_eval`, `dfps_observability` instead of copying shapes.
+
+##### 03.B – Wire contracts into app/servers
+
+* [ ] `dfps_api`:
+
+  * [ ] Replace `AnalyticsSummaryResponse`, `AnalyticsNcitSummaryRow`, `CohortResponse`, `CohortRow`, `EvalRunResponse` in `src/dto.rs` with re-exports or thin wrappers around `dfps_contracts`.
+  * [ ] `MapBundlesResponse`:
+
+    * [ ] Represent as “pipeline output envelope” referencing `PipelineOutput` fields (or drop it in favor of `PipelineOutput` when appropriate).
+  * [ ] `ErrorResponse.code`:
+
+    * [ ] Map `ApiError` variants to `ErrorKind + ErrorCode`.
+    * [ ] Ensure `code` is drawn from `dfps_contracts::ErrorCode`.
+
+* [ ] `dfps_datamart`:
+
+  * [ ] Provide analytic query APIs returning `dfps_contracts::AnalyticsSummaryRow` / `CohortRow`, not bespoke structs.
+  * [ ] Add `LoadSummary` as part of a “warehouse contract” for CLI/HTTP responses.
+
+##### 03.C – CLI & eval alignment
+
+* [ ] Update CLI bins (`map_bundles`, `eval_mapping`, `load_datamart`) to:
+
+  * [ ] Produce NDJSON whose payload records conform exactly to `dfps_contracts` types:
+
+    * Mapping results: `MappingResult` from `dfps_core`.
+    * Analytics: same `AnalyticsSummaryRow` as HTTP.
+    * Eval: `EvalSummary`, `EvalRunResponse`.
+  * [ ] Add tests that run CLI commands in-process (`dfps_test_suite`) and deserialize results using `dfps_contracts`.
+
+##### 03.D – Schema snapshots & CI
+
+* [ ] Add a small `contracts-schema` test binary that:
+
+  * [ ] Generates JSON Schema (or stable hashes) for all public contracts.
+  * [ ] Writes them under `code/ci/contracts/*.json`.
+* [ ] CI job:
+
+  * [ ] Compare generated schemas against committed ones.
+  * [ ] If any breaking changes occur (field removed/renamed), fail CI and require version bump + migration doc.
+
+#### Acceptance criteria
+
+* All HTTP responses and CLI JSON payloads for:
+
+  * `map-bundles`, `analytics/ncit-summary`, `analytics/cohort`, `eval/*`
+    deserialize into the same `dfps_contracts` types.
+* `dfps_api`, `dfps_datamart`, CLI, and (later) web frontend import **zero bespoke DTO definitions** for analytics/eval/pipeline; they only use `dfps_contracts`.
+* Error codes (`code` fields in HTTP, CLI exit mapping) are documented once in `dfps_contracts::errors` and referenced by all surfaces.
+* Schema diff in CI fails if a breaking change is introduced to any public contract struct without a version bump.
 
 ---
 
 ### REFR-09 – Domain pipeline orchestrator (`dfps_pipeline`)
 
-**Goal:** Make `dfps_pipeline` the thin, explicit orchestrator connecting ingestion, mapping, and vector-store configuration, without owning transport, env, or platform concerns.
+**Epic ID**: `REFR-09`
+**Theme**: end-to-end Bundle → PipelineOutput orchestration, env-free and backend-agnostic
+**Touches**:
 
-- [ ] Add a crate README and `//!` header describing:
-  - [ ] The `bundle_to_mapped_sr` contract (input, output, error behavior).
-  - [ ] How it composes `dfps_ingestion`, `dfps_mapping`, and vector-store traits.
-- [ ] Review `try_vector_mapping`:
-  - [ ] Identify all env/config reads (e.g., `VectorStoreConfig::from_env`) and plan to replace them with injected config/handles from app/platform layers.
-  - [ ] Ensure Qdrant/Mock-specific details remain in platform/adapter crates where possible.
-- [ ] Confirm that `PipelineOutput` only uses domain and platform DTOs that are stable across surfaces (CLI/API/web/datamart), and plan any schema adjustments needed to support docs and analytics.
-- [ ] Add tests covering:
-  - [ ] Pure lexical mapping path (no vector store).
-  - [ ] Vector-enabled path using `VectorBackend::Mock`, asserting that `vector_usage` metadata is populated and stable.
-  - [ ] Failure modes (invalid Bundle, ingestion error, disabled vector backend) with clear error mapping for upstream layers.
+* `lib/domain/pipeline` (`dfps_pipeline`) – `PipelineOutput`, `bundle_to_mapped_sr[_with_vector_context]`.
+* `lib/domain/ontologies/ingestion` (`dfps_ingestion`) – `bundle_to_staging`.
+* `lib/domain/ontologies/mapping` (`dfps_mapping`) – mapping pipelines (lexical & vector).
+* `lib/app/servers/api` (`dfps_api`) – uses pipeline for HTTP mapping.
+* `lib/app/servers/datamart` (`dfps_datamart`) – consumes `PipelineOutput`.
+* `lib/app/servers/vector_store` (`dfps_vector_store`) – trait & config for vector integration.
+* `lib/platform/observability` (`dfps_observability`) – `VectorUsageSnapshot`.
+* `lib/platform/compliance` – indirectly via mapping & datamart.
+
+#### Goal
+
+Make `dfps_pipeline` the **single, pure, deterministic API** for:
+
+* Converting arbitrary FHIR Bundles into a **fully enriched** `PipelineOutput` (staging + mapping + NCIT dim concepts + optional vector usage).
+* Without any:
+
+  * env reads,
+  * logging initialization,
+  * transport awareness (HTTP/CLI),
+  * backend-specific knowledge (Qdrant/PGVector).
+
+All runtime-specific wiring (env, DataPlane, vector backends) happens in app/platform crates.
+
+#### Current state
+
+* `dfps_pipeline` currently:
+
+  * Depends on:
+
+    * `dfps_ingestion` (`bundle_to_staging`).
+    * `dfps_mapping` (lexical + vector pipelines).
+    * `dfps_observability::VectorUsageSnapshot`.
+    * `dfps_vector_store` (VectorStore trait, Embedding types, VectorStoreConfig).
+  * Provides:
+
+    * `PipelineOutput` with domain-friendly contents.
+    * `bundle_to_mapped_sr` (lexical or vector, depending on context).
+    * `bundle_to_mapped_sr_with_vector_context` that takes `VectorPipelineContext` (store + config + top_k).
+  * Vector path:
+
+    * `try_vector_mapping` uses:
+
+      * `DeterministicEmbeddingProvider` from `dfps_mapping`.
+      * `ErasedVectorStore` wrapper (Arc<dyn VectorStore>) so `dfps_mapping` can stay generic.
+      * `map_staging_codes_with_vector` to fill mapping results, dim_concepts, usage.
+
+**Good**: pipeline already does not read env, and vector context is injected.
+**Remaining gaps** for the epic:
+
+* The trait + config for vector store are physically hosted under `lib/app/servers/vector_store` (which is “app” in naming, but semantically a platform store).
+* There is no explicit “pipeline config” struct for switching ingestion/mapping behavior (e.g., validation mode, strict vs lenient, external validator injection).
+* `PipelineOutput` is not yet formally part of `dfps_contracts` (REFR-03).
+
+#### Design
+
+##### 09.1 Pipeline as a pure orchestrator
+
+Keep public surface minimal:
+
+* `PipelineOutput` – canonical domain+analytics enabler.
+* `PipelineError::Ingestion(dfps_ingestion::IngestionError)` – only domain error it raises today.
+* `bundle_to_mapped_sr(bundle: &Bundle) -> Result<PipelineOutput, PipelineError>`:
+
+  * Strictly lexical / rule-based mapping (no vector).
+* `bundle_to_mapped_sr_with_vector_context(bundle: &Bundle, ctx: Option<&VectorPipelineContext>)`:
+
+  * Use vector path only if `Some(ctx)` and vector path succeeds; else fall back to lexical path.
+
+Introduce optional future extensions:
+
+* Additional overloads that accept a **pipeline configuration** struct:
+
+  * `PipelineRunConfig { validation_mode, external_validator, mapping_config }`
+    but keep them additive.
+
+##### 09.2 Vector integration boundary
+
+Inside `dfps_pipeline`, vector is **entirely erased**:
+
+* Only functions allowed to “see” vector-specific concepts:
+
+  * `VectorPipelineContext` (defined in this crate).
+  * `ErasedVectorStore` wrapper that implements `VectorStore` and forwards to the real backend.
+
+No env or backend toggles:
+
+* `VectorPipelineContext` is constructed in `dfps_api` (or CLI) using `VectorStoreConfig::from_env` and a real `VectorStore` implementation (Qdrant, PGVector, Mock).
+* `dfps_pipeline` never calls `VectorStoreConfig::from_env` directly.
+
+Add invariants:
+
+* If vector mapping fails with `VectorRankerError` / `VectorStoreError`, pipeline logs (via `log::warn`) and **falls back** to lexical mapping, preserving the shape of `PipelineOutput` (vector_usage = `None` or partial) and never panicking.
+
+##### 09.3 Test matrix
+
+* Lexical only:
+
+  * Regression tests using `dfps_test_suite::regression::baseline_fhir_bundle` to ensure stable mapping counts.
+  * Assert `vector_usage.is_none()`.
+* Vector enabled:
+
+  * Use `MockVectorStore` and `VectorStoreConfig { backend = Mock, enabled = true }`.
+  * Assert:
+
+    * `vector_usage.is_some()`.
+    * `MappingResult` sets still consistent with lexical-only run (i.e., vector primarily influences ranking, not semantics).
+* Failure modes:
+
+  * Broken bundle (missing subject, invalid status) → `PipelineError::Ingestion(IngestionError)`; error is a pure domain mapping of ingestion issues.
+  * Vector backend down (Mock unhealthy, Qdrant unreachable) → `warn` and lexical fallback (no panic).
+
+#### Implementation tasks
+
+##### 09.A – Harden vector context interface
+
+* [ ] Document `VectorPipelineContext`:
+
+  * [ ] Guarantee stable debug formatting (backend, namespace, top_k).
+  * [ ] Provide builder-like methods: `with_top_k`, later `with_embedding_override`.
+* [ ] Keep `VectorPipelineContext` independent of any env semantics; no `from_env` here.
+
+##### 09.B – Formalize pipeline config seams (future-proof)
+
+* [ ] Introduce `PipelineRunConfig` (optional for now) with:
+
+  * [ ] `validation_mode: ValidationMode`.
+  * [ ] `external_validation_context: ExternalValidationContext<'a>`.
+  * [ ] `mapping_config: MappingConfig`.
+* [ ] Add helper:
+
+  * [ ] `bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig, ctx: Option<&VectorPipelineContext>)`.
+* [ ] Keep existing functions as sugar that call this with defaults.
+
+##### 09.C – Remove any logging/env bleed-through
+
+* [ ] Ensure `dfps_pipeline` does not:
+
+  * [ ] Call `env_logger::init` or `dfps_observability::init_environment`.
+  * [ ] Read any env variables directly.
+* [ ] Use `log` macros only (and leave env setup to app layer).
+
+##### 09.D – Contracts & cross-surface alignment (hooks into REFR-03)
+
+* [ ] Re-export `PipelineOutput` in `dfps_contracts`.
+* [ ] Make `dfps_api` and `dfps_datamart` depend on that re-export, not their own copies.
+* [ ] Add doc references in `dfps_pipeline::lib.rs` and `dfps_pipeline::README.md` to the contracts doc.
+
+#### Acceptance criteria
+
+* There exists a single “happy path” call from FHIR Bundle to `PipelineOutput` that:
+
+  * Does **not** read env or know about Qdrant/PGVector details.
+  * Accepts vector context as an injected trait object only.
+* Adding a new vector backend (e.g. Milvus) is purely a `dfps_vector_store` change + app wiring; `dfps_pipeline` remains untouched.
+* Domain tests in `dfps_pipeline` fully cover lexical vs vector behavior and ingestion errors.
 
 ---
 
-### REFR-16 – HTTP backend & warehouse surfaces (`dfps_api`, `dfps_datamart`)
-
-**Goal:** Treat the Axum API and datamart service as the primary HTTP-facing ports into the domain/pipeline/datamart, with clean config injection, compliance boundaries, and DTOs aligned across app/frontend/docs.
-
-- [ ] `dfps_api`:
-  - [ ] Add a crate-level README that describes:
-    - [ ] The main routes (`/api/map-bundles`, `/metrics/summary`, `/health`, `/analytics/*`, `/api/eval/*`).
-    - [ ] How it composes `dfps_pipeline`, `dfps_datamart`, `dfps_observability`, `dfps_eval`, `dfps_compliance`, `dfps_terminology`.
-  - [ ] Replace raw `env::var` usage in `ApiServerConfig::default` with a typed config struct built via `dfps_configuration` (host, port, warehouse URL, etc.).
-  - [ ] Factor compliance enforcement into one helper (shared with CLI/datamart) so license-tier export rules are defined once.
-  - [ ] Ensure `ApiState` is constructed with injected `Policy`, `WarehouseConfig`, and `PipelineMetrics`, rather than loading env/policy deep inside handlers.
-  - [ ] Review error taxonomy:
-    - [ ] Keep `ApiError` variants stable and documented (`invalid_json`, `invalid_fhir`, `invalid_dataset`, `compliance_blocked`, `internal_error`).
-    - [ ] Align HTTP status codes and error payloads with frontend expectations and CLI error messages.
-- [ ] `dfps_datamart`:
-  - [ ] Document how `Dim*` and `FactServiceRequest` types map onto the SQL schema and how they’re consumed by analytics/cohort endpoints.
-  - [ ] Move `WarehouseConfig::from_env` onto `app.web.backend.datamart` namespace and use `dfps_configuration` helpers for parsing numeric params.
-  - [ ] Ensure `load_from_pipeline_output` uses the same compliance helper as CLI/API (no duplicated `parse_license_tier` logic).
-  - [ ] Add tests for:
-    - [ ] Idempotent upserts (dim tables) and stable keys across re-runs.
-    - [ ] NO_MATCH sentinel behavior and referential integrity with fact rows.
-  
 ### REFR-13 – Platform vector backends (`dfps_vector_store`)
 
-**Goal:** Provide a cohesive, well-tested vector backend abstraction where env/config parsing is centralized, backends are pluggable, and usage metrics/capacity proxies integrate cleanly with domain mapping and observability.
+**Epic ID**: `REFR-13`
+**Theme**: vector backends as platform store, with central config and capacity reporting
+**Touches**:
 
-- [ ] Add `lib/app/servers/vector_store/README.md` describing:
-  - [ ] Supported backends (Qdrant, PgVector, Milvus, Mock), their env variables, and deployment expectations.
-  - [ ] The `VectorStore` trait, `VectorStoreConfig`, and how they are consumed by mapping and pipeline.
-- [ ] Refactor `VectorStoreConfig::from_env`:
-  - [ ] Use shared env helpers from `dfps_configuration` (bool/int/URL parsing) instead of local `env_flag` and `env::var` parsing.
-  - [ ] Clearly separate config validation (`validate()`) from env parsing; document expected error messages in CI.
-- [ ] Review backend implementations:
-  - [ ] Ensure `QdrantVectorStore` and `PgVectorStore` handle collection/table creation idempotently and surface clear `IndexFailed`/`SearchFailed` errors.
-  - [ ] Add timeouts and retry behavior consistent with `health_timeout_ms`.
-  - [ ] Confirm `MockVectorStore` remains deterministic for tests and does not accidentally fetch real env config.
-- [ ] Align capacity and usage reporting:
-  - [ ] Guarantee that all backends can propagate `CapacityProxies` to callers when available and safely omit them when not.
-  - [ ] Add tests for dimension mismatch, namespace validation, pool_max/timeout edge cases, and health checks across all supported backends.
+* `lib/app/servers/vector_store` (`dfps_vector_store`) – entire crate.
+* `lib/domain/ontologies/mapping` (`dfps_mapping`) – uses `VectorStore`, `EmbeddingProvider`.
+* `lib/domain/pipeline` (`dfps_pipeline`) – uses `VectorStore`, `VectorStoreConfig`.
+* `lib/app/servers/api` (`dfps_api`) – builds `VectorPipelineContext` from `VectorStoreConfig::from_env`.
+* `lib/platform/configuration` (`dfps_configuration`) – env parsing helpers.
+* `lib/platform/observability` (`dfps_observability`) – consumes `VectorUsageSnapshot`.
+
+#### Goal
+
+Make `dfps_vector_store` the **single, well-documented platform abstraction** for all vector operations:
+
+* Clear separation between:
+
+  * **Config** (env → `VectorStoreConfig` + validation).
+  * **Backends** (Qdrant, PGVector, Mock).
+  * **Usage metrics & capacity proxies** (feeding observability & manifold-capacity work).
+* Ensure adding new backends or capacity signals requires no changes to domain crates.
+
+#### Current state
+
+* `dfps_vector_store` already has:
+
+  * `VectorBackend` enum.
+  * `VectorStoreConfig::from_env()` using `dfps_configuration`.
+  * `VectorStore` trait.
+  * Mock/Qdrant/PgVector backends.
+  * `VectorUsageCounters`, `VectorUsageHandle`, `CapacityProxies`, `VectorUsageSnapshot` integration.
+* `dfps_mapping` uses a generic `VectorRankerBackend<S, E>` that only sees the trait + config, not env.
+* `dfps_pipeline` uses a `VectorPipelineContext` holding `Arc<dyn VectorStore>` + config.
+
+Remaining work is mostly **formalizing this as platform** and tightening guarantees.
+
+#### Design
+
+##### 13.1 Elevate crate to platform naming
+
+Conceptually, this crate is `platform/stores/vector_store` even though it lives under `app/servers` in your current tree.
+
+* The epic assumes:
+
+  * Logical package: `dfps_vector_store` = platform store.
+  * Physical relocation can happen later; the semantic refactor comes first.
+
+##### 13.2 Config semantics
+
+`VectorStoreConfig::from_env` should be:
+
+* **Pure**: env → config struct → `validate()`.
+* **Explicit failure modes**:
+
+  * `MissingNamespace`, `MissingUrl`, `InvalidPoolMax`, `InvalidTimeout`, `InvalidEnv`.
+
+Rules:
+
+* When `enabled = false`:
+
+  * Namespace can be omitted; `backend` may default to `Mock`; url optional.
+* When `enabled = true`:
+
+  * Namespace must be non-empty.
+  * URL required for all non-Mock backends.
+  * `pool_max > 0`, `health_timeout_ms > 0`.
+
+Add doc examples:
+
+* “Fully disabled” example (vector fallback always triggered).
+* “Mock only” example (for tests).
+* “Qdrant prod” example (namespaces per environment).
+* “PGVector dev” example.
+
+##### 13.3 Backend contracts
+
+**QdrantVectorStore**
+
+* `ensure_collection(namespace, dim)`:
+
+  * Must be idempotent and safe under concurrent calls.
+* `index_items`:
+
+  * Must:
+
+    * Enforce consistent vector dimension within a batch; otherwise return `IndexFailed("dimension mismatch in batch")`.
+  * Use `wait=true` semantics for Qdrant so writes are durable before returning.
+* `search`:
+
+  * Use `health_timeout_ms` as client timeout.
+  * Map errors into `SearchFailed(String)`; never panic.
+
+**PgVectorStore**
+
+* `CREATE EXTENSION IF NOT EXISTS vector` + `CREATE TABLE IF NOT EXISTS ncit_vectors (...)` is safe to call repeatedly.
+* `index_items`:
+
+  * Enforce consistent dimension; otherwise `IndexFailed("dimension mismatch in batch")`.
+* `search`:
+
+  * Use `<->` operator; map distance to score (e.g., `1.0 - distance` as in current code).
+  * On connection issues, return `BackendUnavailable`.
+
+**MockVectorStore**
+
+* Deterministic behavior:
+
+  * For a given `(namespace, query_vec, top_k)` and no `set_response`, you get deterministic hits.
+* `health`:
+
+  * Respects `healthy` flag and returns `BackendUnavailable` when false.
+* `namespace` mismatch:
+
+  * Should yield `InvalidNamespace` and increment **fallback** counters (but not queries/hits).
+
+##### 13.4 Metrics & capacity
+
+* `VectorUsageCounters` increments:
+
+  * `vector_queries` on each attempted `search`.
+  * `vector_hits` by `hits.len()` for successful `search` results.
+  * `vector_fallbacks` when:
+
+    * Namespace mismatch.
+    * Backend disabled.
+    * Backend unavailable or search error.
+
+* `CapacityProxies` wires into `VectorUsageSnapshot.capacity`:
+
+  * For now, these may be `None`; later, Qdrant/PGVector backends can populate them with approximations (e.g., average norm stats, dataset-specific metrics computed offline).
+
+#### Implementation tasks
+
+##### 13.A – Config tightening
+
+* [ ] Review `VectorStoreConfig::from_env`:
+
+  * [ ] Ensure all env parsing uses `dfps_configuration::{bool_var,u32_var,u64_var}`.
+  * [ ] Add robust unit tests (some exist) for:
+
+    * `pool_max = 0`, `health_timeout_ms = 0`.
+    * `DFPS_VECTOR_ENABLED=true` + empty namespace.
+    * `DFPS_VECTOR_ENABLED=true` + non-mock backend + missing URL.
+
+##### 13.B – Backend behavior tests
+
+* [ ] Add integration tests (behind `backend-qdrant` / `backend-pgvector` feature flags) that:
+
+  * [ ] Validate that repeated `index_items` on the same namespace+dim is safe.
+  * [ ] Validate that dimension mismatch yields `IndexFailed`.
+  * [ ] Validate timeouts do not wedge.
+
+* [ ] Tighten `MockVectorStore` tests:
+
+  * [ ] Already present tests cover namespace mismatch + fallback; extend to ensure:
+
+    * `search(namespace, vec, 0)` returns empty result and does not increment counters.
+    * Simulated latency is applied only to search, not to `health`.
+
+##### 13.C – Pipeline & mapping integration
+
+* [ ] `dfps_mapping`:
+
+  * [ ] Confirm `VectorRankerBackend` uses only the trait + config; no env or backend-specific logic.
+  * [ ] Ensure `usage_handle` is used to emit `VectorUsageSnapshot` used by `dfps_pipeline`.
+* [ ] `dfps_pipeline`:
+
+  * [ ] Confirm `VectorPipelineContext` uses `VectorStoreConfig` only as metadata; all env for config comes from `dfps_api` or CLI.
+
+#### Acceptance criteria
+
+* All vector-enabled code paths (`dfps_mapping`, `dfps_pipeline`, `dfps_api`, CLI) depend only on `VectorStore` trait + `VectorStoreConfig` type; env is centralized in `VectorStoreConfig::from_env` or a platform config builder.
+* Backends (Qdrant/PGVector/Mock) are swappable without touching any domain crate.
+* Metrics and capacity snapshots from `VectorUsageSnapshot` are stable enough to feed capacity/geometry analysis without API changes.
+
+---
+
+### REFR-16 – HTTP backend, warehouse & analytics surfaces (`dfps_api` + `dfps_datamart`)
+
+**Epic ID**: `REFR-16`
+**Theme**: single HTTP gateway backed by a warehouse-focused platform layer
+**Touches**:
+
+* App:
+
+  * `lib/app/servers/api` (`dfps_api`) – `server.rs`, `dto.rs`, `main.rs`.
+  * `lib/app/servers/datamart` (`dfps_datamart`) – `dim.rs`, `fact.rs`, `keys.rs`, `sql.rs`, `lib.rs`.
+* Domain:
+
+  * `dfps_pipeline`, `dfps_mapping`, `dfps_eval`, `dfps_core`, `dfps_terminology`.
+* Platform:
+
+  * `dfps_configuration`, `dfps_compliance`, `dfps_observability`, `dfps_vector_store`.
+  * Potential future: `platform/data/fabric`, `platform/data/warehouse`, `platform/data/datalake`.
+
+#### Goal
+
+Make `dfps_api` the **only HTTP ingress/egress** for:
+
+* Mapping (Bundle → PipelineOutput).
+* Evaluation (eval datasets / runs).
+* Analytics (NCIT summary + cohorts).
+
+and ensure that:
+
+* Analytics & metrics are derived from **warehouse-backed** data (`dfps_datamart`), not from in-memory mirror state.
+* A single `DataPlane`-like struct wires:
+
+  * Relational store (warehouse).
+  * Vector store.
+  * Compliance policy.
+  * Dataset store.
+  * Observability metrics.
+
+#### Current state
+
+* `dfps_api`:
+
+  * Builds `ApiState::new`:
+
+    * `ComplianceConfig::from_env` → `Policy`.
+    * `FileDatasetStore` from `DFPS_EVAL_DATA_ROOT` or default root.
+    * `VectorPipelineContext` from `VectorStoreConfig::from_env()`.
+    * `AnalyticsPersistence` from `WarehouseConfig::from_env()`.
+    * `AnalyticsState` as in-memory dim/fact holder.
+  * Exposes routes:
+
+    * `/health`, `/metrics/summary`.
+    * `/analytics/ncit-summary`, `/analytics/cohort` (currently in-memory).
+    * `/api/map-bundles`.
+    * `/api/eval/summary`, `/api/eval/datasets`, `/api/eval/run`, `/api/eval/latest`.
+
+* `dfps_datamart`:
+
+  * Knows how to:
+
+    * Transform `PipelineOutput` → dims/facts.
+    * Migrate & load dims/facts into SQLite.
+  * Does **not yet** expose analytics queries for NCIT summary/cohorts; those are duplicated in `AnalyticsState`.
+
+#### Design
+
+##### 16.1 DataPlane concept (per node)
+
+Introduce a *conceptual* `NodeDataPlane` (can live as a struct in `dfps_api` first; later factor into `platform/data/fabric`):
+
+* Fields:
+
+  * `warehouse_cfg: WarehouseConfig`.
+  * `warehouse_pool: Pool<Sqlite>` (or trait object).
+  * `vector_ctx: Option<VectorPipelineContext>`.
+  * `policy: Policy`.
+  * `dataset_store: FileDatasetStore`.
+  * `metrics: PipelineMetrics`.
+* Responsibilities:
+
+  * `map_bundles`:
+
+    * Use `dfps_pipeline` with `vector_ctx`.
+    * Apply `policy` using `dfps_compliance::assert_export_allowed`.
+    * Persist dims/facts via `dfps_datamart::load_from_pipeline_output`.
+    * Update metrics.
+  * `analytics`:
+
+    * Query warehouse via new functions in `dfps_datamart` (no in-memory duplication).
+  * `eval`:
+
+    * Orchestrate `dfps_eval` + `dfps_mapping` with dataset roots.
+
+In code this might remain inside `ApiState`, but the epic expects a structural **separation of concerns**.
+
+##### 16.2 Warehouse-backed analytics
+
+Extend `dfps_datamart`:
+
+* Add query functions:
+
+  ```rust
+  pub async fn ncit_summary(pool: &Pool<Sqlite>) -> Result<Vec<AnalyticsSummaryRow>, sqlx::Error>;
+
+  pub async fn cohort(
+      pool: &Pool<Sqlite>,
+      query: &CohortQuery, // re-used from dfps_api or moved to contracts
+  ) -> Result<CohortResponse, sqlx::Error>;
+  ```
+
+* Implement queries equivalent to `AnalyticsState::ncit_summary` + `cohort`:
+
+  * Group by NCIT ID + mapping state + day (ordered_at’s date) using SQL.
+  * Join dims & facts to fetch patient/encounter IDs and mapping state.
+  * Use `DimNCIT` & `DimCode` relationships.
+
+Then:
+
+* Deprecate `AnalyticsState`:
+
+  * Replace analytics endpoints with warehouse-backed versions:
+
+    * `/analytics/ncit-summary` calls `dfps_datamart::ncit_summary(pool)` directly.
+    * `/analytics/cohort` calls `dfps_datamart::cohort(pool, &query)`.
+
+**Result**: in-memory state becomes a cache or demo only, not a source of truth.
+
+##### 16.3 Config consolidation
+
+`ApiServerConfig` today reads:
+
+* `DFPS_API_HOST` (raw env).
+* `DFPS_API_PORT` via `dfps_configuration::port_var`.
+
+Epic expects:
+
+* Use `dfps_configuration::load_env("app.web.api")` once in `main`.
+* `ApiServerConfig` should be constructed from typed helpers (host, port, feature flags) with clear defaults & logging.
+
+Similarly for:
+
+* `WarehouseConfig::from_env()` – currently calling `load_env("domain.datamart")` but then using `std::env`.
+* Vector context – should use `dfps_configuration` for URL/namespace flags.
+
+##### 16.4 Metrics & error semantics
+
+Ensure:
+
+* `/metrics/summary` exposes a stable JSON from `PipelineMetrics` (that later becomes part of `dfps_contracts`).
+* Compliance violations and exporter gating are consistently logged:
+
+  * Mapping path logs `compliance_blocked` via `ApiError::Compliance`.
+  * Datamart `LoadError::Compliance` uses the same messaging structure, and if/when exposed over HTTP, uses the same error code.
+
+#### Implementation tasks
+
+##### 16.A – Build a minimal DataPlane struct
+
+* [ ] In `dfps_api::server`, introduce:
+
+  ```rust
+  pub struct NodeDataPlane {
+      policy: Policy,
+      analytics_persistence: AnalyticsPersistence,
+      vector_context: Option<VectorPipelineContext>,
+      dataset_store: Arc<FileDatasetStore>,
+      metrics: Arc<Mutex<PipelineMetrics>>,
+      // future: relational store traits
+  }
+  ```
+
+* [ ] Let `ApiState` wrap a `NodeDataPlane` instead of keeping all fields separately.
+
+##### 16.B – Warehouse queries
+
+* [ ] Extend `dfps_datamart::sql` with `ncit_summary_query` & `cohort_query` functions returning rows that can be mapped to `dfps_contracts::AnalyticsSummaryRow` and `CohortRow`.
+* [ ] Add new functions in `dfps_datamart::lib`:
+
+  ```rust
+  pub async fn ncit_summary(pool: &Pool<Sqlite>) -> Result<Vec<AnalyticsSummaryRow>, sqlx::Error>;
+  pub async fn cohort(pool: &Pool<Sqlite>, q: &CohortQuery) -> Result<CohortResponse, sqlx::Error>;
+  ```
+
+##### 16.C – Replace in-memory analytics
+
+* [ ] Modify `/analytics/ncit-summary` and `/analytics/cohort` handlers to:
+
+  * [ ] Drop usage of `AnalyticsState` except maybe as an optional cache.
+  * [ ] Use warehouse queries + map results to `dfps_contracts` types.
+  * [ ] Ensure metrics (`analytics_requests`, `cohort_queries`, `cohort_results_total`) still update.
+
+##### 16.D – Config and env cleanup
+
+* [ ] `dfps_api::main()`:
+
+  * [ ] Keep `load_env("app.web.api")`, but rely on typed configuration inside `dfps_configuration` for host/port.
+* [ ] `WarehouseConfig::from_env()`:
+
+  * [ ] Replace ad-hoc `std::env::var` with `dfps_configuration::string_var` / `u32_var`.
+  * [ ] Return `Result<Self, EnvValueError>` (or similar) for better error reporting.
+
+#### Acceptance criteria
+
+* Analytics endpoints (`/analytics/*`) work with **no in-memory state** if the process is restarted; all data is persisted in SQLite and read from there.
+* `dfps_api` is the only server crate exposing HTTP; any future HTTP surfaces reuse its contracts (REFR-03).
+* Vector store + warehouse config errors are surfaced as documented HTTP errors / log messages, not panics.
+
+
+
 
 ### REFR-15 – CLI surfaces & orchestration (`dfps_cli`)
 
@@ -224,7 +889,7 @@
   - [ ] Align mode flags (`lenient`, `strict`, `external_preferred`, `external_strict`) with ingestion docs and API options.
   - [ ] Provide a stable NDJSON output schema for issues and summaries that can be consumed by CI dashboards and dfps_web_frontend.
 - [ ] `load_datamart`:
-  - [ ] Remove duplicated export-policy logic by delegating to a shared helper that is also used in `dfps_api` and `dfps_datamart`.
+  - [ ] Remove duplicated export-policy logic by delegating to a shared helper that is also used in `dfps_dataplane`{formerly `dfps_api`} and `dfps_datamart`.
   - [ ] Ensure `WarehouseConfig::from_env` uses `dfps_configuration` for env parsing and that CLI errors surface actionable messages for missing URL/schema/permissions.
 - [ ] `build_vector_index`:
   - [ ] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
@@ -232,7 +897,7 @@
 
 ### REFR-17 – Web frontend & UX (`dfps_web_frontend`)
 
-**Goal:** Make `dfps_web_frontend` a thin, well-typed UI shell over `dfps_api`, with configuration driven by `dfps_configuration`, clean DTO mapping, and views that reflect the system-design/analytics docs.
+**Goal:** Make `dfps_web_frontend` a thin, well-typed UI shell over `dfps_dataplane`{formerly `dfps_api`}, with configuration driven by `dfps_configuration`, clean DTO mapping, and views that reflect the system-design/analytics docs.
 
 - [ ] Add a top-level README section that:
   - [ ] Maps each page/route (`/`, `/analytics`, `/eval`, `/docs`) to the backend endpoints it calls.
@@ -241,7 +906,7 @@
   - [ ] Replace direct `env::var` parsing with helpers from `dfps_configuration` (bool/int/string) so error handling and defaults are consistent.
   - [ ] Ensure all config errors are surfaced as structured IO errors in `run()`, not panics.
 - [ ] `client.rs`:
-  - [ ] Confirm DTOs (`MapBundlesResponse`, `EvalRunResponse`, `AnalyticsSummaryResponse`, `CohortResponse`) mirror backend DTOs; add tests that deserialize API responses from `dfps_api` test fixtures.
+  - [ ] Confirm DTOs (`MapBundlesResponse`, `EvalRunResponse`, `AnalyticsSummaryResponse`, `CohortResponse`) mirror backend DTOs; add tests that deserialize API responses from `dfps_dataplane`{formerly `dfps_api`} test fixtures.
   - [ ] Normalize error reporting (`ClientError`) for use in views (short, user-friendly messages).
   - [ ] Ensure timeouts and base URLs are fully driven by `AppConfig`.
 - [ ] `routes.rs` + `views.rs` + `view_model.rs`:
@@ -250,7 +915,7 @@
   - [ ] Ensure eval/analytics panels clearly surface compliance mode, mapping states, and NoMatch reasons consistent with docs.
   - [ ] Clarify how default eval dataset (`DEFAULT_EVAL_DATASET`) is chosen and keep it in sync with doc examples.
 - [ ] Cross-surface DTO alignment:
-  - [ ] Verify that `MappingResultsView`, `AnalyticsSummaryView`, `CohortView`, and eval panels stay in sync with `dfps_api` DTOs and CLI output (no divergent field names).
+  - [ ] Verify that `MappingResultsView`, `AnalyticsSummaryView`, `CohortView`, and eval panels stay in sync with `dfps_dataplane`{formerly `dfps_api`} DTOs and CLI output (no divergent field names).
   - [ ] Add snapshot tests (string-based) for key HTML fragments (mapping results, NoMatch explorer, analytics panels, eval panel) to guard against breaking UI contracts used in screenshots/docs.
 
 ---
@@ -308,7 +973,7 @@
 - [ ] Identify places where `dfps_mapping` directly reads env or config (e.g., `load_policy_from_env`):
   - [x] Introduce an explicit `MappingConfig` / policy parameter so mapping functions can be called without reading env.
   - [x] Plan to move env parsing for policies into `dfps_compliance` / `dfps_configuration` (`ComplianceConfig::from_env` now encapsulates `DFPS_COMPLIANCE_*` reads and feeds policies into mapping via injected config/policy).
-  - [x] Wire CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_api`), and datamart loaders to construct `ComplianceConfig` once at startup and pass the resulting policy through mapping/pipeline/datamart paths instead of calling `load_policy_from_env` repeatedly.
+  - [x] Wire CLI (`map_codes`, `map_bundles`, `load_datamart`), API (`dfps_dataplane`{formerly `dfps_api`}), and datamart loaders to construct `ComplianceConfig` once at startup and pass the resulting policy through mapping/pipeline/datamart paths instead of calling `load_policy_from_env` repeatedly.
 - [ ] Review vector-related wiring:
   - [x] Ensure `VectorRankerBackend` and `DeterministicEmbeddingProvider` are pure domain constructs that operate purely on traits (`VectorStore`, `EmbeddingProvider`).
   - [x] Avoid coupling mapping to specific backends (Qdrant/pgvector) beyond the trait layer.

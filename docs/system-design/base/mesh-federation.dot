@@ -1,0 +1,97 @@
+digraph FederatedMedicalDataMesh {
+  rankdir=LR;
+  node [shape=box, fontsize=10];
+
+  // =========================
+  // Research / Coordination
+  // =========================
+  subgraph cluster_research {
+    label="Research & Coordination Layer";
+    style=filled;
+    color=lightgrey;
+
+    researcher   [label="Researcher / Model Owner"];
+    orchestrator [label="Federated Orchestrator\n(Job dispatch + aggregation)"];
+  }
+
+  researcher -> orchestrator [label="Define question / model"];
+
+  // =========================
+  // External Licensing / Public Resources
+  // =========================
+  subgraph cluster_external {
+    label="External Resources (Licensing & Ontologies)";
+    style=dashed;
+    color=grey;
+
+    ama [label="AMA / CPT License\n(paid by each provider)"];
+    cms [label="CMS Fee Schedules\n(downloaded by provider)"];
+    umls [label="UMLS / SNOMED CT\n(ontology sources)"];
+  }
+
+  // =========================
+  // Domain Node: Hospital A
+  // =========================
+  subgraph cluster_hospA {
+    label="Domain Node: Hospital A";
+    style=rounded;
+    color=lightblue;
+
+    ehrA      [label="Local Clinical DB\n(EHR + SNOMED-coded data)"];
+    cptA      [label="Local CPT Tables\n(BYOL import only)"];
+    appA      [label="FOSS Clinical App\n(Local-first services)"];
+    sidecarA  [label="Policy Sidecar\n(DP + query rules)"];
+    flA       [label="Federated Worker\n(Local model/trend compute)"];
+  }
+
+  // Data & control flow inside Hospital A
+  appA   -> ehrA      [label="Read/write clinical data"];
+  umls   -> appA      [label="SNOMED / ontology usage"];
+  ama    -> cptA      [label="License-based access\n(offline/contractual)"];
+  cms    -> cptA      [label="Local CPT import\n(BYOL CSV / files)"];
+  appA   -> cptA      [label="SNOMED→CPT mapping\n(local only)"];
+
+  ehrA   -> flA       [label="Read local data\n(no raw data leaves node)"];
+  cptA   -> flA       [label="Optional billing features"];
+
+  // Governance at Hospital A
+  orchestrator -> sidecarA [label="Federated job\n(model / query)"];
+  sidecarA     -> flA      [label="Allow only\npolicy-compliant jobs"];
+  flA          -> sidecarA [label="Local aggregates /\nmodel updates"];
+  sidecarA     -> orchestrator [label="DP-noised stats /\nmodel gradients"];
+
+  // =========================
+  // Domain Node: Hospital B
+  // (mirrors Hospital A)
+  // =========================
+  subgraph cluster_hospB {
+    label="Domain Node: Hospital B";
+    style=rounded;
+    color=lightblue;
+
+    ehrB      [label="Local Clinical DB\n(EHR + SNOMED-coded data)"];
+    cptB      [label="Local CPT Tables\n(BYOL import only)"];
+    appB      [label="FOSS Clinical App"];
+    sidecarB  [label="Policy Sidecar"];
+    flB       [label="Federated Worker"];
+  }
+
+  appB   -> ehrB;
+  umls   -> appB;
+  ama    -> cptB;
+  cms    -> cptB;
+  appB   -> cptB;
+
+  ehrB   -> flB;
+  cptB   -> flB;
+
+  orchestrator -> sidecarB [label="Federated job"];
+  sidecarB     -> flB;
+  flB          -> sidecarB;
+  sidecarB     -> orchestrator [label="DP-noised stats /\nmodel gradients"];
+
+  // =========================
+  // Aggregation back to Researcher
+  // =========================
+  orchestrator -> researcher [label="Aggregated insights /\nupdated model\n(no raw PHI)"];
+}

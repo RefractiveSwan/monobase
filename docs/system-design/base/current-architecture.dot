@@ -1,105 +1,101 @@
-digraph DFPS {
-  rankdir=LR;
-  node [shape=box, style=rounded, fontname="Inter"];
+digraph DFPS_Mesh {
+    rankdir=LR;
+    fontsize=10;
+    labelloc="t";
+    label="DFPS Federated Data Mesh: domain nodes + optional hub";
 
-  subgraph cluster_clients {
-    label="Clients";
-    style=filled;
-    color="#e5f5ff";
-    EHR   [label="EHR / Upstream"];
-    CLI   [label="dfps_cli"];
-    WEB   [label="dfps_web_frontend"];
-  }
+    node [shape=box, style=rounded];
 
-  subgraph cluster_app {
-    label="App layer";
-    style=filled;
-    color="#e0f7e9";
-    API   [label="dfps_api"];
-    DM    [label="dfps_datamart"];
-    VEC   [label="dfps_vector_store"];
-  }
+    // Mesh Hub (optional)
+    subgraph cluster_hub {
+        label="Mesh Hub (Optional)";
+        style=filled;
+        color="#fff3e0";
 
-  subgraph cluster_domain {
-    label="Domain layer";
-    style=filled;
-    color="#e0e7ff";
-    ING   [label="dfps_ingestion"];
-    CORE  [label="dfps_core"];
-    MAP   [label="dfps_mapping"];
-    PIPE  [label="dfps_pipeline"];
-    EVAL  [label="dfps_eval"];
-    TERM  [label="dfps_terminology"];
-  }
+        hub_api   [label="dfps_mesh_hub\nplatform/mesh/hub\n(Research / FL Orchestrator)"];
+        hub_store [label="Hub Meta Store\n(Postgres/Redis for jobs)\n(no clinical data)", shape=note];
+    }
 
-  subgraph cluster_platform {
-    label="Platform";
-    style=dashed;
-    color="#f9a8d4";
-    CFG   [label="dfps_configuration"];
-    COMP  [label="dfps_compliance"];
-    OBS   [label="dfps_observability"];
-  }
+    // Node 1
+    subgraph cluster_node1 {
+        label="Mesh Node: Clinic A";
+        style=filled;
+        color="#e3f2fd";
 
-  subgraph cluster_storage {
-    label="Storage";
-    style=filled;
-    color="#fef3c7";
-    STG   [label="stg_servicerequest_*"];
-    PO    [label="PipelineOutput"];
-    WH    [label="Warehouse DB"];
-    DS    [label="Eval datasets"];
-  }
+        node1_api    [label="dfps_mesh_node\n(Axum HTTP)\nlib/platform/mesh/node"];
+        node1_gov    [label="dfps_mesh_governance\nplatform/mesh/governance\n(policy sidecar)", shape=component];
 
-  subgraph cluster_external {
-    label="External services";
-    style=filled;
-    color="#fee2e2";
-    FHIRV [label="FHIR validator ($validate)"];
-    VDB   [label="Vector DB (Qdrant/pgvector)"];
-    TAPI  [label="Terminology APIs"];
-  }
+        node1_pipeline [label="dfps_pipeline\n(domain)"];
+        node1_mart     [label="dfps_mart\nplatform/data/mart"];
+        node1_rel      [label="dfps_relational_store\nplatform/store/relational_store"];
+        node1_vec      [label="dfps_vector_store\nplatform/store/vector_store"];
+        node1_cache    [label="dfps_cache_store\nplatform/store/cache_store", style=dashed];
+        node1_graph    [label="dfps_graph_store\nplatform/store/graph_store", style=dashed];
+        node1_lake     [label="dfps_lake\nplatform/data/lake", style=dashed];
 
-  // Main path
-  EHR  -> API;
-  WEB  -> API;
-  CLI  -> API;
+        node1_api -> node1_gov    [label="all research/FL requests"];
+        node1_api -> node1_pipeline [label="FHIR Bundles\n(local ingestion)"];
+        node1_pipeline -> node1_mart [label="PipelineOutput\n→ dims/facts"];
+        node1_mart -> node1_rel     [label="SQLx\n(dim_*, fact_*)"];
 
-  API  -> PIPE;
-  PIPE -> ING;
-  ING  -> STG;
-  STG  -> PIPE;
-  PIPE -> MAP;
-  MAP  -> PO;
-  PO   -> DM;
-  DM   -> WH;
+        node1_pipeline -> node1_vec [label="VectorStore trait\n(VectorPipelineContext)"];
+        node1_mart -> node1_lake    [label="local Parquet/Delta", style=dashed];
 
-  // Vector path
-  MAP  -> VEC;
-  VEC  -> VDB;
+        node1_gov -> node1_mart     [label="allow/deny FL jobs\n& analytics exports"];
+        node1_gov -> node1_rel      [label="DP + query policy", style=dashed];
+    }
 
-  // Terminology
-  MAP  -> TERM;
-  TERM -> TAPI;
+    // Node 2 (another domain)
+    subgraph cluster_node2 {
+        label="Mesh Node: Hospital B";
+        style=filled;
+        color="#e8f5e9";
 
-  // Eval
-  CLI  -> EVAL;
-  EVAL -> DS;
-  EVAL -> MAP;
+        node2_api    [label="dfps_mesh_node\n(Axum HTTP)"];
+        node2_gov    [label="dfps_mesh_governance", shape=component];
 
-  // Analytics
-  API  -> DM;
-  DM   -> WH;
-  API  -> EVAL;
+        node2_pipeline [label="dfps_pipeline"];
+        node2_mart     [label="dfps_mart"];
+        node2_rel      [label="dfps_relational_store"];
+        node2_vec      [label="dfps_vector_store"];
 
-  // Cross-cutting
-  {rank=same; CFG; COMP; OBS}
-  API  -> CFG;
-  DM   -> CFG;
-  VEC  -> CFG;
-  ING  -> CFG;
-  MAP  -> COMP;
-  DM   -> COMP;
-  PIPE -> OBS;
-  API  -> OBS;
+        node2_api -> node2_gov;
+        node2_api -> node2_pipeline;
+        node2_pipeline -> node2_mart;
+        node2_mart -> node2_rel;
+        node2_pipeline -> node2_vec;
+        node2_gov -> node2_mart;
+    }
+
+    // Contracts and domain shared types
+    contracts [label="dfps_contracts\n(domain/contracts)\n(shared DTOs)", shape=ellipse];
+
+    node1_pipeline -> contracts;
+    node2_pipeline -> contracts;
+    node1_mart     -> contracts;
+    node2_mart     -> contracts;
+    hub_api        -> contracts;
+
+    // Hub -> Nodes: send FL jobs (code) to nodes
+    hub_api -> node1_api [label="FL Job / Query\n(code → data)", color="#ff9800"];
+    hub_api -> node2_api [label="FL Job / Query\n(code → data)", color="#ff9800"];
+
+    // Nodes -> Hub: send only aggregates
+    node1_gov -> hub_api [label="Aggregated / DP-safe\nresults", color="#4caf50"];
+    node2_gov -> hub_api [label="Aggregated / DP-safe\nresults", color="#4caf50"];
+
+    // External engines per node (not shown exhaustively)
+    qdrant   [label="Qdrant", shape=note];
+    pg       [label="Postgres\n(+PGVector)", shape=note];
+    duckdb   [label="DuckDB", shape=note];
+    redis    [label="Redis", shape=note];
+    s3       [label="Local S3/GCS-like\nfor node", shape=note];
+
+    node1_vec -> qdrant  [label="HTTP API"];
+    node1_rel -> pg      [label="SQLx"];
+    node1_rel -> duckdb  [label="optional local OLAP", style=dashed];
+    node1_cache -> redis [label="cache", style=dashed];
+    node1_lake -> s3     [label="object storage", style=dashed];
+
+    node2_vec -> pg      [label="PGVector", style=dashed];
 }
