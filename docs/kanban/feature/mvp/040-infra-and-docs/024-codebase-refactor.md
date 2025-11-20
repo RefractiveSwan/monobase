@@ -138,34 +138,34 @@
 
 **Goal:** Treat `dfps_cli` as a thin orchestration layer over domain + platform crates, with shared IO/config/compliance handling and consistent UX across all binaries.
 
-- [ ] Add/expand `lib/app/frontend/cli/README.md` to:
-  - [ ] Map each bin (`map_bundles`, `map_codes`, `eval_mapping`, `validate_fhir`, `load_datamart`, `build_vector_index`) to its underlying domain flows (ingestion, mapping, eval, datamart load, vector index).
-  - [ ] Document common flags (env namespace, log level, compliance behavior) and how they relate to API/web behavior.
-- [ ] Introduce a small internal “CLI core” module (e.g., `src/cli_core.rs`) that:
-  - [ ] Provides shared helpers for env loading (`load_env("app.cli")`), log initialization, and structured error reporting.
-  - [ ] Wraps repeated NDJSON reading/writing logic (streaming readers for Bundles, StgSrCodeExploded, PipelineOutput, EvalCase).
-  - [ ] Centralizes exit code conventions (e.g., non-zero on compliance block, threshold failure, invalid input).
-- [ ] `map_bundles`:
-  - [ ] Replace inline env/logging setup with shared CLI core helpers and ensure validation + pipeline + metrics calls are consistently structured.
-  - [ ] Add a streaming path (reading Bundles incrementally) that still accumulates a single `PipelineMetrics` summary.
-  - [ ] Align JSON output schema (`kind` field) with API responses for easier downstream parsing.
-- [ ] `map_codes`:
-  - [ ] Share vector config handling with `build_vector_index` (via a small helper that wraps `VectorStoreConfig::from_env` and backend selection).
-  - [ ] Move compliance reporting and `fail_on_license_block` behavior behind a single helper used by both CLI and API surfaces.
-  - [ ] Ensure explanation output (`--explain`, `--explain-top`) is documented and stable for downstream tooling.
-- [ ] `eval_mapping`:
-  - [ ] Factor dataset loading/reporting into reusable helpers that mirror API eval endpoints (dataset list, summary, run).
-  - [ ] Clarify top-k semantics (“placeholder until multi-candidate support”) and future-proof the flag by plumbing top-k into `dfps_mapping` when available.
-  - [ ] Ensure threshold/compare/deterministic checks share code with API eval (minimize duplicated logic).
-- [ ] `validate_fhir`:
-  - [ ] Align mode flags (`lenient`, `strict`, `external_preferred`, `external_strict`) with ingestion docs and API options.
-  - [ ] Provide a stable NDJSON output schema for issues and summaries that can be consumed by CI dashboards and dfps_web_frontend.
-- [ ] `load_datamart`:
-  - [ ] Remove duplicated export-policy logic by delegating to a shared helper that is also used in `dfps_dataplane`{formerly `dfps_api`} and `dfps_datamart`.
-  - [ ] Ensure `WarehouseConfig::from_env` uses `dfps_configuration` for env parsing and that CLI errors surface actionable messages for missing URL/schema/permissions.
-- [ ] `build_vector_index`:
-  - [ ] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
-  - [ ] Share embedding/version metadata semantics with mapping/vector-store docs (documented in mdBook and CLI help).
+- [x] Add/expand `lib/app/frontend/cli/README.md` to:
+  - [x] Map each bin (`map_bundles`, `map_codes`, `eval_mapping`, `validate_fhir`, `load_datamart`, `build_vector_index`) to its underlying domain flows (ingestion, mapping, eval, datamart load, vector index).
+  - [x] Document common flags (env namespace, log level, compliance behavior) and how they relate to API/web behavior.
+- [x] Introduce a small internal “CLI core” module (e.g., `src/cli_core.rs`) that:
+  - [x] Provides shared helpers for env loading (`load_env("app.cli")`), log initialization, and structured error reporting.
+  - [x] Wraps repeated NDJSON reading/writing logic (streaming readers for Bundles, StgSrCodeExploded, PipelineOutput, EvalCase).
+  - [x] Centralizes exit code conventions (e.g., non-zero on compliance block, threshold failure, invalid input).
+- [x] `map_bundles`:
+  - [x] Replace inline env/logging setup with shared CLI core helpers and ensure validation + pipeline + metrics calls are consistently structured.
+  - [x] Add a streaming path (reading Bundles incrementally) that still accumulates a single `PipelineMetrics` summary.
+  - [x] Align JSON output schema (`kind` field) with API responses for easier downstream parsing.
+- [x] `map_codes`:
+  - [x] Share vector config handling with `build_vector_index` (via a small helper that wraps `VectorStoreConfig::from_env` and backend selection).
+  - [x] Move compliance reporting and `fail_on_license_block` behavior behind a single helper used by both CLI and API surfaces.
+  - [x] Ensure explanation output (`--explain`, `--explain-top`) is documented and stable for downstream tooling.
+- [x] `eval_mapping`:
+  - [x] Factor dataset loading/reporting into reusable helpers that mirror API eval endpoints (dataset list, summary, run).
+  - [x] Clarify top-k semantics (“placeholder until multi-candidate support”) and future-proof the flag by plumbing top-k into `dfps_mapping` when available.
+  - [x] Ensure threshold/compare/deterministic checks share code with API eval (minimize duplicated logic).
+- [x] `validate_fhir`:
+  - [x] Align mode flags (`lenient`, `strict`, `external_preferred`, `external_strict`) with ingestion docs and API options.
+  - [x] Provide a stable NDJSON output schema for issues and summaries that can be consumed by CI dashboards and dfps_web_frontend.
+- [x] `load_datamart`:
+  - [x] Remove duplicated export-policy logic by delegating to a shared helper that is also used in `dfps_dataplane`{formerly `dfps_api`} and `dfps_datamart`.
+  - [x] Ensure `WarehouseConfig::from_env` uses `dfps_configuration` for env parsing and that CLI errors surface actionable messages for missing URL/schema/permissions.
+- [x] `build_vector_index`:
+  - [x] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
+  - [x] Share embedding/version metadata semantics with mapping/vector-store docs (documented in mdBook and CLI help).
 
 ---
 

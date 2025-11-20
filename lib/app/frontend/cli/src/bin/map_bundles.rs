@@ -1,21 +1,17 @@
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_compliance::ComplianceConfig;
-use dfps_configuration::load_env;
+use dfps_cli::cli_core::{
+    CliError, CliResult, enforce_metrics_gate, init_cli_env, init_logging, input_reader,
+    json_stream, load_policy, pipeline_vector_context_from_env, run_bin, tag_metrics, write_record,
+};
 use dfps_contracts::{MappingState, PipelineMetrics};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
 use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::bundle_to_mapped_sr_with_vector_context;
-use log::{LevelFilter, info, warn};
-use serde::Serialize;
-use vector_ctx::pipeline_vector_context_from_env;
-
-mod vector_ctx;
+use log::{info, warn};
 
 #[derive(Parser)]
 #[command(
@@ -35,38 +31,33 @@ struct Args {
     fail_on_license_block: bool,
 }
 
-#[derive(Serialize)]
-struct OutputRecord<'a, T> {
-    kind: &'a str,
-    #[serde(flatten)]
-    value: T,
+fn main() {
+    run_bin("map_bundles", run);
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
+fn run() -> CliResult<()> {
+    init_cli_env()?;
     let args = Args::parse();
     init_logging(&args.log_level)?;
-    let compliance = ComplianceConfig::from_env()?;
-    let policy = compliance.load_policy()?;
-    let reader: Box<dyn BufRead> = match &args.input {
-        Some(path) => Box::new(BufReader::new(File::open(path)?)),
-        None => Box::new(BufReader::new(io::stdin())),
-    };
+    let policy = load_policy()?;
+    let reader = input_reader(args.input.as_ref())?;
+    let mut bundles = json_stream::<Bundle>(reader);
 
     let mut dims_seen: HashSet<String> = HashSet::new();
-    let stdout = io::stdout();
+    let stdout = std::io::stdout();
     let mut handle = stdout.lock();
     let mut metrics = PipelineMetrics::default();
-    metrics.compliance_mode = Some(policy.mode.as_str().to_string());
-    let vector_ctx = pipeline_vector_context_from_env();
-
-    for line in reader.lines() {
-        let raw = line?;
-        let trimmed = raw.trim();
-        if trimmed.is_empty() {
-            continue;
+    tag_metrics(&mut metrics, &policy);
+    let vector_ctx = match pipeline_vector_context_from_env() {
+        Ok(ctx) => ctx,
+        Err(err) => {
+            warn!("vector context unavailable: {err}");
+            None
         }
-        let bundle: Bundle = serde_json::from_str(trimmed)?;
+    };
+
+    while let Some(bundle) = bundles.next() {
+        let bundle = bundle?;
         let validation = validate_bundle(&bundle);
         if validation.has_errors() {
             warn!(
@@ -85,33 +76,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         for issue in &validation.issues {
-            write_json(&mut handle, "validation_issue", issue)?;
+            write_record(&mut handle, "validation_issue", issue)?;
         }
-        let output = bundle_to_mapped_sr_with_vector_context(&bundle, vector_ctx.as_ref())?;
+        let output = bundle_to_mapped_sr_with_vector_context(&bundle, vector_ctx.as_ref())
+            .map_err(|err| CliError::invalid(format!("pipeline error: {err}")))?;
+        let vector_usage = output.vector_usage.clone();
         log_pipeline_output(
             &output.flats,
             &output.exploded_codes,
             &output.mapping_results,
             &mut metrics,
-            output.vector_usage,
+            vector_usage,
             None,
         );
 
+        write_record(&mut handle, "pipeline_output", &output)?;
+
         for flat in &output.flats {
-            write_json(&mut handle, "staging_flat", flat)?;
+            write_record(&mut handle, "staging_flat", flat)?;
         }
         for code in &output.exploded_codes {
-            write_json(&mut handle, "staging_code", code)?;
+            write_record(&mut handle, "staging_code", code)?;
         }
         for mapping in &output.mapping_results {
-            write_json(&mut handle, "mapping_result", mapping)?;
+            write_record(&mut handle, "mapping_result", mapping)?;
             if matches!(mapping.state, MappingState::NoMatch) {
                 log_no_match(mapping);
             }
         }
         for concept in &output.dim_concepts {
             if dims_seen.insert(concept.ncit_id.clone()) {
-                write_json(&mut handle, "dim_concept", concept)?;
+                write_record(&mut handle, "dim_concept", concept)?;
             }
         }
     }
@@ -134,36 +129,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             metrics.license_blocked
         );
     }
-    write_json(&mut handle, "metrics_summary", &metrics)?;
+    write_record(&mut handle, "metrics_summary", &metrics)?;
 
-    if args.fail_on_license_block && metrics.license_blocked > 0 {
-        return Err(format!(
-            "{} mapping result(s) blocked by compliance mode {}; rerun without --fail-on-license-block or adjust DFPS_COMPLIANCE_MODE",
-            metrics.license_blocked,
-            policy.mode.as_str()
-        )
-        .into());
-    }
+    enforce_metrics_gate(&policy, &metrics, args.fail_on_license_block)?;
 
-    Ok(())
-}
-
-fn init_logging(level: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let filter = level
-        .parse::<LevelFilter>()
-        .map_err(|_| format!("invalid log level '{level}'"))?;
-    env_logger::Builder::from_default_env()
-        .filter_level(filter)
-        .try_init()?;
-    Ok(())
-}
-
-fn write_json<T: Serialize>(
-    handle: &mut impl Write,
-    kind: &'static str,
-    value: &T,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let record = serde_json::to_string(&OutputRecord { kind, value })?;
-    writeln!(handle, "{record}")?;
     Ok(())
 }

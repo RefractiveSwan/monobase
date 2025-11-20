@@ -1,14 +1,12 @@
-use std::error::Error;
-
 use clap::Parser;
-use dfps_configuration::load_env;
+use dfps_cli::cli_core::{CliError, CliResult, init_cli_env, load_vector_config, run_bin};
 use dfps_core::mapping::CodeElement;
 use dfps_mapping::{DeterministicEmbeddingProvider, load_ncit_concepts};
+use dfps_vector_store::EmbeddingProvider;
 #[cfg(feature = "backend-pgvector")]
 use dfps_vector_store::PgVectorStore;
 use dfps_vector_store::{
-    EmbeddingProvider, MockVectorStore, QdrantVectorStore, VectorBackend, VectorItem, VectorStore,
-    VectorStoreConfig,
+    MockVectorStore, QdrantVectorStore, VectorBackend, VectorItem, VectorStore,
 };
 
 #[derive(Parser)]
@@ -34,61 +32,41 @@ struct Args {
     force_rebuild: bool,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
+    run_bin("build_vector_index", run);
+}
+
+fn run() -> CliResult<()> {
+    init_cli_env()?;
     env_logger::init();
-    load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
     let args = Args::parse();
 
-    let mut config =
-        VectorStoreConfig::from_env().map_err(|err| format!("vector config error: {err}"))?;
-    if let Some(namespace) = args.namespace {
-        config.namespace = namespace;
+    let mut config = load_vector_config()?;
+    if let Some(namespace) = &args.namespace {
+        config.namespace = namespace.clone();
+    }
+    if !config.enabled {
+        return Err(CliError::config(
+            "DFPS_VECTOR_ENABLED=false; set to true before building the index",
+        ));
     }
 
+    let items = build_items(&args)?;
     let namespace = config.namespace.clone();
-    let embedder = DeterministicEmbeddingProvider::new();
-    let concepts = load_ncit_concepts();
-    let items: Vec<VectorItem> = concepts
-        .into_iter()
-        .take(args.limit.unwrap_or(usize::MAX))
-        .map(|(concept, _)| {
-            let code = CodeElement::new(
-                concept.ncit_id.clone(),
-                Some("NCIT".into()),
-                Some(concept.ncit_id.clone()),
-                Some(concept.preferred_name.clone()),
-            );
-            let mut embedding = embedder.embed(&code);
-            embedding.metadata.embedding_version = args.embedding_version.clone();
-            if let Some(max_dim) = args.max_dim {
-                if embedding.vector.len() > max_dim {
-                    panic!(
-                        "embedding dimension {} exceeds max_dim {}",
-                        embedding.vector.len(),
-                        max_dim
-                    );
-                }
-            }
-            VectorItem {
-                ref_id: concept.ncit_id,
-                embedding,
-            }
-        })
-        .collect();
 
     match config.backend {
         VectorBackend::Qdrant => {
             let store = QdrantVectorStore::from_config(&config)
-                .map_err(|err| format!("qdrant client error: {err}"))?;
+                .map_err(|err| CliError::external(format!("qdrant client error: {err}")))?;
             store
                 .health(&namespace)
-                .map_err(|err| format!("qdrant health failed: {err}"))?;
+                .map_err(|err| CliError::external(format!("qdrant health failed: {err}")))?;
             if args.force_rebuild {
-                log::info!("force rebuild requested; collection will be recreated if missing");
+                log::info!("force rebuild requested; collection will be recreated if needed");
             }
             store
                 .index_items(&namespace, &items)
-                .map_err(|err| format!("indexing failed: {err}"))?;
+                .map_err(|err| CliError::external(format!("indexing failed: {err}")))?;
             println!(
                 "Indexed {} NCIt concepts into namespace '{}' using Qdrant backend",
                 items.len(),
@@ -99,56 +77,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             let store = MockVectorStore::new(namespace.clone());
             store
                 .index_items(&namespace, &items)
-                .map_err(|err| format!("mock index failed: {err}"))?;
+                .map_err(|err| CliError::external(format!("mock index failed: {err}")))?;
             println!(
                 "Mock index built with {} items for namespace '{}'",
                 items.len(),
                 namespace
             );
-            // stats for determinism/debugging
-            if let Some(first) = items.first() {
-                let norms: Vec<f32> = items
-                    .iter()
-                    .map(|item| (item.embedding.vector.iter().map(|v| v * v).sum::<f32>()).sqrt())
-                    .collect();
-                let count = norms.len() as f32;
-                let mean = norms.iter().sum::<f32>() / count.max(1.0);
-                let mut sorted = norms.clone();
-                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-                let median = if sorted.is_empty() {
-                    0.0
-                } else {
-                    let mid = sorted.len() / 2;
-                    sorted[mid]
-                };
-                let sum = norms.iter().sum::<f32>();
-                let sum_sq = norms.iter().map(|n| n * n).sum::<f32>();
-                let participation_ratio = if sum_sq > 0.0 && count > 0.0 {
-                    (sum * sum) / (count * sum_sq)
-                } else {
-                    0.0
-                };
-                println!(
-                    "Embedding stats: count={} mean_norm={:.4} median_norm={:.4} participation_ratio={:.4}",
-                    norms.len(),
-                    mean,
-                    median,
-                    participation_ratio
-                );
-                println!(
-                    "Embedding version='{}' dim={}",
-                    args.embedding_version, first.embedding.metadata.dim
-                );
-            }
+            log_embedding_stats(&items, &args.embedding_version);
         }
         VectorBackend::PgVector => {
             #[cfg(feature = "backend-pgvector")]
             {
                 let store = PgVectorStore::from_config(&config)
-                    .map_err(|err| format!("pgvector client error: {err}"))?;
+                    .map_err(|err| CliError::external(format!("pgvector client error: {err}")))?;
                 store
                     .health(&namespace)
-                    .map_err(|err| format!("pgvector health failed: {err}"))?;
+                    .map_err(|err| CliError::external(format!("pgvector health failed: {err}")))?;
                 if args.force_rebuild {
                     log::info!(
                         "force rebuild requested; existing rows will be replaced via upsert"
@@ -156,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 store
                     .index_items(&namespace, &items)
-                    .map_err(|err| format!("indexing failed: {err}"))?;
+                    .map_err(|err| CliError::external(format!("indexing failed: {err}")))?;
                 println!(
                     "Indexed {} NCIt concepts into namespace '{}' using pgvector backend",
                     items.len(),
@@ -165,17 +109,90 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             #[cfg(not(feature = "backend-pgvector"))]
             {
-                return Err("pgvector backend not compiled in this build".into());
+                return Err(CliError::config(
+                    "pgvector backend not compiled; rebuild with backend-pgvector feature"
+                        .to_string(),
+                ));
             }
         }
         other => {
-            return Err(format!(
-                "backend '{:?}' not yet supported by build-vector-index",
-                other
-            )
-            .into());
+            return Err(CliError::config(format!(
+                "backend '{other:?}' not yet supported by build-vector-index"
+            )));
         }
     }
 
     Ok(())
+}
+
+fn build_items(args: &Args) -> CliResult<Vec<VectorItem>> {
+    let embedder = DeterministicEmbeddingProvider::new();
+    let mut items = Vec::new();
+    for (concept, _) in load_ncit_concepts()
+        .into_iter()
+        .take(args.limit.unwrap_or(usize::MAX))
+    {
+        let code = CodeElement::new(
+            concept.ncit_id.clone(),
+            Some("NCIT".into()),
+            Some(concept.ncit_id.clone()),
+            Some(concept.preferred_name.clone()),
+        );
+        let mut embedding = embedder.embed(&code);
+        if let Some(max_dim) = args.max_dim {
+            if embedding.vector.len() > max_dim {
+                return Err(CliError::invalid(format!(
+                    "embedding dimension {} exceeds max_dim {}",
+                    embedding.vector.len(),
+                    max_dim
+                )));
+            }
+        }
+        embedding.metadata.embedding_version = args.embedding_version.clone();
+        items.push(VectorItem {
+            ref_id: concept.ncit_id,
+            embedding,
+        });
+    }
+    Ok(items)
+}
+
+fn log_embedding_stats(items: &[VectorItem], version: &str) {
+    if let Some(first) = items.first() {
+        let norms: Vec<f32> = items
+            .iter()
+            .map(|item| (item.embedding.vector.iter().map(|v| v * v).sum::<f32>()).sqrt())
+            .collect();
+        let count = norms.len() as f32;
+        let mean = if count > 0.0 {
+            norms.iter().sum::<f32>() / count
+        } else {
+            0.0
+        };
+        let mut sorted = norms.clone();
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let median = if sorted.is_empty() {
+            0.0
+        } else {
+            sorted[sorted.len() / 2]
+        };
+        let sum = norms.iter().sum::<f32>();
+        let sum_sq = norms.iter().map(|n| n * n).sum::<f32>();
+        let participation_ratio = if sum_sq > 0.0 && count > 0.0 {
+            (sum * sum) / (count * sum_sq)
+        } else {
+            0.0
+        };
+        println!(
+            "Embedding stats: count={} mean_norm={:.4} median_norm={:.4} participation_ratio={:.4}",
+            norms.len(),
+            mean,
+            median,
+            participation_ratio
+        );
+        println!(
+            "Embedding version='{}' dim={}",
+            version, first.embedding.metadata.dim
+        );
+    }
 }

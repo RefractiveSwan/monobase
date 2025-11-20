@@ -1,17 +1,19 @@
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_compliance::ComplianceConfig;
-use dfps_configuration::load_env;
+use dfps_cli::cli_core::{
+    CliError, CliResult, enforce_license_blocks, init_cli_env, input_reader, json_stream,
+    load_policy, load_vector_config, run_bin, write_record,
+};
 use dfps_core::staging::StgSrCodeExploded;
 use dfps_mapping::{
     DeterministicEmbeddingProvider, explain_staging_code,
     map_staging_codes_with_summary_and_policy, map_staging_codes_with_vector_and_policy,
 };
 use dfps_observability::VectorUsageSnapshot;
-use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend, VectorStoreConfig};
+use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend};
+#[cfg(feature = "backend-pgvector")]
+use dfps_vector_store::PgVectorStore;
 
 #[derive(Parser)]
 #[command(name = "map_codes", about = "Map staging codes to NCIt concepts")]
@@ -30,62 +32,48 @@ struct Args {
     fail_on_license_block: bool,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    load_env("app.cli").map_err(|err| format!("dfps_cli env error: {err}"))?;
-    let args = Args::parse();
-    let reader: Box<dyn BufRead> = match &args.input {
-        Some(path) => Box::new(BufReader::new(File::open(path)?)),
-        None => Box::new(BufReader::new(io::stdin())),
-    };
+fn main() {
+    run_bin("map_codes", run);
+}
 
+fn run() -> CliResult<()> {
+    init_cli_env()?;
+    let args = Args::parse();
+    let reader = input_reader(args.input.as_ref())?;
+    let mut stream = json_stream::<StgSrCodeExploded>(reader);
     let mut codes = Vec::new();
-    for line in reader.lines() {
-        let line = line?;
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        let code: StgSrCodeExploded = serde_json::from_str(trimmed)?;
-        codes.push(code);
+    while let Some(code) = stream.next() {
+        codes.push(code?);
     }
 
-    let compliance = ComplianceConfig::from_env()?;
-    let policy = compliance.load_policy()?;
+    if codes.is_empty() {
+        log::warn!("no staging codes detected in input");
+    }
+
+    let policy = load_policy()?;
     let vector_mapping = try_vector_mapping(&codes, &policy);
-    let (results, summary) = match vector_mapping {
-        Ok((results, _dims, summary, usage)) => {
-            if let Some(usage) = usage {
-                eprintln!(
-                    "vector_usage queries={} hits={} fallbacks={}",
-                    usage.queries, usage.hits, usage.fallbacks
-                );
-            }
-            (results, summary)
-        }
+    let (results, summary, usage) = match vector_mapping {
+        Ok(value) => value,
         Err(err) => {
-            log::warn!("vector mapping disabled or failed ({err}); using offline mock");
+            log::warn!(
+                "vector mapping disabled or failed ({err}); falling back to lexical pipeline"
+            );
             let (results, _, summary) =
                 map_staging_codes_with_summary_and_policy(codes.clone(), &policy);
-            (results, summary)
+            (results, summary, None)
         }
     };
-    let stdout = io::stdout();
+
+    let stdout = std::io::stdout();
     let mut handle = stdout.lock();
     for result in &results {
-        writeln!(handle, "{}", serde_json::to_string(result)?)?;
+        write_record(&mut handle, "mapping_result", result)?;
     }
 
     if args.explain {
         for code in &codes {
             let explanation = explain_staging_code(code, args.explain_top);
-            writeln!(
-                handle,
-                "{}",
-                serde_json::to_string(&serde_json::json!({
-                    "kind": "explanation",
-                    "value": explanation
-                }))?
-            )?;
+            write_record(&mut handle, "explanation", &explanation)?;
         }
     }
 
@@ -94,12 +82,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(|res| res.reason.as_deref() == Some("license_blocked"))
         .count();
 
-    if args.fail_on_license_block && license_blocked > 0 {
-        return Err(format!(
-            "{} code(s) blocked due to compliance mode {}; rerun with --fail-on-license-block disabled or adjust DFPS_COMPLIANCE_MODE",
-            license_blocked, policy.mode.as_str()
-        )
-        .into());
+    enforce_license_blocks(&policy, license_blocked, args.fail_on_license_block)?;
+
+    if let Some(usage) = usage {
+        eprintln!(
+            "vector_usage queries={} hits={} fallbacks={}",
+            usage.queries, usage.hits, usage.fallbacks
+        );
     }
 
     eprintln!(
@@ -120,24 +109,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn try_vector_mapping(
     codes: &[StgSrCodeExploded],
     policy: &dfps_compliance::Policy,
-) -> Result<
-    (
-        Vec<dfps_core::mapping::MappingResult>,
-        Vec<dfps_core::mapping::DimNCITConcept>,
-        dfps_mapping::MappingSummary,
-        Option<VectorUsageSnapshot>,
-    ),
-    String,
-> {
-    let config =
-        VectorStoreConfig::from_env().map_err(|err| format!("vector config error: {err}"))?;
+) -> CliResult<(
+    Vec<dfps_core::mapping::MappingResult>,
+    dfps_mapping::MappingSummary,
+    Option<VectorUsageSnapshot>,
+)> {
+    let config = load_vector_config()?;
     if !config.enabled {
-        return Err("DFPS_VECTOR_ENABLED=false".into());
+        return Err(CliError::config("DFPS_VECTOR_ENABLED=false"));
     }
+
     match config.backend {
         VectorBackend::Qdrant => {
             let client = QdrantVectorStore::from_config(&config)
-                .map_err(|err| format!("qdrant client: {err}"))?;
+                .map_err(|err| CliError::external(format!("qdrant client: {err}")))?;
             let store = std::sync::Arc::new(client);
             map_staging_codes_with_vector_and_policy(
                 codes.to_owned(),
@@ -147,30 +132,8 @@ fn try_vector_mapping(
                 5,
                 policy,
             )
-            .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
-            .map_err(|err| format!("vector mapping error: {err}"))
-        }
-        VectorBackend::PgVector => {
-            #[cfg(feature = "backend-pgvector")]
-            {
-                let client = dfps_vector_store::PgVectorStore::from_config(&config)
-                    .map_err(|err| format!("pgvector client: {err}"))?;
-                let store = std::sync::Arc::new(client);
-                map_staging_codes_with_vector_and_policy(
-                    codes.to_owned(),
-                    store,
-                    config,
-                    DeterministicEmbeddingProvider::new(),
-                    5,
-                    policy,
-                )
-                .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
-                .map_err(|err| format!("vector mapping error: {err}"))
-            }
-            #[cfg(not(feature = "backend-pgvector"))]
-            {
-                Err("pgvector backend not compiled; enable feature".into())
-            }
+            .map(|(results, _dims, summary, usage)| (results, summary, Some(usage)))
+            .map_err(|err| CliError::external(format!("vector mapping error: {err}")))
         }
         VectorBackend::Mock => {
             let store = std::sync::Arc::new(MockVectorStore::new(config.namespace.clone()));
@@ -182,9 +145,35 @@ fn try_vector_mapping(
                 5,
                 policy,
             )
-            .map(|(results, dims, summary, usage)| (results, dims, summary, Some(usage)))
-            .map_err(|err| format!("vector mapping error: {err}"))
+            .map(|(results, _dims, summary, usage)| (results, summary, Some(usage)))
+            .map_err(|err| CliError::external(format!("vector mapping error: {err}")))
         }
-        other => Err(format!("backend {:?} not supported in CLI", other)),
+        VectorBackend::PgVector => {
+            #[cfg(feature = "backend-pgvector")]
+            {
+                let client = PgVectorStore::from_config(&config)
+                    .map_err(|err| CliError::external(format!("pgvector client: {err}")))?;
+                let store = std::sync::Arc::new(client);
+                map_staging_codes_with_vector_and_policy(
+                    codes.to_owned(),
+                    store,
+                    config,
+                    DeterministicEmbeddingProvider::new(),
+                    5,
+                    policy,
+                )
+                .map(|(results, _dims, summary, usage)| (results, summary, Some(usage)))
+                .map_err(|err| CliError::external(format!("vector mapping error: {err}")))
+            }
+            #[cfg(not(feature = "backend-pgvector"))]
+            {
+                Err(CliError::config(
+                    "pgvector backend not compiled; enable backend-pgvector feature",
+                ))
+            }
+        }
+        other => Err(CliError::config(format!(
+            "backend '{other:?}' not supported in CLI"
+        ))),
     }
 }

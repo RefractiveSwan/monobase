@@ -3,6 +3,9 @@ name = "dfps_cli"
 version.workspace = true
 edition.workspace = true
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name = "map_bundles"
 path = "src/bin/map_bundles.rs"
