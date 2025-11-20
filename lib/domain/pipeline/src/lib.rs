@@ -4,6 +4,7 @@
 //! - docs/system-design/fhir/index.md#quickstart
 //! - docs/system-design/ncit/behavior/sequence-servicerequest.md
 //! - lib/domain/pipeline/README.md (REFR-09 notes)
+//! - lib/domain/contracts (dfps_contracts) for cross-surface DTO alignment
 //!   by exposing a single entrypoint from Bundle -> staging -> NCIt concepts,
 //!   with optional vector-store contexts injected by callers.
 
@@ -12,7 +13,9 @@ use dfps_core::{
     mapping::{DimNCITConcept, MappingResult},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use dfps_ingestion::bundle_to_staging;
+use dfps_ingestion::{
+    ExternalValidationContext, ValidationMode, bundle_to_staging_with_validation,
+};
 use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes, map_staging_codes_with_vector,
 };
@@ -25,6 +28,9 @@ use std::sync::Arc;
 use thiserror::Error;
 
 /// Aggregated pipeline output for a single Bundle ingestion/mapping run.
+///
+/// This type is re-exported in `dfps_contracts` so app surfaces can rely on a
+/// single schema without bespoke DTOs.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PipelineOutput {
     pub flats: Vec<StgServiceRequestFlat>,
@@ -34,6 +40,71 @@ pub struct PipelineOutput {
     pub vector_usage: Option<VectorUsageSnapshot>,
 }
 
+/// Runtime toggles for a pipeline run.
+#[derive(Clone, Copy, Debug)]
+pub struct PipelineRunConfig<'a> {
+    pub validation_mode: ValidationMode,
+    pub external_validation: ExternalValidationContext<'a>,
+    pub mapping: MappingRunConfig,
+}
+
+impl<'a> Default for PipelineRunConfig<'a> {
+    fn default() -> Self {
+        Self {
+            validation_mode: ValidationMode::default(),
+            external_validation: ExternalValidationContext::default(),
+            mapping: MappingRunConfig::default(),
+        }
+    }
+}
+
+impl<'a> PipelineRunConfig<'a> {
+    /// Override the ingestion validation mode (Strict/Lenient/External*).
+    pub fn with_validation_mode(mut self, mode: ValidationMode) -> Self {
+        self.validation_mode = mode;
+        self
+    }
+
+    /// Inject an external validator/profile context.
+    pub fn with_external_validation(mut self, context: ExternalValidationContext<'a>) -> Self {
+        self.external_validation = context;
+        self
+    }
+
+    /// Override mapping behavior (lexical-only, future knobs).
+    pub fn with_mapping_config(mut self, mapping: MappingRunConfig) -> Self {
+        self.mapping = mapping;
+        self
+    }
+}
+
+/// Mapping-specific configuration knobs (lexical/vector hints).
+#[derive(Clone, Copy, Debug)]
+pub struct MappingRunConfig {
+    pub lexical_only: bool,
+}
+
+impl MappingRunConfig {
+    /// Force lexical mapping even if a vector context is provided.
+    pub fn lexical_only() -> Self {
+        Self { lexical_only: true }
+    }
+
+    /// Explicitly toggle lexical-only mode.
+    pub fn with_lexical_only(mut self, enabled: bool) -> Self {
+        self.lexical_only = enabled;
+        self
+    }
+}
+
+impl Default for MappingRunConfig {
+    fn default() -> Self {
+        Self {
+            lexical_only: false,
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum PipelineError {
     #[error("ingestion error: {0}")]
@@ -41,20 +112,34 @@ pub enum PipelineError {
 }
 
 pub fn bundle_to_mapped_sr(bundle: &Bundle) -> Result<PipelineOutput, PipelineError> {
-    bundle_to_mapped_sr_with_vector_context(bundle, None)
+    bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig::default(), None)
 }
 
 pub fn bundle_to_mapped_sr_with_vector_context(
     bundle: &Bundle,
     vector: Option<&VectorPipelineContext>,
 ) -> Result<PipelineOutput, PipelineError> {
-    let (flats, exploded) = bundle_to_staging(bundle)?;
-    let (mapping_results, dim_concepts, usage) = vector
-        .and_then(|ctx| try_vector_mapping(&exploded, ctx))
-        .unwrap_or_else(|| {
-            let (results, dims) = map_staging_codes(exploded.clone());
-            (results, dims, None)
-        });
+    bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig::default(), vector)
+}
+
+/// Run the pipeline with explicit config + optional vector context.
+pub fn bundle_to_mapped_sr_with_opts<'a>(
+    bundle: &Bundle,
+    config: &PipelineRunConfig<'a>,
+    vector: Option<&VectorPipelineContext>,
+) -> Result<PipelineOutput, PipelineError> {
+    let ValidatedStage { flats, exploded } = staging_rows(bundle, config)?;
+    let (mapping_results, dim_concepts, usage) = if config.mapping.lexical_only {
+        let (results, dims) = map_staging_codes(exploded.clone());
+        (results, dims, None)
+    } else {
+        vector
+            .and_then(|ctx| try_vector_mapping(&exploded, ctx))
+            .unwrap_or_else(|| {
+                let (results, dims) = map_staging_codes(exploded.clone());
+                (results, dims, None)
+            })
+    };
 
     Ok(PipelineOutput {
         flats,
@@ -63,6 +148,24 @@ pub fn bundle_to_mapped_sr_with_vector_context(
         dim_concepts,
         vector_usage: usage,
     })
+}
+
+struct ValidatedStage {
+    flats: Vec<StgServiceRequestFlat>,
+    exploded: Vec<StgSrCodeExploded>,
+}
+
+fn staging_rows(
+    bundle: &Bundle,
+    config: &PipelineRunConfig<'_>,
+) -> Result<ValidatedStage, PipelineError> {
+    let validated = bundle_to_staging_with_validation(
+        bundle,
+        config.validation_mode,
+        config.external_validation,
+    )?;
+    let (flats, exploded) = validated.value;
+    Ok(ValidatedStage { flats, exploded })
 }
 
 fn try_vector_mapping(
@@ -90,6 +193,11 @@ fn try_vector_mapping(
     }
 }
 
+/// Caller-provided vector configuration + store handle.
+///
+/// Construct this in app/platform crates (after reading env/config) and pass a
+/// borrowed reference into the pipeline. The context is intentionally opaque so
+/// dfps_pipeline stays environment-free.
 #[derive(Clone)]
 pub struct VectorPipelineContext {
     store: Arc<dyn VectorStore>,
@@ -156,6 +264,7 @@ impl VectorStore for ErasedVectorStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dfps_ingestion::ValidationMode;
     use dfps_test_suite::regression;
     use dfps_vector_store::{MockVectorStore, VectorBackend};
     use serde_json::json;
@@ -226,5 +335,28 @@ mod tests {
         match err {
             PipelineError::Ingestion(_) => {}
         }
+    }
+
+    #[test]
+    fn pipeline_run_config_customization_executes() {
+        let bundle = regression::baseline_fhir_bundle();
+        let config = PipelineRunConfig::default().with_validation_mode(ValidationMode::Strict);
+        let output =
+            bundle_to_mapped_sr_with_opts(&bundle, &config, None).expect("strict lexical run");
+        assert!(!output.mapping_results.is_empty());
+    }
+
+    #[test]
+    fn mapping_config_can_force_lexical_path() {
+        let bundle = regression::baseline_fhir_bundle();
+        let ctx = mock_vector_context();
+        let config =
+            PipelineRunConfig::default().with_mapping_config(MappingRunConfig::lexical_only());
+        let output =
+            bundle_to_mapped_sr_with_opts(&bundle, &config, Some(&ctx)).expect("lexical override");
+        assert!(
+            output.vector_usage.is_none(),
+            "lexical-only mapping should ignore vector contexts"
+        );
     }
 }

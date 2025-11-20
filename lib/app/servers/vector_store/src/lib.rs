@@ -355,13 +355,20 @@ impl VectorStore for MockVectorStore {
         query_vec: &[f32],
         top_k: usize,
     ) -> Result<VectorSearchResult, VectorStoreError> {
-        if self.simulated_latency.is_some() {
-            std::thread::sleep(self.simulated_latency.unwrap());
-        }
-
         if namespace != self.namespace {
             self.counters.inc_fallback();
             return Err(VectorStoreError::InvalidNamespace);
+        }
+
+        if top_k == 0 {
+            return Ok(VectorSearchResult {
+                hits: Vec::new(),
+                capacity: self.capacity.clone(),
+            });
+        }
+
+        if let Some(latency) = self.simulated_latency {
+            std::thread::sleep(latency);
         }
 
         self.counters.inc_query();
@@ -432,6 +439,7 @@ pub use pgvector_backend::PgVectorStore;
 mod tests {
     use super::*;
     use std::sync::Mutex;
+    use std::time::{Duration, Instant};
 
     static ENV_GUARD: Mutex<()> = Mutex::new(());
 
@@ -464,6 +472,32 @@ mod tests {
     }
 
     #[test]
+    fn config_rejects_zero_pool_max() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        reset_env();
+        unsafe {
+            env::set_var("DFPS_VECTOR_ENABLED", "true");
+            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("DFPS_VECTOR_POOL_MAX", "0");
+        }
+        let err = VectorStoreConfig::from_env().unwrap_err();
+        assert_eq!(err, VectorStoreConfigError::InvalidPoolMax);
+    }
+
+    #[test]
+    fn config_rejects_zero_health_timeout() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        reset_env();
+        unsafe {
+            env::set_var("DFPS_VECTOR_ENABLED", "true");
+            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("DFPS_VECTOR_HEALTH_TIMEOUT_MS", "0");
+        }
+        let err = VectorStoreConfig::from_env().unwrap_err();
+        assert_eq!(err, VectorStoreConfigError::InvalidTimeout);
+    }
+
+    #[test]
     fn config_rejects_empty_namespace_when_enabled() {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
@@ -473,6 +507,19 @@ mod tests {
         }
         let err = VectorStoreConfig::from_env().unwrap_err();
         assert_eq!(err, VectorStoreConfigError::MissingNamespace);
+    }
+
+    #[test]
+    fn config_requires_url_for_non_mock_backend() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        reset_env();
+        unsafe {
+            env::set_var("DFPS_VECTOR_ENABLED", "true");
+            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("DFPS_VECTOR_BACKEND", "qdrant");
+        }
+        let err = VectorStoreConfig::from_env().unwrap_err();
+        assert_eq!(err, VectorStoreConfigError::MissingUrl);
     }
 
     #[test]
@@ -540,5 +587,41 @@ mod tests {
         store.index_items("ncit_dev", &items).expect("second index");
         let second = store.last_indexed();
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn mock_search_zero_top_k_is_noop() {
+        let store = MockVectorStore::new("ncit_dev");
+        let result = store
+            .search("ncit_dev", &[0.1, 0.2], 0)
+            .expect("zero search");
+        assert!(result.hits.is_empty());
+        let snapshot = store.counters().snapshot();
+        assert_eq!(snapshot.queries, 0);
+        assert_eq!(snapshot.hits, 0);
+        assert_eq!(snapshot.fallbacks, 0);
+    }
+
+    #[test]
+    fn mock_latency_applies_only_to_search() {
+        let store = MockVectorStore::new("ncit_dev").with_latency(Duration::from_millis(20));
+        let before = Instant::now();
+        store.health("ncit_dev").expect("healthy");
+        let health_elapsed = before.elapsed();
+
+        let before_search = Instant::now();
+        store
+            .search("ncit_dev", &[0.1, 0.2], 1)
+            .expect("search with latency");
+        let search_elapsed = before_search.elapsed();
+
+        assert!(
+            health_elapsed < Duration::from_millis(10),
+            "health should not incur simulated latency"
+        );
+        assert!(
+            search_elapsed >= Duration::from_millis(20),
+            "search should respect simulated latency"
+        );
     }
 }

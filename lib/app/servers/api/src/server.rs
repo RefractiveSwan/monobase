@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     env,
     net::{IpAddr, SocketAddr},
     path::PathBuf,
@@ -14,7 +14,6 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use chrono::{DateTime, NaiveDate};
 use dfps_compliance::{ComplianceConfig, assert_export_allowed};
 use dfps_contracts::{ErrorCode, ErrorKind, PipelineMetrics, VectorUsageSnapshot};
 use dfps_core::{
@@ -23,9 +22,7 @@ use dfps_core::{
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
 use dfps_datamart::{
-    CohortFilters, DimCode, DimCodeKey, DimEncounter, DimEncounterKey, DimNCIT, DimNCITKey,
-    DimPatient, DimPatientKey, FactServiceRequest, WarehouseConfig, connect_sqlite,
-    from_pipeline_output, load_from_pipeline_output, migrate,
+    CohortFilters, WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate,
 };
 use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::{
@@ -46,9 +43,7 @@ use tokio::{
 };
 use uuid::Uuid;
 
-use crate::dto::{
-    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, EvalRunResponse,
-};
+use crate::dto::{AnalyticsSummaryResponse, CohortResponse, EvalRunResponse};
 /// Runtime configuration for the HTTP server.
 #[derive(Debug, Clone)]
 pub struct ApiServerConfig {
@@ -58,7 +53,14 @@ pub struct ApiServerConfig {
 
 impl Default for ApiServerConfig {
     fn default() -> Self {
-        let host = env::var("DFPS_API_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+        let host = match dfps_configuration::string_var("DFPS_API_HOST") {
+            Ok(Some(value)) if !value.trim().is_empty() => value.trim().to_string(),
+            Ok(_) => "127.0.0.1".into(),
+            Err(err) => {
+                warn!(target: "dfps_api", "invalid DFPS_API_HOST: {err}; using default 127.0.0.1");
+                "127.0.0.1".into()
+            }
+        };
         let port = match dfps_configuration::port_var("DFPS_API_PORT") {
             Ok(Some(value)) => value,
             Ok(None) => 8080,
@@ -168,159 +170,6 @@ impl AnalyticsPersistence {
     }
 }
 
-#[derive(Debug, Default, Clone)]
-struct AnalyticsState {
-    patients: HashMap<DimPatientKey, DimPatient>,
-    encounters: HashMap<DimEncounterKey, DimEncounter>,
-    codes: HashMap<DimCodeKey, DimCode>,
-    ncit: HashMap<DimNCITKey, DimNCIT>,
-    facts: Vec<FactServiceRequest>,
-    mapping_by_code: HashMap<DimCodeKey, MappingResult>,
-}
-
-impl AnalyticsState {
-    fn record_output(&mut self, output: &PipelineOutput) {
-        let (dims, mut facts) = from_pipeline_output(output);
-        for patient in dims.patients {
-            self.patients.entry(patient.key).or_insert(patient);
-        }
-        for encounter in dims.encounters {
-            self.encounters.entry(encounter.key).or_insert(encounter);
-        }
-        for code in dims.codes {
-            self.codes.entry(code.key).or_insert(code);
-        }
-        for concept in dims.ncit {
-            self.ncit.entry(concept.key).or_insert(concept);
-        }
-        self.facts.append(&mut facts);
-
-        for mapping in &output.mapping_results {
-            let key = DimCodeKey::from_code_element_id(&mapping.code_element_id);
-            self.mapping_by_code.insert(key, mapping.clone());
-        }
-    }
-
-    fn ncit_summary(&self) -> AnalyticsSummaryResponse {
-        let mut counts: HashMap<(String, Option<String>, Option<String>), usize> = HashMap::new();
-        for fact in &self.facts {
-            let ncit_id = self
-                .lookup_ncit_id(fact.ncit_key)
-                .unwrap_or_else(|| "UNKNOWN".into());
-            let mapping_state = self
-                .mapping_state_for(&fact.code_key)
-                .map(mapping_state_label)
-                .map(str::to_string);
-            let time_bucket = normalize_date(&fact.ordered_at);
-            let key = (ncit_id.clone(), mapping_state.clone(), time_bucket.clone());
-            *counts.entry(key).or_default() += 1;
-        }
-
-        let mut rows: Vec<AnalyticsSummaryRow> = counts
-            .into_iter()
-            .map(
-                |((ncit_id, mapping_state, time_bucket), count)| AnalyticsSummaryRow {
-                    preferred_name: self.lookup_ncit_name(&ncit_id),
-                    ncit_id,
-                    mapping_state,
-                    time_bucket,
-                    count,
-                },
-            )
-            .collect();
-        rows.sort_by(|a, b| {
-            b.count
-                .cmp(&a.count)
-                .then_with(|| a.ncit_id.cmp(&b.ncit_id))
-        });
-        AnalyticsSummaryResponse { rows }
-    }
-
-    fn cohort(&self, query: &CohortQuery) -> CohortResponse {
-        let mut rows = Vec::new();
-        for fact in &self.facts {
-            let ncit_id = self.lookup_ncit_id(fact.ncit_key);
-            if let Some(expected) = &query.ncit_id
-                && ncit_id.as_deref() != Some(expected.as_str())
-            {
-                continue;
-            }
-            if let Some(status) = &query.status
-                && &fact.status != status
-            {
-                continue;
-            }
-            if !self.matches_date_filters(&fact.ordered_at, query) {
-                continue;
-            }
-
-            let patient_id = self
-                .patients
-                .get(&fact.patient_key)
-                .map(|patient| patient.patient_id.clone());
-            let encounter_id = fact
-                .encounter_key
-                .and_then(|key| self.encounters.get(&key))
-                .map(|encounter| encounter.encounter_id.clone());
-            let mapping_state = self
-                .mapping_state_for(&fact.code_key)
-                .map(mapping_state_label)
-                .map(str::to_string);
-            rows.push(CohortRow {
-                sr_id: fact.sr_id.clone(),
-                patient_id,
-                encounter_id,
-                ncit_id,
-                status: fact.status.clone(),
-                intent: fact.intent.clone(),
-                description: fact.description.clone(),
-                ordered_at: fact.ordered_at.clone(),
-                mapping_state,
-            });
-        }
-        CohortResponse {
-            total: rows.len(),
-            rows,
-        }
-    }
-
-    fn lookup_ncit_id(&self, key: Option<DimNCITKey>) -> Option<String> {
-        key.and_then(|ncit_key| self.ncit.get(&ncit_key))
-            .map(|dim| dim.ncit_id.clone())
-    }
-
-    fn lookup_ncit_name(&self, ncit_id: &str) -> Option<String> {
-        self.ncit
-            .values()
-            .find(|dim| dim.ncit_id == ncit_id)
-            .map(|dim| dim.preferred_name.clone())
-    }
-
-    fn mapping_state_for(&self, key: &DimCodeKey) -> Option<MappingState> {
-        self.mapping_by_code.get(key).map(|mapping| mapping.state)
-    }
-
-    fn matches_date_filters(&self, ordered_at: &Option<String>, query: &CohortQuery) -> bool {
-        if query.date_from.is_none() && query.date_to.is_none() {
-            return true;
-        }
-        let Some(date) = normalize_date(ordered_at) else {
-            return false;
-        };
-        if let Some(from) = &query.date_from
-            && date < *from
-        {
-            return false;
-        }
-        if let Some(to) = &query.date_to
-            && date > *to
-        {
-            return false;
-        }
-        true
-    }
-}
-
 fn license_tiers_from_output(output: &PipelineOutput) -> Vec<LicenseTier> {
     let mut tiers = HashSet::new();
     for mapping in &output.mapping_results {
@@ -361,18 +210,16 @@ fn enforce_export_policy(
 }
 
 #[derive(Clone)]
-pub struct ApiState {
-    metrics: Arc<Mutex<PipelineMetrics>>,
-    analytics: Arc<Mutex<AnalyticsState>>,
-    analytics_persistence: AnalyticsPersistence,
-    latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
-    compliance_policy: dfps_compliance::Policy,
-    dataset_store: Arc<dfps_eval::FileDatasetStore>,
+struct NodeDataPlane {
+    policy: dfps_compliance::Policy,
     vector_context: Option<VectorPipelineContext>,
+    dataset_store: Arc<dfps_eval::FileDatasetStore>,
+    metrics: Arc<Mutex<PipelineMetrics>>,
+    analytics: AnalyticsPersistence,
 }
 
-impl ApiState {
-    pub fn new() -> Self {
+impl NodeDataPlane {
+    fn new() -> Self {
         let compliance_config = ComplianceConfig::from_env()
             .unwrap_or_else(|err| panic!("failed to load compliance config: {err}"));
         let compliance_policy = compliance_config
@@ -381,13 +228,34 @@ impl ApiState {
         let dataset_store = Arc::new(eval_dataset_store_from_env());
         let vector_context = load_vector_context_from_env();
         Self {
-            metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
-            analytics: Arc::new(Mutex::new(AnalyticsState::default())),
-            analytics_persistence: AnalyticsPersistence::from_env(),
-            latest_eval: Arc::new(Mutex::new(None)),
-            compliance_policy,
-            dataset_store,
+            policy: compliance_policy,
             vector_context,
+            dataset_store,
+            metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
+            analytics: AnalyticsPersistence::from_env(),
+        }
+    }
+
+    fn metrics(&self) -> Arc<Mutex<PipelineMetrics>> {
+        Arc::clone(&self.metrics)
+    }
+
+    fn dataset_store(&self) -> Arc<dfps_eval::FileDatasetStore> {
+        Arc::clone(&self.dataset_store)
+    }
+}
+
+#[derive(Clone)]
+pub struct ApiState {
+    plane: Arc<NodeDataPlane>,
+    latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
+}
+
+impl ApiState {
+    pub fn new() -> Self {
+        Self {
+            plane: Arc::new(NodeDataPlane::new()),
+            latest_eval: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -480,17 +348,17 @@ async fn analytics_ncit_summary(State(state): State<ApiState>) -> Result<Respons
     let request_id = Uuid::new_v4();
     info!(target: "dfps_api", "request_id={request_id} analytics_ncit_summary");
     {
-        let mut metrics = state.metrics.lock().await;
+        let metrics_handle = state.plane.metrics();
+        let mut metrics = metrics_handle.lock().await;
         metrics.analytics_requests += 1;
     }
-    if let Some(response) = state.analytics_persistence.query_ncit_summary().await {
-        return Ok(Json(response).into_response());
-    }
-    let summary = {
-        let analytics = state.analytics.lock().await;
-        analytics.ncit_summary()
-    };
-    Ok(Json(summary).into_response())
+    let response = state
+        .plane
+        .analytics
+        .query_ncit_summary()
+        .await
+        .unwrap_or_else(|| AnalyticsSummaryResponse { rows: Vec::new() });
+    Ok(Json(response).into_response())
 }
 
 async fn analytics_cohort(
@@ -507,15 +375,18 @@ async fn analytics_cohort(
         query.date_to
     );
     let filters = CohortFilters::from(&query);
-    let response = if let Some(response) = state.analytics_persistence.query_cohort(&filters).await
+    let response = state
+        .plane
+        .analytics
+        .query_cohort(&filters)
+        .await
+        .unwrap_or_else(|| CohortResponse {
+            total: 0,
+            rows: Vec::new(),
+        });
     {
-        response
-    } else {
-        let analytics = state.analytics.lock().await;
-        analytics.cohort(&query)
-    };
-    {
-        let mut metrics = state.metrics.lock().await;
+        let metrics_handle = state.plane.metrics();
+        let mut metrics = metrics_handle.lock().await;
         metrics.analytics_requests += 1;
         metrics.cohort_queries += 1;
         metrics.cohort_results_total += response.total;
@@ -535,7 +406,8 @@ async fn eval_summary(
     let dataset = query.dataset;
     info!(target: "dfps_api", "request_id={request_id} eval_summary dataset={dataset}");
     let cases = state
-        .dataset_store
+        .plane
+        .dataset_store()
         .load_dataset(&dataset)
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), request_id))?;
     let summary = run_eval_internal(&cases, query.top_k);
@@ -544,7 +416,8 @@ async fn eval_summary(
 
 async fn list_eval_datasets(State(state): State<ApiState>) -> Result<Response, ApiError> {
     let manifests = state
-        .dataset_store
+        .plane
+        .dataset_store()
         .list_manifests()
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), Uuid::new_v4()))?;
     Ok(Json(manifests).into_response())
@@ -562,7 +435,8 @@ async fn run_eval(
         body.top_k
     );
     let outcome = state
-        .dataset_store
+        .plane
+        .dataset_store()
         .load_dataset_with_manifest(&body.dataset)
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), request_id))?;
     let summary = run_eval_internal(&outcome.cases, body.top_k);
@@ -600,25 +474,6 @@ fn run_eval_internal(cases: &[dfps_eval::EvalCase], top_k: usize) -> dfps_eval::
     summary
 }
 
-fn mapping_state_label(state: MappingState) -> &'static str {
-    match state {
-        MappingState::AutoMapped => "auto_mapped",
-        MappingState::NeedsReview => "needs_review",
-        MappingState::NoMatch => "no_match",
-    }
-}
-
-fn normalize_date(value: &Option<String>) -> Option<String> {
-    value.as_ref().and_then(|raw| {
-        if let Ok(dt) = DateTime::parse_from_rfc3339(raw) {
-            return Some(dt.date_naive().to_string());
-        }
-        NaiveDate::parse_from_str(raw, "%Y-%m-%d")
-            .map(|date| date.to_string())
-            .ok()
-    })
-}
-
 fn eval_dataset_store_from_env() -> dfps_eval::FileDatasetStore {
     let root = match env::var("DFPS_EVAL_DATA_ROOT") {
         Ok(value) if !value.trim().is_empty() => {
@@ -654,7 +509,8 @@ fn load_vector_context_from_env() -> Option<VectorPipelineContext> {
 
 async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {
     let request_id = Uuid::new_v4();
-    let metrics = state.metrics.lock().await.clone();
+    let metrics_handle = state.plane.metrics();
+    let metrics = metrics_handle.lock().await.clone();
     info!(
         target: "dfps_api",
         "request_id={request_id} metrics_summary bundles={} mappings={} compliance_mode={:?}",
@@ -682,20 +538,20 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
 
     let mut response = MapBundlesResponse::default();
     let mut request_metrics = PipelineMetrics {
-        compliance_mode: Some(state.compliance_policy.mode.as_str().to_string()),
+        compliance_mode: Some(state.plane.policy.mode.as_str().to_string()),
         ..PipelineMetrics::default()
     };
 
     for bundle in bundles {
         let output =
-            bundle_to_mapped_sr_with_vector_context(&bundle, state.vector_context.as_ref())
+            bundle_to_mapped_sr_with_vector_context(&bundle, state.plane.vector_context.as_ref())
                 .map_err(|err| match err {
-                    PipelineError::Ingestion(source) => {
-                        ApiError::ingestion(source.to_string(), request_id)
-                    }
-                })?;
+                PipelineError::Ingestion(source) => {
+                    ApiError::ingestion(source.to_string(), request_id)
+                }
+            })?;
 
-        enforce_export_policy(&output, &state.compliance_policy, request_id)?;
+        enforce_export_policy(&output, &state.plane.policy, request_id)?;
 
         log_pipeline_output(
             &output.flats,
@@ -706,13 +562,10 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             None,
         );
         state
-            .analytics_persistence
-            .persist(&output, &state.compliance_policy)
+            .plane
+            .analytics
+            .persist(&output, &state.plane.policy)
             .await;
-        {
-            let mut analytics = state.analytics.lock().await;
-            analytics.record_output(&output);
-        }
 
         for mapping in &output.mapping_results {
             if matches!(mapping.state, MappingState::NoMatch) {
@@ -723,7 +576,8 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     }
 
     {
-        let mut global = state.metrics.lock().await;
+        let metrics_handle = state.plane.metrics();
+        let mut global = metrics_handle.lock().await;
         global.bundle_count += request_metrics.bundle_count;
         global.flats_count += request_metrics.flats_count;
         global.exploded_count += request_metrics.exploded_count;
@@ -759,13 +613,13 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         request_metrics.needs_review,
         request_metrics.no_match,
         request_metrics.license_blocked,
-        state.compliance_policy.mode.as_str()
+        state.plane.policy.mode.as_str()
     );
     if request_metrics.license_blocked > 0 {
         warn!(
             target: "dfps_compliance",
             "request_id={request_id} compliance_blocked reason=license_blocked mode={} count={}",
-            state.compliance_policy.mode.as_str(),
+            state.plane.policy.mode.as_str(),
             request_metrics.license_blocked
         );
     }
@@ -1088,67 +942,5 @@ mod tests {
     fn rejects_empty_payload() {
         let err = parse_bundles(b"", Uuid::nil()).unwrap_err();
         assert!(matches!(err, ApiError::InvalidJson { .. }));
-    }
-
-    fn sample_pipeline_output() -> PipelineOutput {
-        PipelineOutput {
-            flats: vec![StgServiceRequestFlat {
-                sr_id: "SR-1".into(),
-                patient_id: "PAT-1".into(),
-                encounter_id: Some("ENC-1".into()),
-                status: "active".into(),
-                intent: "order".into(),
-                description: "FDG uptake".into(),
-                ordered_at: Some("2024-05-01T12:00:00Z".into()),
-            }],
-            exploded_codes: vec![StgSrCodeExploded {
-                sr_id: "SR-1".into(),
-                system: Some("http://loinc.org".into()),
-                code: Some("24606-6".into()),
-                display: Some("FDG uptake".into()),
-            }],
-            mapping_results: vec![MappingResult {
-                code_element_id: "SR-1::http://loinc.org::24606-6".into(),
-                cui: Some("C0001".into()),
-                ncit_id: Some("C1234".into()),
-                score: 0.98,
-                strategy: dfps_core::mapping::MappingStrategy::Lexical,
-                state: MappingState::AutoMapped,
-                thresholds: dfps_core::mapping::MappingThresholds::default(),
-                source_version: dfps_core::mapping::MappingSourceVersion::new("ncit", "umls"),
-                reason: None,
-                license_tier: None,
-                source_kind: None,
-            }],
-            dim_concepts: vec![DimNCITConcept {
-                ncit_id: "C1234".into(),
-                preferred_name: "FDG Uptake".into(),
-                semantic_group: "Test".into(),
-            }],
-            vector_usage: None,
-        }
-    }
-
-    #[test]
-    fn analytics_state_builds_summary_and_cohort() {
-        let mut analytics = AnalyticsState::default();
-        analytics.record_output(&sample_pipeline_output());
-        let summary = analytics.ncit_summary();
-        assert_eq!(summary.rows.len(), 1);
-        let row = &summary.rows[0];
-        assert_eq!(row.ncit_id, "C1234");
-        assert_eq!(row.mapping_state.as_deref(), Some("auto_mapped"));
-        assert_eq!(row.count, 1);
-
-        let cohort = analytics.cohort(&CohortQuery {
-            ncit_id: Some("C1234".into()),
-            status: Some("active".into()),
-            date_from: Some("2024-05-01".into()),
-            date_to: Some("2024-06-01".into()),
-        });
-        assert_eq!(cohort.total, 1);
-        let cohort_row = &cohort.rows[0];
-        assert_eq!(cohort_row.patient_id.as_deref(), Some("PAT-1"));
-        assert_eq!(cohort_row.mapping_state.as_deref(), Some("auto_mapped"));
     }
 }

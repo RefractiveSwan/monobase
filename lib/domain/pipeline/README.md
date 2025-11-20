@@ -11,8 +11,8 @@ Bundle→staging→NCIt flow. See:
 
 - Provide a single entrypoint (`bundle_to_mapped_sr_with_vector_context`) that
   runs `dfps_ingestion::bundle_to_staging` followed by lexical/vector mapping.
-- Keep `PipelineOutput` stable so app surfaces (CLI/API/web/datamart) can reuse
-  the same DTOs without translation layers.
+- Keep `PipelineOutput` stable (exported via `dfps_contracts`) so app surfaces
+  (CLI/API/web/datamart) can reuse the same DTOs without translation layers.
 - Remain environment-free; callers inject any vector-store handles/config via
   `VectorPipelineContext` so transport-specific details stay in app/platform
   crates.

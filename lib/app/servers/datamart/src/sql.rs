@@ -1,5 +1,5 @@
 use dfps_compliance::{Policy, assert_export_allowed};
-use dfps_configuration::load_env;
+use dfps_configuration::{EnvValueError, load_env};
 use dfps_contracts::{
     AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, LoadSummary,
     PipelineOutput,
@@ -75,16 +75,19 @@ pub struct WarehouseConfig {
 }
 
 impl WarehouseConfig {
-    pub fn from_env() -> Result<Self, String> {
-        load_env("domain.datamart")
-            .map_err(|err| format!("warehouse env load error: {err}"))
-            .ok();
-        let url = std::env::var("DFPS_WAREHOUSE_URL")
-            .map_err(|_| "DFPS_WAREHOUSE_URL missing".to_string())?;
-        let schema = std::env::var("DFPS_WAREHOUSE_SCHEMA").ok();
-        let max_connections = std::env::var("DFPS_WAREHOUSE_MAX_CONNECTIONS")
-            .ok()
-            .and_then(|raw| raw.parse::<u32>().ok())
+    pub fn from_env() -> Result<Self, WarehouseConfigError> {
+        let _ = load_env("domain.datamart");
+        let url = dfps_configuration::string_var("DFPS_WAREHOUSE_URL")
+            .map_err(WarehouseConfigError::Env)?
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .ok_or(WarehouseConfigError::MissingUrl)?;
+        let schema = dfps_configuration::string_var("DFPS_WAREHOUSE_SCHEMA")
+            .map_err(WarehouseConfigError::Env)?
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        let max_connections = dfps_configuration::u32_var("DFPS_WAREHOUSE_MAX_CONNECTIONS")
+            .map_err(WarehouseConfigError::Env)?
             .unwrap_or(5);
         Ok(Self {
             url,
@@ -92,6 +95,14 @@ impl WarehouseConfig {
             max_connections,
         })
     }
+}
+
+#[derive(Debug, Error)]
+pub enum WarehouseConfigError {
+    #[error("DFPS_WAREHOUSE_URL must be set")]
+    MissingUrl,
+    #[error("invalid warehouse env value: {0}")]
+    Env(#[from] EnvValueError),
 }
 
 #[derive(Debug, Default, Clone)]

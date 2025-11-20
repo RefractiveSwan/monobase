@@ -15,7 +15,7 @@ lib/
   platform/
     mesh/ 
       node/            (dfps_mesh_node)       <- node runtime & governance integration
-      hub/             (dfps_mesh_hub)        <- optional research/orchestrator / FL coordinator
+      hub/             (dfps_mesh_hub)        <- research/orchestrator / FL coordinator
       governance/      (dfps_mesh_governance) <- mesh-level policies, DP/query model, node descriptors
     data/
       mart/            (dfps_datamart)        <- dim/fact logic inside node
@@ -84,7 +84,7 @@ lib/
 
     * [ ] `NodeId`, `NodeMetadata` (e.g., capabilities, compliance mode, license tier mix, store backends).
     * [ ] `MeshJobDescriptor` (job type, input parameters, required capabilities).
-    * [ ] `MeshJobResult` (aggregate metrics, error summary, optional DP metadata).
+    * [ ] `MeshJobResult` (aggregate metrics, error summary, DP metadata).
     * [ ] `MeshErrorKind` / `MeshErrorCode` for hub ↔ node interactions, mapping back to local error kinds.
 
   * [ ] Ensure these mesh contracts **do not depend** on concrete HTTP/transport (no Axum types, no reqwest types).
@@ -122,7 +122,7 @@ lib/
 
       * `RelationalPool` (abstract pool handle).
       * `RelationalMigrator` (run migrations + DDL).
-      * Optional `Warehouse` trait moved from `dfps_datamart::WarehouseConfig`/`load_from_pipeline_output`.
+      * `Warehouse` trait moved from `dfps_datamart::WarehouseConfig`/`load_from_pipeline_output`.
 
   * [ ] Extract SQLx-specific logic from `dfps_datamart::sql` into `dfps_relational_store`:
 
@@ -191,7 +191,7 @@ lib/
   * [ ] Introduce `lib/platform/data/warehouse`:
 
     * [ ] `WarehouseRole` concept (operational mart, reporting mart, long-term archive).
-    * [ ] `WarehouseConfig` which composes `RelationalConfig` + `role` + optional `lake` references.
+    * [ ] `WarehouseConfig` which composes `RelationalConfig` + `role` + `lake` references.
     * [ ] Traits:
 
       * `WarehouseLoader` – entrypoints for `PipelineOutput` → dims/facts (delegate to `dfps_datamart`).
