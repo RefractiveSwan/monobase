@@ -1,4 +1,10 @@
-use super::{CachedOntologyGraph, load_ontology_graph};
+use std::path::Path;
+
+use super::reasoner::DEFAULT_CACHE_CAPACITY;
+use super::{
+    CachedOntologyGraph, OntologyGraph, Relation, load_ontology_graph,
+    load_ontology_graph_from_path,
+};
 
 #[test]
 fn parses_ncit_mini_fixture() {
@@ -76,4 +82,64 @@ fn pet_ct_synonyms_align_with_mapping_use_cases() {
         ancestors.contains(&"NCIT:C19951".to_string()),
         "PET code should connect back to PET parent for ranking"
     );
+}
+
+#[test]
+fn runtime_loader_reads_external_obo_files() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../../data/clinical/ontologies/ncit-mini.example.obo");
+    let graph =
+        load_ontology_graph_from_path("ncit-mini-example", path).expect("parse runtime graph");
+    assert_eq!(graph.id, "ncit-mini-example");
+    assert!(graph.nodes.len() > 3);
+    assert!(graph.nodes.iter().any(|node| node.iri == "NCIT:C19951"));
+}
+
+#[test]
+fn cache_evicts_entries_for_large_graphs() {
+    let graph = synthetic_graph(DEFAULT_CACHE_CAPACITY * 3);
+    let cached = CachedOntologyGraph::new(graph);
+    for idx in 0..(DEFAULT_CACHE_CAPACITY * 3) {
+        let iri = format!("NCIT:C{idx:05}");
+        cached.ancestors(&iri);
+        cached.descendants(&iri);
+    }
+    let stats = cached.cache_stats();
+    assert!(
+        stats.ancestors <= DEFAULT_CACHE_CAPACITY,
+        "ancestors cache should evict old entries"
+    );
+    assert!(
+        stats.descendants <= DEFAULT_CACHE_CAPACITY,
+        "descendants cache should evict old entries"
+    );
+}
+
+fn synthetic_graph(size: usize) -> OntologyGraph {
+    let mut nodes = Vec::new();
+    let mut edges = Vec::new();
+
+    for idx in 0..size {
+        let iri = format!("NCIT:C{idx:05}");
+        nodes.push(super::types::Node {
+            iri: iri.clone(),
+            label: format!("Node {idx}"),
+            synonyms: Vec::new(),
+            xref_ncit_ids: Vec::new(),
+        });
+        if idx > 0 {
+            edges.push(super::types::Edge {
+                from: format!("NCIT:C{idx:05}"),
+                to: format!("NCIT:C{prev:05}", prev = idx - 1),
+                relation: Relation::IsA,
+            });
+        }
+    }
+
+    OntologyGraph {
+        id: "synthetic".into(),
+        version: Some("test".into()),
+        nodes,
+        edges,
+    }
 }

@@ -98,7 +98,7 @@ impl EnrichedCode {
 }
 
 /// Normalize code-system URLs (trim, lowercase, strip trailing slash, convert OIDs).
-pub fn canonicalize_system_url(value: &str) -> Option<String> {
+pub fn canonicalize_system(value: &str) -> Option<String> {
     let mut url = value.trim().to_ascii_lowercase();
     if url.is_empty() {
         return None;
@@ -113,8 +113,13 @@ pub fn canonicalize_system_url(value: &str) -> Option<String> {
     }
 }
 
+/// Backwards-compatible alias for `canonicalize_system`.
+pub fn canonicalize_system_url(value: &str) -> Option<String> {
+    canonicalize_system(value)
+}
+
 fn canonicalize_system_opt(value: Option<&str>) -> Option<String> {
-    value.and_then(canonicalize_system_url)
+    value.and_then(canonicalize_system)
 }
 
 #[cfg(test)]
@@ -173,7 +178,7 @@ mod tests {
     #[test]
     fn canonicalizes_oids_and_trailing_slashes() {
         assert_eq!(
-            canonicalize_system_url("urn:oid:2.16.840.1.113883.6.96"),
+            canonicalize_system("urn:oid:2.16.840.1.113883.6.96"),
             Some("http://snomed.info/sct".into())
         );
         assert_eq!(
@@ -181,5 +186,11 @@ mod tests {
             Some("http://loinc.org".into())
         );
         assert_eq!(canonicalize_system_url("  "), None);
+    }
+
+    #[test]
+    fn canonicalize_alias_matches_primary() {
+        let system = "urn:oid:2.16.840.1.113883.6.1";
+        assert_eq!(canonicalize_system(system), canonicalize_system_url(system));
     }
 }

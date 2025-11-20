@@ -35,7 +35,7 @@ pub fn sr_to_staging(
     };
 
     let (status, status_enum) = parse_status(sr.status.as_deref())?;
-    let (intent, _) = parse_intent(sr.intent.as_deref(), status_enum)?;
+    let (intent, intent_enum) = parse_intent(sr.intent.as_deref(), status_enum)?;
     let description = description_from_sr(sr);
 
     let flat = StgServiceRequestFlat {
@@ -43,7 +43,9 @@ pub fn sr_to_staging(
         patient_id,
         encounter_id,
         status,
+        status_enum,
         intent,
+        intent_enum,
         description,
         ordered_at: sr.authored_on.clone(),
     };

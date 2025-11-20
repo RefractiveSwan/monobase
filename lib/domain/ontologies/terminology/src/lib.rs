@@ -13,7 +13,7 @@ pub mod obo_graph;
 pub mod registry;
 pub mod valueset;
 
-pub use bridge::{CodeKind, EnrichedCode, canonicalize_system_url};
+pub use bridge::{CodeKind, EnrichedCode, canonicalize_system, canonicalize_system_url};
 #[cfg(feature = "http-client")]
 pub use client::HttpTerminologyClient;
 pub use client::{

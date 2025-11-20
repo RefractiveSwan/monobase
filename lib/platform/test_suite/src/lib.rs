@@ -4,11 +4,13 @@
 //! crates (or workspace integration tests) can pull in without duplicating code.
 
 pub mod assertions;
+mod datamart;
 mod env;
 pub mod fixtures;
 pub mod regression;
 
 pub use assertions::*;
+pub use datamart::TempSqliteWarehouse;
 pub use env::{ScopedEnvVar, ensure_eval_data_root, init_environment, scoped_env_var};
 pub use fixtures::*;
 pub use regression::*;

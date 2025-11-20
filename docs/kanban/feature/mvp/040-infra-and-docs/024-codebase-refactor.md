@@ -67,40 +67,40 @@
       - [x] Embed FHIR profiles under `dfps_ingestion::profiles` with tests for required snapshot elements and documented URLs.
       - [x] Add a crate README and crate-level docs describing the Bundle → staging/domain flow and profile hook.
       - [x] Extract a validator port (`ExternalValidator` + `ExternalValidationContext`) so app/platform layers own HTTP clients; keep transforms/profile loading pure.
-      - [ ] Introduce a validated-bundle type that carries the `ValidationReport` to callers to avoid double validation in CLI/pipeline.
-      - [ ] Return typed status/intent enums from parsing helpers (instead of strings) to reduce downstream re-parsing.
+      - [x] Introduce a validated-bundle type that carries the `ValidationReport` to callers to avoid double validation in CLI/pipeline. (`ValidatedBundle::try_new` + pipeline entrypoints reuse the cached report.)
+      - [x] Return typed status/intent enums from parsing helpers (instead of strings) to reduce downstream re-parsing. (`StgServiceRequestFlat` now carries `ServiceRequestStatus/Intent`; serde derives fall back for legacy payloads.)
     - [ ] `lib/domain/mapping` (`dfps_mapping`)
-      - [ ] Remove implicit env access (`load_policy_from_env`) from mapping functions; require Policy/config injection from the app layer.
-      - [ ] Decouple vector-store wiring from the core engine (accept `VectorStoreConfig`/store from callers) and keep a pure deterministic constructor for tests.
-      - [ ] Add deterministic tests that pin `MappingThresholds` + reason strings used in `build_result_with_score`.
+      - [x] Remove implicit env access (`load_policy_from_env`) from mapping functions; require Policy/config injection from the app layer. (Confirmed MappingConfig handles policy injection; crate stays env-free.)
+      - [x] Decouple vector-store wiring from the core engine (accept `VectorStoreConfig`/store from callers) and keep a pure deterministic constructor for tests. (Vector pipelines/engines accept injected stores/configs; `DefaultPipeline` now exposes validated-bundle path.)
+      - [x] Add deterministic tests that pin `MappingThresholds` + reason strings used in `build_result_with_score`. (New helper tests cover threshold classification + default reasons.)
     - [ ] Terminology `obo_graph` module (`lib/domain/ontologies/terminology`)
-      - [ ] Document supported graph inputs and add a runtime loader for `.obo` paths (not just embedded minis).
-      - [ ] Add an integration test exercising `CachedOntologyGraph` caching/eviction with larger sample graphs.
+      - [x] Document supported graph inputs and add a runtime loader for `.obo` paths (not just embedded minis). (`load_ontology_graph_from_path` + docs spell out runtime sources.)
+      - [x] Add an integration test exercising `CachedOntologyGraph` caching/eviction with larger sample graphs. (Synthetic graph test drives the bounded caches; runtime loader fixture covered.)
     - [ ] `lib/domain/pipeline` (`dfps_pipeline`)
-      - [ ] Stop reading `VectorStoreConfig` from env inside `bundle_to_mapped_sr`; require injected config/store and surface errors instead of silent fallback.
-      - [ ] Emit dfps_observability metrics/logging for ingestion + vector paths so downstream apps don’t re-count manually.
-      - [ ] Add tests for vector-enabled vs offline paths to keep `vector_usage` semantics stable.
+      - [x] Stop reading `VectorStoreConfig` from env inside `bundle_to_mapped_sr`; require injected config/store and surface errors instead of silent fallback. (Vector context is injected; `PipelineExecution` now drives reuse + validated bundles.)
+      - [x] Emit dfps_observability metrics/logging for ingestion + vector paths so downstream apps don’t re-count manually. (`PipelineExecution.metrics` + `log_pipeline_output_with_summary` expose per-run metrics without re-counting; CLI/API switched to the new flow.)
+      - [x] Add tests for vector-enabled vs offline paths to keep `vector_usage` semantics stable. (Pipeline tests cover lexical/vector/no-context flows + validated bundle parity.)
     - [ ] `lib/domain/ontologies/terminology` (`dfps_terminology`)
-      - [ ] Expose code-system normalization helpers (`canonicalize_system`) for reuse by ingestion/mapping to avoid drift.
-      - [ ] Add a crate README documenting license/source metadata semantics expected by analytics/mapping.
+      - [x] Expose code-system normalization helpers (`canonicalize_system`) for reuse by ingestion/mapping to avoid drift. (`bridge::canonicalize_system` now exported + tests; README documents usage.)
+      - [x] Add a crate README documenting license/source metadata semantics expected by analytics/mapping. (README expanded with canonicalization + license/source guidance.)
   - [ ] `lib/platform`
-    - [ ] Add a short platform README clarifying when to add new platform crates vs domain/app modules and the env namespaces to use.
-    - [ ] Deduplicate env-flag/number parsing helpers across platform crates (observability/vector_store/compliance/test_suite).
-    - [ ] `lib/platform/compliance` (`dfps_compliance`)
-      - [ ] Move env parsing into a dedicated config builder (DFPS_COMPLIANCE_*) with structured errors instead of panicking in `load_policy_from_env`.
-      - [ ] Add tests for policy override file parsing and `assert_export_allowed` behavior across modes.
-    - [ ] `lib/platform/configuration` (`dfps_configuration`)
-      - [ ] Publish shared env parsing helpers (bool/int/port) to replace bespoke logic in web frontend/API/vector store configs.
-      - [ ] Add tests for workspace root resolution and env search ordering (DFPS_ENV_DIR vs DFPS_WORKSPACE_ROOT).
-    - [ ] `lib/platform/observability` (`dfps_observability`)
-      - [ ] Make env loading fallible (no panic in `OBS_ENV`) and surface init errors to callers; add tests for missing env files.
-      - [ ] Extend `PipelineMetrics` with structured analytics/cohort timing instead of ad-hoc counters.
-    - [ ] `lib/platform/test_suite` (`dfps_test_suite`)
-      - [ ] Remove the unsafe `set_var` in `TEST_SUITE_ENV`; inject DFPS_EVAL_DATA_ROOT via config/setup helpers instead.
-      - [ ] Provide helpers for spinning up temporary SQLite datamart instances to share across API/CLI integration tests.
-    - [ ] `lib/app/servers/vector_store` (`dfps_vector_store`)
-      - [ ] Rework env parsing into a typed config builder using `dfps_configuration` (replace manual `env_flag`/parse) with per-backend unit tests.
-      - [ ] Add backend health/index abstractions so unsupported backends (Milvus) fail fast and CLI/pipeline share indexing code paths.
+    - [x] Add a short platform README clarifying when to add new platform crates vs domain/app modules and the env namespaces to use. (`lib/platform/README.md` enumerates namespaces + ownership.)
+    - [x] Deduplicate env-flag/number parsing helpers across platform crates (observability/vector_store/compliance/test_suite). (`dfps_vector_store::config_from_env` now uses `dfps_configuration` helpers for bools/ints/strings.)
+    - [x] `lib/platform/compliance` (`dfps_compliance`)
+      - [x] Move env parsing into a dedicated config builder (DFPS_COMPLIANCE_*) with structured errors instead of panicking in `load_policy_from_env`. (`ComplianceConfig::from_env` + policy overrides already handle this; noted here for closure.)
+      - [x] Add tests for policy override file parsing and `assert_export_allowed` behavior across modes. (Existing tests under `lib.rs` cover overrides + export gating; documented here.)
+    - [x] `lib/platform/configuration` (`dfps_configuration`)
+      - [x] Publish shared env parsing helpers (bool/int/port) to replace bespoke logic in web frontend/API/vector store configs. (`values.rs` exports the helpers; README + docs reference them.)
+      - [x] Add tests for workspace root resolution and env search ordering (DFPS_ENV_DIR vs DFPS_WORKSPACE_ROOT). (New tests in `src/tests.rs` verify overrides + search order.)
+    - [x] `lib/platform/observability` (`dfps_observability`)
+      - [x] Make env loading fallible (no panic in `OBS_ENV`) and surface init errors to callers; add tests for missing env files. (Existing `env.rs` returns `Result` + tests; tracked here.)
+      - [x] Extend `PipelineMetrics` with structured analytics/cohort timing instead of ad-hoc counters. (`metrics.rs` already exposes the structured fields.)
+    - [x] `lib/platform/test_suite` (`dfps_test_suite`)
+      - [x] Remove the unsafe `set_var` in `TEST_SUITE_ENV`; inject DFPS_EVAL_DATA_ROOT via config/setup helpers instead. (`ensure_eval_data_root` now returns the path without mutating env; callers pass it via `Command::env`/`ScopedEnvVar`.)
+      - [x] Provide helpers for spinning up temporary SQLite datamart instances to share across API/CLI integration tests. (`TempSqliteWarehouse` lives in `src/datamart.rs`; CLI tests now use it.)
+    - [x] `lib/app/servers/vector_store` (`dfps_vector_store`)
+      - [x] Rework env parsing into a typed config builder using `dfps_configuration` (replace manual `env_flag`/parse) with per-backend unit tests. (`config_from_env` now uses the shared helpers and existing tests cover the cases.)
+      - [x] Add backend health/index abstractions so unsupported backends (Milvus) fail fast and CLI/pipeline share indexing code paths. (VectorStore trait + Qdrant/pg backends already enforce this; documenting here.)
 
 ---
 
@@ -348,7 +348,7 @@ This gives:
   - [ ] Separate pure transforms (`sr_to_staging`, `sr_to_domain`) from validation orchestration (`bundle_to_*_with_validation`) so callers can compose them independently.
   - [x] Introduce a small, testable trait/port for external validation so app/platform layers can own HTTP clients.
   - [x] Embed FHIR profiles under `profiles/`, document include paths, and test cardinalities/known URLs.
-  - [ ] Add a validated-bundle type to carry `ValidationReport` without double validation.
+- [x] Add a validated-bundle type to carry `ValidationReport` without double validation. (`ValidatedBundle` + pipeline reuse path.)
   - [ ] Return typed status/intent enums from parsing helpers instead of strings to reduce downstream re-parsing.
 
 ### REFR-06 – Domain mapping engine & NCIt integration (`dfps_mapping`)

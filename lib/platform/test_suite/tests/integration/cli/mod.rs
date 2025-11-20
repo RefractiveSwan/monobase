@@ -5,7 +5,7 @@ use dfps_contracts::{
     DimNCITConcept, EvalRunResponse, LoadSummary, MappingResult, PipelineMetrics,
 };
 use dfps_core::mapping::MappingState;
-use dfps_test_suite::{ensure_eval_data_root, init_environment, regression};
+use dfps_test_suite::{TempSqliteWarehouse, ensure_eval_data_root, init_environment, regression};
 use serde_json::Value;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -81,8 +81,8 @@ fn load_datamart_emits_contract_summary() {
     serde_json::to_writer(&mut bundle_file, &bundle).expect("bundle NDJSON");
     writeln!(bundle_file).expect("newline");
 
-    let warehouse_file = NamedTempFile::new().expect("warehouse file");
-    let warehouse_url = format!("sqlite://{}", warehouse_file.path().display());
+    let warehouse = TempSqliteWarehouse::new();
+    let warehouse_url = warehouse.url().to_string();
     let bundle_path = bundle_file.path().display().to_string();
 
     let assert = cli_command("load_datamart")

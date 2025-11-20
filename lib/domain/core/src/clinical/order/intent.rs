@@ -17,3 +17,9 @@ pub enum ServiceRequestIntent {
     ReflexOrder,
     FillerOrder,
 }
+
+impl Default for ServiceRequestIntent {
+    fn default() -> Self {
+        ServiceRequestIntent::Order
+    }
+}

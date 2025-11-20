@@ -14,13 +14,13 @@ use dfps_core::{
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
 use dfps_ingestion::{
-    ExternalValidationContext, ValidationMode, bundle_to_staging_with_validation,
-    validation::ValidationReport,
+    ExternalValidationContext, ValidatedBundle, ValidationMode, bundle_to_staging_from_validated,
+    bundle_to_staging_with_validation, validation::ValidationReport,
 };
 use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes, map_staging_codes_with_vector,
 };
-use dfps_observability::VectorUsageSnapshot;
+use dfps_observability::{PipelineMetrics, VectorUsageSnapshot};
 use dfps_vector_port::{
     VectorBackend, VectorItem, VectorSearchResult, VectorStore, VectorStoreConfig, VectorStoreError,
 };
@@ -46,6 +46,7 @@ pub struct PipelineOutput {
 pub struct PipelineExecution {
     pub output: PipelineOutput,
     pub validation: ValidationReport,
+    pub metrics: PipelineMetrics,
 }
 
 /// Runtime toggles for a pipeline run.
@@ -137,6 +138,15 @@ pub trait PipelinePort {
         config: &PipelineRunConfig<'_>,
         vector: Option<&VectorPipelineContext>,
     ) -> Result<PipelineExecution, PipelineError>;
+
+    fn map_validated_bundle(
+        &self,
+        bundle: &ValidatedBundle,
+        config: &PipelineRunConfig<'_>,
+        vector: Option<&VectorPipelineContext>,
+    ) -> Result<PipelineExecution, PipelineError> {
+        bundle_to_mapped_sr_from_validated_bundle(bundle, config, vector)
+    }
 }
 
 /// Default orchestrator implementing [`PipelinePort`].
@@ -185,6 +195,7 @@ pub fn bundle_to_mapped_sr_with_validation<'a>(
                 (results, dims, None)
             })
     };
+    let metrics = summarize_metrics(&flats, &exploded, &mapping_results, usage.as_ref());
 
     Ok(PipelineExecution {
         output: PipelineOutput {
@@ -195,6 +206,40 @@ pub fn bundle_to_mapped_sr_with_validation<'a>(
             vector_usage: usage,
         },
         validation,
+        metrics,
+    })
+}
+
+/// Run the pipeline using a pre-validated bundle to avoid re-running validation.
+pub fn bundle_to_mapped_sr_from_validated_bundle(
+    bundle: &ValidatedBundle,
+    config: &PipelineRunConfig<'_>,
+    vector: Option<&VectorPipelineContext>,
+) -> Result<PipelineExecution, PipelineError> {
+    let (ValidatedStage { flats, exploded }, validation) = staging_rows_from_validated(bundle)?;
+    let (mapping_results, dim_concepts, usage) = if config.mapping.lexical_only {
+        let (results, dims) = map_staging_codes(exploded.clone());
+        (results, dims, None)
+    } else {
+        vector
+            .and_then(|ctx| try_vector_mapping(&exploded, ctx))
+            .unwrap_or_else(|| {
+                let (results, dims) = map_staging_codes(exploded.clone());
+                (results, dims, None)
+            })
+    };
+    let metrics = summarize_metrics(&flats, &exploded, &mapping_results, usage.as_ref());
+
+    Ok(PipelineExecution {
+        output: PipelineOutput {
+            flats,
+            exploded_codes: exploded,
+            mapping_results,
+            dim_concepts,
+            vector_usage: usage,
+        },
+        validation,
+        metrics,
     })
 }
 
@@ -214,6 +259,28 @@ fn staging_rows(
     )?;
     let (flats, exploded) = validated.value;
     Ok((ValidatedStage { flats, exploded }, validated.report))
+}
+
+fn staging_rows_from_validated(
+    bundle: &ValidatedBundle,
+) -> Result<(ValidatedStage, ValidationReport), PipelineError> {
+    let validated = bundle_to_staging_from_validated(bundle)?;
+    let (flats, exploded) = validated.value;
+    Ok((ValidatedStage { flats, exploded }, validated.report))
+}
+
+fn summarize_metrics(
+    flats: &[StgServiceRequestFlat],
+    exploded: &[StgSrCodeExploded],
+    mappings: &[MappingResult],
+    usage: Option<&VectorUsageSnapshot>,
+) -> PipelineMetrics {
+    let mut metrics = PipelineMetrics::default();
+    metrics.record(flats, exploded, mappings);
+    if let Some(snapshot) = usage {
+        metrics.record_vector_usage(snapshot.clone(), None);
+    }
+    metrics
 }
 
 fn try_vector_mapping(
@@ -312,7 +379,7 @@ impl VectorStore for ErasedVectorStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_ingestion::ValidationMode;
+    use dfps_ingestion::{ExternalValidationContext, ValidatedBundle, ValidationMode};
     use dfps_test_suite::regression;
     use dfps_vector_port::{MockVectorStore, VectorBackend};
     use serde_json::json;
@@ -408,6 +475,29 @@ mod tests {
             output.vector_usage.is_none(),
             "lexical-only mapping should ignore vector contexts"
         );
+    }
+
+    #[test]
+    fn validated_bundle_path_matches_regular_execution() {
+        let bundle = regression::baseline_fhir_bundle();
+        let validated = ValidatedBundle::try_new(
+            bundle.clone(),
+            ValidationMode::Lenient,
+            ExternalValidationContext::default(),
+        )
+        .expect("validated bundle");
+        let config = PipelineRunConfig::default();
+        let regular =
+            bundle_to_mapped_sr_with_validation(&bundle, &config, None).expect("regular execution");
+        let reused = bundle_to_mapped_sr_from_validated_bundle(&validated, &config, None)
+            .expect("validated execution");
+        assert_eq!(regular.output.flats, reused.output.flats);
+        assert_eq!(regular.output.exploded_codes, reused.output.exploded_codes);
+        assert_eq!(
+            regular.output.mapping_results,
+            reused.output.mapping_results
+        );
+        assert_eq!(regular.validation.issues, reused.validation.issues);
     }
 
     #[test]

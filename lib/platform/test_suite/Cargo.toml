@@ -29,11 +29,10 @@ dfps_vector_store = { path = "../../app/servers/vector_store" }
 dfps_compliance = { path = "../compliance" }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
 dfps_eval = { path = "../../domain/eval" }
+tempfile = "3.10"
 
 [features]
 backend-pgvector = ["dfps_vector_store/backend-pgvector"]
 
 [dev-dependencies]
 assert_cmd = "2.0"
-tempfile = "3.10"
-

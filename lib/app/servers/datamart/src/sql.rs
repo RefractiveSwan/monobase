@@ -532,6 +532,7 @@ mod tests {
         StgSrCodeExploded,
     };
     use dfps_core::{
+        clinical::order::{ServiceRequestIntent, ServiceRequestStatus},
         mapping::{MappingStrategy, MappingThresholds},
         staging::StgServiceRequestFlat,
     };
@@ -548,7 +549,9 @@ mod tests {
                 patient_id: "PAT-1".into(),
                 encounter_id: Some("ENC-1".into()),
                 status: "active".into(),
+                status_enum: ServiceRequestStatus::Active,
                 intent: "order".into(),
+                intent_enum: ServiceRequestIntent::Order,
                 description: "PET-CT".into(),
                 ordered_at: Some("2024-05-01T12:00:00Z".into()),
             }],
@@ -587,7 +590,9 @@ mod tests {
                 patient_id: "PAT-NM-1".into(),
                 encounter_id: None,
                 status: "active".into(),
+                status_enum: ServiceRequestStatus::Active,
                 intent: "order".into(),
+                intent_enum: ServiceRequestIntent::Order,
                 description: "Unknown".into(),
                 ordered_at: None,
             }],

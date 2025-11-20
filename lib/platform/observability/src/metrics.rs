@@ -87,6 +87,47 @@ impl PipelineMetrics {
             self.vector_capacity_cap_alpha_sim = capacity.cap_alpha_sim;
         }
     }
+
+    /// Merge another metrics snapshot into this one (used to accumulate pipeline runs).
+    pub fn merge(&mut self, other: &PipelineMetrics) {
+        self.bundle_count += other.bundle_count;
+        self.flats_count += other.flats_count;
+        self.exploded_count += other.exploded_count;
+        self.mapping_count += other.mapping_count;
+        self.auto_mapped += other.auto_mapped;
+        self.needs_review += other.needs_review;
+        self.no_match += other.no_match;
+        self.license_blocked += other.license_blocked;
+        self.vector_queries += other.vector_queries;
+        self.vector_hits += other.vector_hits;
+        self.vector_fallbacks += other.vector_fallbacks;
+        if let Some(mode) = other.compliance_mode.as_ref() {
+            if self.compliance_mode.is_none() {
+                self.compliance_mode = Some(mode.clone());
+            }
+        }
+        if let Some(p95) = other.vector_latency_ms_p95 {
+            self.vector_latency_ms_p95 = Some(p95);
+        }
+        if let Some(value) = other.vector_capacity_geom_rm {
+            self.vector_capacity_geom_rm = Some(value);
+        }
+        if let Some(value) = other.vector_capacity_geom_dm {
+            self.vector_capacity_geom_dm = Some(value);
+        }
+        if let Some(value) = other.vector_capacity_geom_rm_sqrt_dm {
+            self.vector_capacity_geom_rm_sqrt_dm = Some(value);
+        }
+        if let Some(value) = other.vector_capacity_cap_alpha_sim {
+            self.vector_capacity_cap_alpha_sim = Some(value);
+        }
+        self.analytics_requests += other.analytics_requests;
+        self.cohort_queries += other.cohort_queries;
+        self.cohort_results_total += other.cohort_results_total;
+        if let Some(avg) = other.avg_cohort_size {
+            self.avg_cohort_size = Some(avg);
+        }
+    }
 }
 
 /// Merge a vector usage snapshot (queries/hits/capacity) into the metrics summary.

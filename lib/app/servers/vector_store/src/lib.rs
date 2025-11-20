@@ -1,11 +1,9 @@
 //! Platform vector-store adapters (Qdrant, PGVector, mocks).
 //! Traits + config live in `dfps_vector_port`; this crate wires env/config
 //! parsing plus concrete backends.
-
 use std::env;
 
-use dfps_configuration::{self, EnvValueError};
-
+use dfps_configuration::EnvValueError;
 pub use dfps_vector_port::*;
 
 /// Load a `VectorStoreConfig` from environment variables.
@@ -18,11 +16,13 @@ pub fn config_from_env() -> Result<VectorStoreConfig, VectorStoreConfigError> {
     let enabled = dfps_configuration::bool_var("DFPS_VECTOR_ENABLED")
         .map_err(env_err)?
         .unwrap_or(false);
-    let backend = env::var("DFPS_VECTOR_BACKEND")
-        .ok()
+    let backend = dfps_configuration::string_var("DFPS_VECTOR_BACKEND")
+        .map_err(env_err)?
         .and_then(|value| value.parse().ok())
         .unwrap_or(VectorBackend::Mock);
-    let url = env::var("DFPS_VECTOR_URL").ok();
+    let url = dfps_configuration::string_var("DFPS_VECTOR_URL")
+        .map_err(env_err)?
+        .filter(|value| !value.is_empty());
     let namespace = env::var("DFPS_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
     let pool_max = dfps_configuration::u32_var("DFPS_VECTOR_POOL_MAX")
         .map_err(env_err)?
@@ -60,7 +60,7 @@ pub use pgvector_backend::PgVectorStore;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
+    use std::{env, sync::Mutex};
 
     static ENV_GUARD: Mutex<()> = Mutex::new(());
 

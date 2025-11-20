@@ -6,4 +6,10 @@ pub enum OboError {
     UnsupportedGraph(String),
     #[error("parse error: {0}")]
     Parse(String),
+    #[error("failed to load graph from {path}: {source}")]
+    Io {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
 }

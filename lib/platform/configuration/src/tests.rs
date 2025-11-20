@@ -53,6 +53,40 @@ fn workspace_root_errors_without_cargo_lock() {
 }
 
 #[test]
+fn workspace_root_respects_env_override() {
+    let _lock = env_guard().lock().unwrap();
+    let temp = tempdir().unwrap();
+    let marker = temp.path();
+    fs::write(marker.join("Cargo.lock"), b"").unwrap();
+    unsafe {
+        env::set_var("DFPS_WORKSPACE_ROOT", marker);
+    }
+    let resolved = workspace_root().expect("workspace root resolves via env");
+    assert_eq!(resolved, marker);
+    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+}
+
+#[test]
+fn config_paths_use_workspace_root_when_set() {
+    let _lock = env_guard().lock().unwrap();
+    let temp = tempdir().unwrap();
+    let root = temp.path();
+    fs::write(root.join("Cargo.lock"), b"").unwrap();
+    fs::create_dir_all(root.join("data/environment")).unwrap();
+    unsafe {
+        env::set_var("DFPS_WORKSPACE_ROOT", root);
+    }
+    let paths = config_paths().expect("config paths");
+    assert!(
+        paths
+            .env_dirs
+            .iter()
+            .any(|dir| dir.ends_with("data/environment"))
+    );
+    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+}
+
+#[test]
 fn config_paths_honors_env_dir_override() {
     let _lock = env_guard().lock().unwrap();
     let temp = tempdir().unwrap();

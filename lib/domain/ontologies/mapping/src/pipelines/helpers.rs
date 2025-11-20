@@ -129,3 +129,77 @@ fn extract_dim_concepts(results: &[MappingResult]) -> Vec<DimNCITConcept> {
     }
     normalize_concepts_for_dim(concepts)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dfps_core::mapping::{MappingStrategy, MappingThresholds};
+    use dfps_core::staging::StgSrCodeExploded;
+
+    fn sample_code() -> CodeElement {
+        CodeElement::from(StgSrCodeExploded {
+            sr_id: "sr-1".into(),
+            system: Some("system".into()),
+            code: Some("code".into()),
+            display: Some("display".into()),
+        })
+    }
+
+    fn config_with_thresholds(auto: f32, review: f32) -> MappingConfig {
+        MappingConfig {
+            thresholds: MappingThresholds {
+                auto_map_min: auto,
+                needs_review_min: review,
+            },
+            ..MappingConfig::default()
+        }
+    }
+
+    #[test]
+    fn classify_respects_threshold_ordering() {
+        let thresholds = MappingThresholds {
+            auto_map_min: 0.8,
+            needs_review_min: 0.5,
+        };
+        assert_eq!(classify(0.82, &thresholds), MappingState::AutoMapped);
+        assert_eq!(classify(0.6, &thresholds), MappingState::NeedsReview);
+        assert_eq!(classify(0.2, &thresholds), MappingState::NoMatch);
+    }
+
+    #[test]
+    fn build_result_flags_no_match_reason() {
+        let code = sample_code();
+        let config = config_with_thresholds(0.9, 0.7);
+        let result = build_result_with_score(
+            &code,
+            None,
+            Some("C0001".into()),
+            0.3,
+            MappingStrategy::Composite,
+            None,
+            &config,
+        );
+        assert_eq!(result.state, MappingState::NoMatch);
+        assert_eq!(result.ncit_id, None);
+        assert_eq!(result.reason.as_deref(), Some("score_below_threshold"));
+    }
+
+    #[test]
+    fn build_result_keeps_reason_for_matches() {
+        let code = sample_code();
+        let config = config_with_thresholds(0.8, 0.6);
+        let result = build_result_with_score(
+            &code,
+            Some("CUI".into()),
+            Some("C9999".into()),
+            0.85,
+            MappingStrategy::Composite,
+            Some("umls_direct_xref".into()),
+            &config,
+        );
+        assert_eq!(result.state, MappingState::AutoMapped);
+        assert_eq!(result.ncit_id.as_deref(), Some("C9999"));
+        assert_eq!(result.cui.as_deref(), Some("CUI"));
+        assert_eq!(result.reason.as_deref(), Some("umls_direct_xref"));
+    }
+}

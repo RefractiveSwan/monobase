@@ -13,7 +13,7 @@ Utilities, fixtures, and integration/e2e tests that keep the DFPS workspace hone
 ## Environment helpers
 
 - Call `dfps_test_suite::init_environment()` at the start of each test (or use `ping()`) to load the `platform.test_suite` namespace via `dfps_configuration`. The function now returns a `Result` so CI/tests can bubble meaningful errors.
-- Use `dfps_test_suite::ensure_eval_data_root()` to guarantee `DFPS_EVAL_DATA_ROOT` points at `lib/domain/evaluation/eval/data/eval` (or your override). All eval/regression fixtures are loaded through `dfps_eval::fake_data::fixtures::Registry`.
+- Use `dfps_test_suite::ensure_eval_data_root()` to resolve the dataset root on disk (defaults to `lib/domain/evaluation/eval/data/eval`). Pass the returned path to CLIs/tests via `Command::env` or `scoped_env_var` when you need to set `DFPS_EVAL_DATA_ROOT`.
 - Use `dfps_test_suite::scoped_env_var(key, value)` instead of `unsafe { set_var }` inside tests. The guard restores the previous value on drop and keeps env mutations localized.
 
 ## Fixture ownership

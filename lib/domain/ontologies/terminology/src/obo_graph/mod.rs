@@ -12,7 +12,7 @@ mod reasoner;
 mod types;
 
 pub use error::OboError;
-pub use loader::{SUPPORTED_GRAPHS, load_ontology_graph};
+pub use loader::{SUPPORTED_GRAPHS, load_ontology_graph, load_ontology_graph_from_path};
 pub use reasoner::CachedOntologyGraph;
 pub use types::{Edge, Node, OntologyGraph, Relation};
 

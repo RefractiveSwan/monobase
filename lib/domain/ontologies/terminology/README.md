@@ -31,10 +31,11 @@ See:
 
 `LicenseTier` (`licensed`, `open`, `internal_only`) and `SourceKind` (`fhir`,
 `umls`, `obo_foundry`, `local`) flow through `EnrichedCode` and into
-`dfps_mapping::MappingSummary`. Use the exposed `canonicalize_system_url` helper
-to normalize system URLs before looking up metadata, and rely on `CodeKind` to
-emit consistent observability buckets (`known_licensed_system`, `obo_backed`,
-etc.) across ingestion and mapping.
+`dfps_mapping::MappingSummary`. Use the exposed `canonicalize_system()` helper
+(`canonicalize_system_url` remains as an alias) to normalize system URLs before
+looking up metadata, and rely on `CodeKind` to emit consistent observability
+buckets (`known_licensed_system`, `obo_backed`, etc.) across ingestion and
+mapping.
 
 ## Term clients & env seams
 

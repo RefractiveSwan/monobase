@@ -20,7 +20,7 @@ use dfps_contracts::{
 use dfps_core::fhir::Bundle;
 use dfps_datamart::{CohortFilters, DatamartError, DatamartSink, SqliteDatamart};
 use dfps_eval::DatasetStore;
-use dfps_observability::{log_no_match, log_pipeline_output};
+use dfps_observability::{log_no_match, log_pipeline_output_with_summary};
 use dfps_pipeline::{
     DefaultPipeline, PipelineError, PipelinePort, PipelineRunConfig, VectorPipelineContext,
 };
@@ -501,28 +501,26 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     let datamart = state.plane.datamart();
 
     for bundle in bundles {
-        let output = {
+        let exec = {
             let config = PipelineRunConfig::default();
             pipeline
-                .map_bundle(&bundle, &config, state.plane.vector_context.as_ref())
+                .map_bundle_with_validation(&bundle, &config, state.plane.vector_context.as_ref())
                 .map_err(|err| match err {
                     PipelineError::Ingestion(source) => {
                         ApiError::ingestion(source.to_string(), request_id)
                     }
                 })?
         };
+        enforce_export_policy(&exec.output, &state.plane.policy, request_id)?;
 
-        enforce_export_policy(&output, &state.plane.policy, request_id)?;
-
-        log_pipeline_output(
-            &output.flats,
-            &output.exploded_codes,
-            &output.mapping_results,
+        log_pipeline_output_with_summary(
+            &exec.output.flats,
+            &exec.output.exploded_codes,
+            &exec.output.mapping_results,
+            &exec.metrics,
             &mut request_metrics,
-            output.vector_usage.clone(),
-            None,
         );
-        if let Err(err) = datamart.persist(&output, &state.plane.policy).await {
+        if let Err(err) = datamart.persist(&exec.output, &state.plane.policy).await {
             match err {
                 DatamartError::Disabled => {
                     warn!(
@@ -539,35 +537,18 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             }
         }
 
-        for mapping in &output.mapping_results {
+        for mapping in &exec.output.mapping_results {
             if matches!(mapping.state, MappingState::NoMatch) {
                 log_no_match(mapping);
             }
         }
-        response.record_output(output);
+        response.record_output(exec.output);
     }
 
     {
         let metrics_handle = state.plane.metrics();
         let mut global = metrics_handle.lock().await;
-        global.bundle_count += request_metrics.bundle_count;
-        global.flats_count += request_metrics.flats_count;
-        global.exploded_count += request_metrics.exploded_count;
-        global.mapping_count += request_metrics.mapping_count;
-        global.auto_mapped += request_metrics.auto_mapped;
-        global.needs_review += request_metrics.needs_review;
-        global.no_match += request_metrics.no_match;
-        global.compliance_mode = global
-            .compliance_mode
-            .clone()
-            .or_else(|| request_metrics.compliance_mode.clone());
-        global.license_blocked += request_metrics.license_blocked;
-        global.vector_queries += request_metrics.vector_queries;
-        global.vector_hits += request_metrics.vector_hits;
-        global.vector_fallbacks += request_metrics.vector_fallbacks;
-        global.vector_latency_ms_p95 = global
-            .vector_latency_ms_p95
-            .or(request_metrics.vector_latency_ms_p95);
+        global.merge(&request_metrics);
     }
     let total_flats = response.flats.len();
     let total_mappings = response.mapping_results.len();

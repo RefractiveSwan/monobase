@@ -18,3 +18,9 @@ pub enum ServiceRequestStatus {
     Revoked,
     EnteredInError,
 }
+
+impl Default for ServiceRequestStatus {
+    fn default() -> Self {
+        ServiceRequestStatus::Draft
+    }
+}

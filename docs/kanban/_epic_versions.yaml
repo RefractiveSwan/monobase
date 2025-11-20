@@ -29,3 +29,6 @@ epics:
   REFR-022:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0
+  REFR-024:
+    introduced_in: v0.1.0
+    last_updated_in: v0.1.0

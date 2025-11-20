@@ -57,6 +57,45 @@ pub fn log_pipeline_output(
     );
 }
 
+/// Log a pipeline run when metrics have already been computed upstream.
+pub fn log_pipeline_output_with_summary(
+    flats: &[StgServiceRequestFlat],
+    _codes: &[StgSrCodeExploded],
+    mappings: &[MappingResult],
+    run_metrics: &PipelineMetrics,
+    metrics: &mut PipelineMetrics,
+) {
+    if let Err(err) = ensure_env() {
+        warn!(
+            target: "dfps_observability",
+            "observability env not loaded: {err}"
+        );
+    }
+    metrics.merge(run_metrics);
+    let capacity_note = metrics
+        .vector_capacity_geom_rm_sqrt_dm
+        .map(|value| {
+            format!(
+                "vector_geom_rm_sqrt_dm={value} cap_alpha_sim={:?}",
+                metrics.vector_capacity_cap_alpha_sim
+            )
+        })
+        .unwrap_or_else(|| "vector_capacity=None".to_string());
+    info!(
+        target: "dfps_pipeline",
+        "bundle processed; flats={}, mappings={}, automap={}, review={}, nomatch={}, license_blocked={}, vector_queries={}, vector_fallbacks={}, vector_latency_ms_p95={:?}, {capacity_note}",
+        flats.len(),
+        mappings.len(),
+        metrics.auto_mapped,
+        metrics.needs_review,
+        metrics.no_match,
+        metrics.license_blocked,
+        metrics.vector_queries,
+        metrics.vector_fallbacks,
+        metrics.vector_latency_ms_p95,
+    );
+}
+
 pub fn log_no_match(result: &MappingResult) {
     if let Err(err) = ensure_env() {
         warn!(
@@ -80,6 +119,7 @@ mod tests {
     use super::*;
     use crate::metrics::PipelineMetrics;
     use dfps_core::{
+        clinical::order::{ServiceRequestIntent, ServiceRequestStatus},
         mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},
         staging::{StgServiceRequestFlat, StgSrCodeExploded},
     };
@@ -100,7 +140,9 @@ mod tests {
             patient_id: "pat-1".into(),
             encounter_id: None,
             status: "active".into(),
+            status_enum: ServiceRequestStatus::Active,
             intent: "plan".into(),
+            intent_enum: ServiceRequestIntent::Plan,
             description: "sample".into(),
             ordered_at: None,
         }
@@ -199,5 +241,23 @@ mod tests {
         assert_eq!(metrics.vector_hits, 3);
         assert_eq!(metrics.vector_latency_ms_p95, Some(150));
         assert_eq!(metrics.vector_capacity_cap_alpha_sim, Some(0.82));
+    }
+
+    #[test]
+    fn log_with_summary_merges_metrics() {
+        let _lock = env_guard().lock().unwrap();
+        reset_env_state_for_tests();
+        let mut aggregate = PipelineMetrics::default();
+        let flat = sample_flat();
+        let code = sample_code();
+        let auto = sample_mapping(MappingState::AutoMapped, None);
+        let mut run = PipelineMetrics::default();
+        run.record(&[flat.clone()], &[code.clone()], &[auto.clone()]);
+        run.vector_queries = 2;
+        run.vector_hits = 1;
+        log_pipeline_output_with_summary(&[flat], &[code], &[auto], &run, &mut aggregate);
+        assert_eq!(aggregate.bundle_count, 1);
+        assert_eq!(aggregate.auto_mapped, 1);
+        assert_eq!(aggregate.vector_queries, 2);
     }
 }

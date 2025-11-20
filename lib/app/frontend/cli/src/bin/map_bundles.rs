@@ -9,7 +9,7 @@ use dfps_cli::cli_core::{
 use dfps_contracts::{MappingState, PipelineMetrics};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::ValidationSeverity;
-use dfps_observability::{log_no_match, log_pipeline_output};
+use dfps_observability::{log_no_match, log_pipeline_output_with_summary};
 use dfps_pipeline::{DefaultPipeline, PipelinePort, PipelineRunConfig};
 use log::{info, warn};
 
@@ -83,14 +83,12 @@ fn run() -> CliResult<()> {
             write_record(&mut handle, "validation_issue", issue)?;
         }
         let output = exec.output;
-        let vector_usage = output.vector_usage.clone();
-        log_pipeline_output(
+        log_pipeline_output_with_summary(
             &output.flats,
             &output.exploded_codes,
             &output.mapping_results,
+            &exec.metrics,
             &mut metrics,
-            vector_usage,
-            None,
         );
 
         write_record(&mut handle, "pipeline_output", &output)?;

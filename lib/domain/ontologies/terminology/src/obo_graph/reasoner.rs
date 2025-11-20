@@ -4,12 +4,25 @@ use std::sync::{Arc, Mutex};
 
 use super::types::{Edge, Node, OntologyGraph};
 
-#[derive(Debug, Default)]
+const DEFAULT_CACHE_CAPACITY: usize = 512;
+
+#[derive(Debug)]
 struct GraphCache {
-    ancestors: Mutex<HashMap<String, Vec<String>>>,
-    descendants: Mutex<HashMap<String, Vec<String>>>,
-    synonyms: Mutex<HashMap<String, Vec<String>>>,
-    related: Mutex<HashMap<(String, usize), Vec<String>>>,
+    ancestors: Mutex<BoundedCache<String, Vec<String>>>,
+    descendants: Mutex<BoundedCache<String, Vec<String>>>,
+    synonyms: Mutex<BoundedCache<String, Vec<String>>>,
+    related: Mutex<BoundedCache<(String, usize), Vec<String>>>,
+}
+
+impl Default for GraphCache {
+    fn default() -> Self {
+        Self {
+            ancestors: Mutex::new(BoundedCache::new(DEFAULT_CACHE_CAPACITY)),
+            descendants: Mutex::new(BoundedCache::new(DEFAULT_CACHE_CAPACITY)),
+            synonyms: Mutex::new(BoundedCache::new(DEFAULT_CACHE_CAPACITY)),
+            related: Mutex::new(BoundedCache::new(DEFAULT_CACHE_CAPACITY)),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -71,13 +84,20 @@ impl CachedOntologyGraph {
     }
 }
 
-fn cached_lookup<K, F>(cache: &Mutex<HashMap<K, Vec<String>>>, key: K, compute: F) -> Vec<String>
+fn cached_lookup<K, F>(
+    cache: &Mutex<BoundedCache<K, Vec<String>>>,
+    key: K,
+    compute: F,
+) -> Vec<String>
 where
     K: Eq + Hash + Clone,
     F: FnOnce() -> Vec<String>,
 {
-    if let Some(existing) = cache.lock().unwrap().get(&key) {
-        return existing.clone();
+    {
+        let mut guard = cache.lock().unwrap();
+        if let Some(existing) = guard.get(&key) {
+            return existing.clone();
+        }
     }
 
     let computed = compute();
@@ -212,4 +232,79 @@ fn normalize_ncit_id(raw: &str) -> String {
 
 fn sanitize_synonym(raw: &str) -> String {
     raw.trim().to_lowercase()
+}
+
+#[cfg(test)]
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct CacheStats {
+    pub ancestors: usize,
+    pub descendants: usize,
+    pub synonyms: usize,
+    pub related: usize,
+}
+
+#[cfg(test)]
+impl CachedOntologyGraph {
+    pub(crate) fn cache_stats(&self) -> CacheStats {
+        CacheStats {
+            ancestors: self.cache.ancestors.lock().unwrap().len(),
+            descendants: self.cache.descendants.lock().unwrap().len(),
+            synonyms: self.cache.synonyms.lock().unwrap().len(),
+            related: self.cache.related.lock().unwrap().len(),
+        }
+    }
+}
+#[derive(Debug)]
+struct BoundedCache<K, V> {
+    capacity: usize,
+    map: HashMap<K, V>,
+    order: VecDeque<K>,
+}
+
+impl<K, V> BoundedCache<K, V>
+where
+    K: Eq + Hash + Clone,
+{
+    fn new(capacity: usize) -> Self {
+        Self {
+            capacity: capacity.max(1),
+            map: HashMap::new(),
+            order: VecDeque::new(),
+        }
+    }
+
+    fn get(&mut self, key: &K) -> Option<&V> {
+        if self.map.contains_key(key) {
+            self.touch(key);
+            self.map.get(key)
+        } else {
+            None
+        }
+    }
+
+    fn insert(&mut self, key: K, value: V) {
+        if self.map.contains_key(&key) {
+            self.touch(&key);
+        } else {
+            if self.map.len() >= self.capacity {
+                if let Some(oldest) = self.order.pop_front() {
+                    self.map.remove(&oldest);
+                }
+            }
+            self.order.push_back(key.clone());
+        }
+        self.map.insert(key, value);
+    }
+
+    fn touch(&mut self, key: &K) {
+        if let Some(pos) = self.order.iter().position(|existing| existing == key) {
+            self.order.remove(pos);
+        }
+        self.order.push_back(key.clone());
+    }
+
+    #[cfg(test)]
+    fn len(&self) -> usize {
+        self.map.len()
+    }
 }
