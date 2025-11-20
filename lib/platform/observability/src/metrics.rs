@@ -1,8 +1,8 @@
-use crate::vector_usage::VectorUsageSnapshot;
 use dfps_core::{
     mapping::{MappingResult, MappingState},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
+use dfps_vector_port::VectorUsageSnapshot;
 use serde::{Deserialize, Serialize};
 
 /// Workspace-wide pipeline counters shared across CLI/API surfaces.

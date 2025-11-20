@@ -7,7 +7,7 @@ edition.workspace = true
 dfps_terminology = { path = "../terminology" }
 dfps_core = { path = "../../core" }
 dfps_eval = { path = "../../eval", features = ["eval-advanced"] }
-dfps_vector_store = { path = "../../../app/servers/vector_store" }
+dfps_vector_port = { path = "../../vector_port" }
 dfps_observability = { path = "../../../platform/observability" }
 dfps_compliance = { path = "../../../platform/compliance" }
 serde.workspace = true

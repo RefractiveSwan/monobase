@@ -496,8 +496,8 @@ Inside `dfps_pipeline`, vector is **entirely erased**:
 
 No env or backend toggles:
 
-* `VectorPipelineContext` is constructed in `dfps_api` (or CLI) using `VectorStoreConfig::from_env` and a real `VectorStore` implementation (Qdrant, PGVector, Mock).
-* `dfps_pipeline` never calls `VectorStoreConfig::from_env` directly.
+* `VectorPipelineContext` is constructed in `dfps_api` (or CLI) using `config_from_env` and a real `VectorStore` implementation (Qdrant, PGVector, Mock).
+* `dfps_pipeline` never calls `config_from_env` directly.
 
 Add invariants:
 
@@ -632,7 +632,7 @@ Add invariants:
 * `lib/app/servers/vector_store` (`dfps_vector_store`) – entire crate.
 * `lib/domain/ontologies/mapping` (`dfps_mapping`) – uses `VectorStore`, `EmbeddingProvider`.
 * `lib/domain/pipeline` (`dfps_pipeline`) – uses `VectorStore`, `VectorStoreConfig`.
-* `lib/app/servers/api` (`dfps_api`) – builds `VectorPipelineContext` from `VectorStoreConfig::from_env`.
+* `lib/app/servers/api` (`dfps_api`) – builds `VectorPipelineContext` from `config_from_env`.
 * `lib/platform/configuration` (`dfps_configuration`) – env parsing helpers.
 * `lib/platform/observability` (`dfps_observability`) – consumes `VectorUsageSnapshot`.
 
@@ -652,7 +652,7 @@ Make `dfps_vector_store` the **single, well-documented platform abstraction** fo
 * `dfps_vector_store` already has:
 
   * `VectorBackend` enum.
-  * `VectorStoreConfig::from_env()` using `dfps_configuration`.
+  * `config_from_env()` using `dfps_configuration`.
   * `VectorStore` trait.
   * Mock/Qdrant/PgVector backends.
   * `VectorUsageCounters`, `VectorUsageHandle`, `CapacityProxies`, `VectorUsageSnapshot` integration.
@@ -674,7 +674,7 @@ Conceptually, this crate is `platform/stores/vector_store` even though it lives 
 
 ##### 13.2 Config semantics
 
-`VectorStoreConfig::from_env` should be:
+`config_from_env` should be:
 
 * **Pure**: env → config struct → `validate()`.
 * **Explicit failure modes**:
@@ -760,7 +760,7 @@ Add doc examples:
 
 ##### 13.A – Config tightening
 
-* [x] Review `VectorStoreConfig::from_env`:
+* [x] Review `config_from_env`:
 
   * [x] Ensure all env parsing uses `dfps_configuration::{bool_var,u32_var,u64_var}`.
   * [x] Add robust unit tests (some exist) for:
@@ -796,7 +796,7 @@ Add doc examples:
 
 #### Acceptance criteria
 
-* All vector-enabled code paths (`dfps_mapping`, `dfps_pipeline`, `dfps_api`, CLI) depend only on `VectorStore` trait + `VectorStoreConfig` type; env is centralized in `VectorStoreConfig::from_env` or a platform config builder.
+* All vector-enabled code paths (`dfps_mapping`, `dfps_pipeline`, `dfps_api`, CLI) depend only on `VectorStore` trait + `VectorStoreConfig` type; env is centralized in `config_from_env` or a platform config builder.
 * Backends (Qdrant/PGVector/Mock) are swappable without touching any domain crate.
 * Metrics and capacity snapshots from `VectorUsageSnapshot` are stable enough to feed capacity/geometry analysis without API changes.
 
@@ -839,7 +839,7 @@ Add doc examples:
   - [x] Add a streaming path (reading Bundles incrementally) that still accumulates a single `PipelineMetrics` summary.
   - [x] Align JSON output schema (`kind` field) with API responses for easier downstream parsing.
 - [x] `map_codes`:
-  - [x] Share vector config handling with `build_vector_index` (via a small helper that wraps `VectorStoreConfig::from_env` and backend selection).
+  - [x] Share vector config handling with `build_vector_index` (via a small helper that wraps `config_from_env` and backend selection).
   - [x] Move compliance reporting and `fail_on_license_block` behavior behind a single helper used by both CLI and API surfaces.
   - [x] Ensure explanation output (`--explain`, `--explain-top`) is documented and stable for downstream tooling.
 - [x] `eval_mapping`:
@@ -901,7 +901,7 @@ and ensure that:
 
     * `ComplianceConfig::from_env` → `Policy`.
     * `FileDatasetStore` from `DFPS_EVAL_DATA_ROOT` or default root.
-    * `VectorPipelineContext` from `VectorStoreConfig::from_env()`.
+    * `VectorPipelineContext` from `config_from_env()`.
     * `AnalyticsPersistence` from `WarehouseConfig::from_env()`.
     * `AnalyticsState` as in-memory dim/fact holder.
   * Exposes routes:

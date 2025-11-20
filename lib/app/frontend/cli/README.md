@@ -18,7 +18,7 @@ downstream tooling can parse output consistently.
   are processed incrementally without buffering everything in memory.
 - Shared compliance helpers mirror API/web behavior (e.g., `--fail-on-license-block`
   uses the same policy enforcement as `dfps_api`). Vector helpers wrap
-  `VectorStoreConfig::from_env` to keep `map_bundles`, `map_codes`, and
+  `config_from_env` to keep `map_bundles`, `map_codes`, and
   `build_vector_index` in sync.
 
 ## Common flags & env

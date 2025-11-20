@@ -1,16 +1,18 @@
+#[cfg(test)]
+use crate::env::reset_env_state_for_tests;
 use crate::{
     env::ensure_env,
     metrics::{PipelineMetrics, apply_vector_usage},
-    vector_usage::VectorUsageSnapshot,
 };
-#[cfg(test)]
-use crate::{env::reset_env_state_for_tests, vector_usage::VectorCapacitySnapshot};
 #[cfg(test)]
 use dfps_core::mapping::MappingState;
 use dfps_core::{
     mapping::MappingResult,
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
+#[cfg(test)]
+use dfps_vector_port::VectorCapacitySnapshot;
+use dfps_vector_port::VectorUsageSnapshot;
 use log::{info, warn};
 
 pub fn log_pipeline_output(

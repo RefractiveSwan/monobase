@@ -11,10 +11,9 @@ mod env;
 mod logging;
 mod metrics;
 mod snapshot;
-pub mod vector_usage;
 
+pub use dfps_vector_port::{VectorCapacitySnapshot, VectorUsageSnapshot};
 pub use env::init_environment;
 pub use logging::{log_no_match, log_pipeline_output};
 pub use metrics::{PipelineMetrics, apply_vector_usage};
 pub use snapshot::{MetricsRatios, MetricsSnapshot, metrics_snapshot, metrics_snapshot_json};
-pub use vector_usage::{VectorCapacitySnapshot, VectorUsageSnapshot};

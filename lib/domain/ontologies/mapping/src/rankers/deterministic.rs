@@ -1,5 +1,5 @@
 use dfps_core::mapping::{CodeElement, MappingCandidate};
-use dfps_vector_store::{Embedding, EmbeddingMetadata, EmbeddingProvider};
+use dfps_vector_port::{Embedding, EmbeddingMetadata, EmbeddingProvider};
 
 use crate::traits::CandidateRanker;
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use dfps_core::mapping::{CodeElement, MappingCandidate};
-use dfps_vector_store::{
+use dfps_vector_port::{
     CapacityProxies, EmbeddingProvider, VectorStore, VectorStoreConfig, VectorStoreError,
     VectorUsageCounters, VectorUsageHandle,
 };

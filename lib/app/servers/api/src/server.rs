@@ -27,7 +27,7 @@ use dfps_pipeline::{
 };
 use dfps_terminology::codesystem::LicenseTier;
 use dfps_vector_store::{
-    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
+    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore
 };
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -458,7 +458,7 @@ fn eval_dataset_store_from_env() -> dfps_eval::FileDatasetStore {
 }
 
 fn load_vector_context_from_env() -> Option<VectorPipelineContext> {
-    let config = VectorStoreConfig::from_env().ok()?;
+    let config = config_from_env().ok()?;
     if !config.enabled {
         return None;
     }

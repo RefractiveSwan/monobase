@@ -20,7 +20,7 @@ use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes, map_staging_codes_with_vector,
 };
 use dfps_observability::VectorUsageSnapshot;
-use dfps_vector_store::{
+use dfps_vector_port::{
     VectorBackend, VectorItem, VectorSearchResult, VectorStore, VectorStoreConfig, VectorStoreError,
 };
 use log::warn;
@@ -291,7 +291,7 @@ mod tests {
     use super::*;
     use dfps_ingestion::ValidationMode;
     use dfps_test_suite::regression;
-    use dfps_vector_store::{MockVectorStore, VectorBackend};
+    use dfps_vector_port::{MockVectorStore, VectorBackend};
     use serde_json::json;
     use std::sync::Arc;
 

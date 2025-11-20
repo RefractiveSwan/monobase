@@ -4,7 +4,7 @@ use dfps_compliance::Policy;
 use dfps_core::mapping::{CodeElement, DimNCITConcept, MappingResult};
 use dfps_core::staging::StgSrCodeExploded;
 use dfps_observability::VectorUsageSnapshot;
-use dfps_vector_store::{EmbeddingProvider, VectorStore, VectorStoreConfig};
+use dfps_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
 
 use crate::config::MappingConfig;
 use crate::data::load_umls_xrefs;

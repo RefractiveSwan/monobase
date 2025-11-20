@@ -1091,6 +1091,7 @@ dependencies = [
 name = "dfps_datamart"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "dfps_compliance",
  "dfps_configuration",
  "dfps_contracts",
@@ -1141,7 +1142,7 @@ dependencies = [
  "dfps_eval",
  "dfps_observability",
  "dfps_terminology",
- "dfps_vector_store",
+ "dfps_vector_port",
  "once_cell",
  "serde",
  "serde_json",
@@ -1153,6 +1154,7 @@ version = "0.1.0"
 dependencies = [
  "dfps_configuration",
  "dfps_core",
+ "dfps_vector_port",
  "log",
  "once_cell",
  "serde",
@@ -1168,8 +1170,7 @@ dependencies = [
  "dfps_mapping",
  "dfps_observability",
  "dfps_test_suite",
- "dfps_vector_store",
- "env_logger",
+ "dfps_vector_port",
  "log",
  "serde",
  "serde_json",
@@ -1219,11 +1220,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dfps_vector_port"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "dfps_vector_store"
 version = "0.1.0"
 dependencies = [
  "dfps_configuration",
- "dfps_observability",
+ "dfps_vector_port",
  "pgvector",
  "reqwest",
  "serde",

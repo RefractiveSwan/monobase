@@ -8,12 +8,11 @@ dfps_ingestion = { path = "../ontologies/ingestion" }
 dfps_mapping = { path = "../ontologies/mapping" }
 dfps_core = { path = "../core" }
 dfps_observability = { path = "../../platform/observability" }
+dfps_vector_port = { path = "../vector_port" }
 serde = { workspace = true }
 serde_json.workspace = true
 thiserror = "2.0.17"
 log = "0.4"
-env_logger = "0.11"
-dfps_vector_store = { path = "../../app/servers/vector_store" }
 
 [dev-dependencies]
 dfps_test_suite = { path = "../../platform/test_suite" }

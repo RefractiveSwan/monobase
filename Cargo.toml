@@ -17,6 +17,7 @@ members = [
     "lib/domain/ontologies/mapping",
     "lib/domain/ontologies/terminology",
     "lib/domain/pipeline",
+    "lib/domain/vector_port",
     "lib/platform/compliance",
     "lib/platform/configuration",
     "lib/platform/observability",

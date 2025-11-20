@@ -3,6 +3,7 @@ use std::sync::Arc;
 use dfps_pipeline::VectorPipelineContext;
 use dfps_vector_store::{
     MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
+    config_from_env,
 };
 
 #[cfg(feature = "backend-pgvector")]
@@ -11,12 +12,11 @@ use dfps_vector_store::PgVectorStore;
 use super::{CliError, CliResult};
 
 pub fn load_vector_config() -> CliResult<VectorStoreConfig> {
-    VectorStoreConfig::from_env()
-        .map_err(|err| CliError::config(format!("vector config error: {err}")))
+    config_from_env().map_err(|err| CliError::config(format!("vector config error: {err}")))
 }
 
 pub fn pipeline_vector_context_from_env() -> CliResult<Option<VectorPipelineContext>> {
-    let config = match VectorStoreConfig::from_env() {
+    let config = match config_from_env() {
         Ok(cfg) => cfg,
         Err(err) => return Err(CliError::config(format!("vector config error: {err}"))),
     };

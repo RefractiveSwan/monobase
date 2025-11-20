@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use dfps_core::mapping::{CodeElement, MappingCandidate, MappingResult, MappingStrategy};
 use dfps_core::staging::StgSrCodeExploded;
-use dfps_vector_store::{EmbeddingProvider, VectorStore, VectorStoreConfig};
+use dfps_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
 
 use crate::config::MappingConfig;
 use crate::engine::reranker::RuleReranker;
