@@ -20,7 +20,7 @@ pub async fn analytics_dashboard(
     query: Option<web::Query<CohortFilters>>,
 ) -> Result<HttpResponse> {
     let mut filters = query.map(|q| q.into_inner()).unwrap_or_default();
-    let mut ctx = home::build_base_context(&state.client, &state.dataset_store).await;
+    let mut ctx = home::build_base_context(&state.client, state.dataset_store.as_ref()).await;
     match state.client.analytics_summary().await {
         Ok(summary) => ctx.analytics_summary = Some(AnalyticsSummaryView::from_response(&summary)),
         Err(err) => {
@@ -49,7 +49,7 @@ pub async fn analytics_dashboard(
 mod tests {
     use actix_web::{App, test, web};
     use dfps_observability::PipelineMetrics;
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
         matchers::{method, path},
@@ -131,7 +131,7 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let dataset_store = dfps_eval::FileDatasetStore::default();
+        let dataset_store = Arc::new(dfps_eval::FileDatasetStore::default());
         let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(
             App::new()

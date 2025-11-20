@@ -81,7 +81,7 @@ pub fn sr_to_domain(sr: &fhir::ServiceRequest) -> Result<order::ServiceRequest, 
     )?;
 
     let encounter_id = match sr.encounter.as_ref() {
-        Some(reference) => Some(EncounterId(reference::reference_id(reference).ok_or(
+        Some(reference) => Some(EncounterId::new(reference::reference_id(reference).ok_or(
             IngestionError::InvalidReference("ServiceRequest.encounter.reference"),
         )?)),
         None => None,
@@ -92,8 +92,8 @@ pub fn sr_to_domain(sr: &fhir::ServiceRequest) -> Result<order::ServiceRequest, 
     let description = description_from_sr(sr);
 
     Ok(order::ServiceRequest::new(
-        ServiceRequestId(sr_id.to_string()),
-        PatientId(patient_id),
+        ServiceRequestId::new(sr_id.to_string()),
+        PatientId::new(patient_id),
         encounter_id,
         status,
         intent,

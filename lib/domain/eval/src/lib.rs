@@ -275,6 +275,32 @@ pub struct DatasetLoadOutcome {
     pub computed_sha256: String,
 }
 
+/// Trait abstraction so callers can swap in alternative dataset providers.
+pub trait DatasetStore: Send + Sync {
+    fn data_root(&self) -> &Path;
+    fn load_dataset_with_manifest(&self, name: &str) -> Result<DatasetLoadOutcome, DatasetError>;
+    fn load_dataset(&self, name: &str) -> Result<Vec<EvalCase>, DatasetError>;
+    fn list_manifests(&self) -> Result<Vec<DatasetManifest>, DatasetError>;
+}
+
+impl DatasetStore for FileDatasetStore {
+    fn data_root(&self) -> &Path {
+        self.root()
+    }
+
+    fn load_dataset_with_manifest(&self, name: &str) -> Result<DatasetLoadOutcome, DatasetError> {
+        FileDatasetStore::load_dataset_with_manifest(self, name)
+    }
+
+    fn load_dataset(&self, name: &str) -> Result<Vec<EvalCase>, DatasetError> {
+        FileDatasetStore::load_dataset(self, name)
+    }
+
+    fn list_manifests(&self) -> Result<Vec<DatasetManifest>, DatasetError> {
+        FileDatasetStore::list_manifests(self)
+    }
+}
+
 pub fn load_dataset_with_manifest(name: &str) -> Result<DatasetLoadOutcome, DatasetError> {
     FileDatasetStore::default().load_dataset_with_manifest(name)
 }

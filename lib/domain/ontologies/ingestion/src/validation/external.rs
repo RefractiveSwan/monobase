@@ -85,7 +85,7 @@ pub enum ExternalValidationError {
     Parse(String),
 }
 
-pub trait ExternalValidator {
+pub trait ExternalValidator: Send + Sync {
     fn validate_bundle(
         &self,
         bundle: &Bundle,

@@ -31,7 +31,7 @@ pub async fn map_from_paste(
     form: web::Form<BundleForm>,
 ) -> Result<HttpResponse> {
     let hx = is_htmx(&req);
-    let mut ctx = home::build_base_context(&state.client, &state.dataset_store).await;
+    let mut ctx = home::build_base_context(&state.client, state.dataset_store.as_ref()).await;
     let trimmed = form.bundle_text.trim();
     if trimmed.is_empty() {
         ctx.alert = Some(AlertMessage {
@@ -60,7 +60,7 @@ pub async fn map_from_upload(
     mut payload: Multipart,
 ) -> Result<HttpResponse> {
     let hx = is_htmx(&req);
-    let mut ctx = home::build_base_context(&state.client, &state.dataset_store).await;
+    let mut ctx = home::build_base_context(&state.client, state.dataset_store.as_ref()).await;
     match read_bundle_file(&mut payload).await {
         Ok(Some(text)) => match serde_json::from_str::<serde_json::Value>(&text) {
             Ok(value) => handle_mapping(value, state, ctx, hx).await,
@@ -182,7 +182,7 @@ mod tests {
     };
     use dfps_observability::PipelineMetrics;
     use serde_json::json;
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
         matchers::{method, path},
@@ -289,7 +289,7 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let dataset_store = dfps_eval::FileDatasetStore::default();
+        let dataset_store = Arc::new(dfps_eval::FileDatasetStore::default());
         let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(
             App::new()

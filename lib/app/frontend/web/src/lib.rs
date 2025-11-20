@@ -10,7 +10,7 @@ use actix_web::{App, HttpServer, web};
 use client::BackendClient;
 use config::AppConfig;
 use state::AppState;
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, sync::Arc};
 
 pub async fn run() -> std::io::Result<()> {
     if let Err(err) = dfps_configuration::load_env("app.web.frontend") {
@@ -36,9 +36,9 @@ pub async fn run() -> std::io::Result<()> {
     .await
 }
 
-fn dataset_store_from_env() -> dfps_eval::FileDatasetStore {
+fn dataset_store_from_env() -> Arc<dyn dfps_eval::DatasetStore + Send + Sync> {
     let root = env::var("DFPS_EVAL_DATA_ROOT")
         .map(PathBuf::from)
         .unwrap_or_else(|_| dfps_eval::default_data_root());
-    dfps_eval::FileDatasetStore::new(root)
+    Arc::new(dfps_eval::FileDatasetStore::new(root))
 }

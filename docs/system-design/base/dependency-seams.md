@@ -35,10 +35,12 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 
 ### Vector store
 
-* Domain: `dfps_mapping` and `dfps_pipeline` consume the `VectorStore` trait and
+* Domain: `dfps_mapping` and `dfps_pipeline` consume the `dfps_vector_port` traits
+  (`VectorStore`, `VectorStoreConfig`, `VectorUsageSnapshot`) and
   `VectorPipelineContext` (constructed in app/platform layers).
-* Platform: `dfps_vector_store` implements adapters for Qdrant/PGVector/Mock,
-  loading env via `dfps_configuration`.
+* Platform: `dfps_vector_store` implements adapters for Qdrant/PGVector/Mock and
+  exposes `config_from_env` so CLI/API crates can inject a concrete store without
+  leaking env parsing into domain code.
 
 ### Compliance policies
 
@@ -53,6 +55,13 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 * App: `dfps_datamart::DatamartSink` is the outbound port that persists/query
   analytics. `SqliteDatamart` lives in the `dfps_datamart` crate and is injected
   into `dfps_api` and CLI loaders, keeping HTTP/CLI code free of SQL details.
+
+### Eval dataset store
+
+* Domain: `dfps_eval::DatasetStore` abstracts dataset/case access. The default
+  `FileDatasetStore` is an implementation that reads from the workspace data root.
+* App: CLI, API, and web frontends hold `Arc<dyn DatasetStore>` values so tests
+  and future remote stores can be swapped in without touching domain logic.
 
 ### CLI pipeline command
 

@@ -66,7 +66,7 @@ pub async fn eval_report(
         .as_deref()
         .unwrap_or(DEFAULT_EVAL_DATASET)
         .to_string();
-    match render_eval_report_fragment(&state.client, &state.dataset_store, &dataset).await {
+    match render_eval_report_fragment(&state.client, state.dataset_store.as_ref(), &dataset).await {
         Ok(html) => Ok(HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
             .body(html)),
@@ -95,14 +95,14 @@ pub async fn eval_run(
 /// Builds the eval report fragment via dfps_eval helpers.
 pub(crate) async fn render_eval_report_fragment(
     client: &BackendClient,
-    store: &dfps_eval::FileDatasetStore,
+    store: &(dyn dfps_eval::DatasetStore + Send + Sync),
     dataset: &str,
 ) -> Result<String, String> {
     let summary = client
         .eval_summary(dataset)
         .await
         .map_err(|err| format!("Backend eval error: {err}"))?;
-    let baseline = match report::load_baseline_snapshot_from(store.root(), dataset) {
+    let baseline = match report::load_baseline_snapshot_from(store.data_root(), dataset) {
         Ok(snapshot) => Some(snapshot),
         Err(err) => {
             eprintln!("warning: baseline load failed for {dataset}: {err}");

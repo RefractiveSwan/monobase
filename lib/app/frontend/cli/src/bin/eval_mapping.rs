@@ -237,10 +237,11 @@ fn write_report(
     report_path: &Path,
     summary: &EvalSummary,
     dataset: Option<&str>,
-    store: &dfps_eval::FileDatasetStore,
+    store: &impl dfps_eval::DatasetStore,
 ) -> CliResult<()> {
-    let baseline = dataset
-        .and_then(|name| dfps_eval::report::load_baseline_snapshot_from(store.root(), name).ok());
+    let baseline = dataset.and_then(|name| {
+        dfps_eval::report::load_baseline_snapshot_from(store.data_root(), name).ok()
+    });
     let html = dfps_eval::report::render_html(summary, baseline.as_ref().map(|snap| &snap.summary));
     let mut file = File::create(report_path).map_err(|err| {
         CliError::io(format!("failed to create {}: {err}", report_path.display()))

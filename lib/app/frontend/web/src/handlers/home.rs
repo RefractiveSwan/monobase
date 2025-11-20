@@ -15,7 +15,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 
 /// Landing page handler that renders the workbench.
 pub async fn index(state: web::Data<AppState>) -> Result<HttpResponse> {
-    let ctx = build_base_context(&state.client, &state.dataset_store).await;
+    let ctx = build_base_context(&state.client, state.dataset_store.as_ref()).await;
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(views::render_page(&ctx)))
@@ -24,7 +24,7 @@ pub async fn index(state: web::Data<AppState>) -> Result<HttpResponse> {
 /// Shared context builder reused across feature handlers so everything pulls from the same backend calls.
 pub(crate) async fn build_base_context(
     client: &BackendClient,
-    store: &dfps_eval::FileDatasetStore,
+    store: &(dyn dfps_eval::DatasetStore + Send + Sync),
 ) -> PageContext {
     let datasets = client.eval_datasets().await.unwrap_or_default();
     let selected_dataset = datasets

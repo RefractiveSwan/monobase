@@ -49,7 +49,7 @@ pub fn from_pipeline_output(output: &PipelineOutput) -> (Dims, Vec<FactServiceRe
         let patient_key = DimPatientKey::from_patient_id(&flat.patient_id);
         patient_lookup.insert(flat.patient_id.clone(), patient_key);
         patient_dims.entry(patient_key.0).or_insert_with(|| {
-            let patient = Patient::new(PatientId(flat.patient_id.clone()));
+            let patient = Patient::new(PatientId::new(flat.patient_id.clone()));
             DimPatient::from_patient(&patient)
         });
 
@@ -58,8 +58,8 @@ pub fn from_pipeline_output(output: &PipelineOutput) -> (Dims, Vec<FactServiceRe
             encounter_lookup.insert(encounter_id.clone(), encounter_key);
             encounter_dims.entry(encounter_key.0).or_insert_with(|| {
                 let encounter = Encounter::new(
-                    EncounterId(encounter_id.clone()),
-                    PatientId(flat.patient_id.clone()),
+                    EncounterId::new(encounter_id.clone()),
+                    PatientId::new(flat.patient_id.clone()),
                 );
                 DimEncounter::from_encounter(&encounter, patient_key)
             });

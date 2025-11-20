@@ -117,15 +117,15 @@
     - [x] `lib/app/servers/api` — expose inbound ports as axum handlers; push pipeline/datamart/compliance into injected application services; ensure `server.rs` only wires adapters (HTTP ↔ app services). (NodeDataPlane now injects `PipelinePort` + `SqliteDatamart` (`DatamartSink`), handlers translate HTTP ↔ dfps_contracts DTOs, and README documents the adapter boundary.)
     - [x] `lib/app/servers/datamart` — model DB as outbound adapter; keep fact/dim builders as domain mappers; surface a port trait (`DatamartSink`) consumed by API/CLI. (`DatamartSink` trait + `SqliteDatamart` implementation added; README documents env + adapter semantics.)
   - [ ] Hex-port flow – lib/domain (core hex core; ports = traits; adapters live in app/platform)
-    - [ ] `lib/domain/core` — mark entities/value objects as core; add constructors/invariants; ensure zero IO/env.
-    - [ ] `lib/domain/ingestion` — define trait ports for validation/profile lookup; keep transforms pure; move external validator adapter to app layer.
-    - [ ] `lib/domain/mapping` — expose Mapper/Ranker/Terminology ports; remove env/policy loading; make vector store a port (trait) with adapters in platform.
-    - [ ] `lib/domain/pipeline` — act as orchestrator port wiring ingestion/mapping; accept injected services/config; prohibit env/logger initialization.
-    - [ ] `lib/domain/eval`/`fake_data`/`fhir_profiles`/`obo_graph`/`terminology` — classify as core data/providers; ensure any file IO/env is behind port traits (dataset provider, profile provider, ontology loader).
+    - [x] `lib/domain/core` — mark entities/value objects as core; add constructors/invariants; ensure zero IO/env. (ID newtypes now validate non-empty strings + expose helpers; ServiceRequest construction uses the typed IDs everywhere.)
+    - [x] `lib/domain/ingestion` — define trait ports for validation/profile lookup; keep transforms pure; move external validator adapter to app layer. (`ExternalValidator` is an explicit `Send + Sync` port and transforms rely solely on injected IDs/traits, no env access.)
+    - [x] `lib/domain/mapping` — expose Mapper/Ranker/Terminology ports; remove env/policy loading; make vector store a port (trait) with adapters in platform. (`dfps_vector_port` now hosts the vector traits; mapping/pipeline crates depend only on that port.)
+    - [x] `lib/domain/pipeline` — act as orchestrator port wiring ingestion/mapping; accept injected services/config; prohibit env/logger initialization. (Already using `PipelinePort` + injected vector contexts, no env/log init.)
+    - [x] `lib/domain/eval`/`fake_data`/`fhir_profiles`/`obo_graph`/`terminology` — classify as core data/providers; ensure any file IO/env is behind port traits (dataset provider, profile provider, ontology loader). (`dfps_eval::DatasetStore` trait introduced; API/web/CLI now accept `Arc<dyn DatasetStore>` instead of concrete file IO.)
   - [ ] Hex-port flow – lib/platform (adapters & infra)
     - [ ] `lib/platform/configuration` — provide config-loading adapters; no domain coupling.
-    - [ ] `lib/platform/observability` — treat logging/metrics as outbound adapter; expose trait(s) consumable by app/domain.
-    - [ ] `lib/app/servers/vector_store` — pure adapter for vector backends implementing domain port; validate configs; document boundaries to mapping/pipeline/app.
+    - [x] `lib/platform/observability` — treat logging/metrics as outbound adapter; expose trait(s) consumable by app/domain. (Metrics/logging now consume `dfps_vector_port` snapshots instead of defining their own schema.)
+    - [x] `lib/app/servers/vector_store` — pure adapter for vector backends implementing domain port; validate configs; document boundaries to mapping/pipeline/app. (`config_from_env` lives here; crate re-exports the `dfps_vector_port` traits and only implements adapters.)
     - [ ] `lib/platform/compliance` — policy loader as adapter; enforcement callable from app/domain ports without env.
     - [ ] `lib/platform/test_suite` — test-only adapters (datasets/db), no production env mutation.
 

@@ -21,13 +21,14 @@ use dfps_contracts::{
 };
 use dfps_core::fhir::Bundle;
 use dfps_datamart::{CohortFilters, DatamartError, DatamartSink, SqliteDatamart};
+use dfps_eval::{DatasetStore, FileDatasetStore};
 use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::{
     DefaultPipeline, PipelineError, PipelinePort, PipelineRunConfig, VectorPipelineContext,
 };
 use dfps_terminology::codesystem::LicenseTier;
 use dfps_vector_store::{
-    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore
+    config_from_env, MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore,
 };
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -142,7 +143,7 @@ fn enforce_export_policy(
 struct NodeDataPlane {
     policy: dfps_compliance::Policy,
     vector_context: Option<VectorPipelineContext>,
-    dataset_store: Arc<dfps_eval::FileDatasetStore>,
+    dataset_store: Arc<dyn DatasetStore + Send + Sync>,
     metrics: Arc<Mutex<PipelineMetrics>>,
     pipeline: Arc<dyn PipelinePort + Send + Sync>,
     datamart: Arc<dyn DatamartSink + Send + Sync>,
@@ -155,7 +156,8 @@ impl NodeDataPlane {
         let compliance_policy = compliance_config
             .load_policy()
             .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
-        let dataset_store = Arc::new(eval_dataset_store_from_env());
+        let dataset_store: Arc<dyn DatasetStore + Send + Sync> =
+            Arc::new(eval_dataset_store_from_env());
         let vector_context = load_vector_context_from_env();
         let pipeline: Arc<dyn PipelinePort + Send + Sync> = Arc::new(DefaultPipeline);
         let datamart: Arc<dyn DatamartSink + Send + Sync> = Arc::new(SqliteDatamart::from_env());
@@ -173,7 +175,7 @@ impl NodeDataPlane {
         Arc::clone(&self.metrics)
     }
 
-    fn dataset_store(&self) -> Arc<dfps_eval::FileDatasetStore> {
+    fn dataset_store(&self) -> Arc<dyn DatasetStore + Send + Sync> {
         Arc::clone(&self.dataset_store)
     }
 
@@ -440,7 +442,7 @@ fn run_eval_internal(cases: &[dfps_eval::EvalCase], top_k: usize) -> dfps_eval::
     summary
 }
 
-fn eval_dataset_store_from_env() -> dfps_eval::FileDatasetStore {
+fn eval_dataset_store_from_env() -> FileDatasetStore {
     let root = match env::var("DFPS_EVAL_DATA_ROOT") {
         Ok(value) if !value.trim().is_empty() => {
             let candidate = PathBuf::from(&value);
