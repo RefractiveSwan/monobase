@@ -1128,4 +1128,10 @@ mod tests {
         };
         assert_snapshot!("eval_panel_fragment", render_eval_panel(&ctx).into_string());
     }
+
+    #[test]
+    fn render_page_snapshot() {
+        let ctx = PageContext::default();
+        assert_snapshot!("render_page_full", render_page(&ctx));
+    }
 }
