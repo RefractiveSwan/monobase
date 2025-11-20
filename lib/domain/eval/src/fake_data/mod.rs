@@ -12,6 +12,7 @@
 //! and `SeedSequence` so CLIs/tests share deterministic scenarios without ad-hoc
 //! seeding logic.
 
+pub mod config;
 pub mod encounter;
 pub mod fixtures;
 pub mod order;
@@ -21,6 +22,7 @@ pub mod rng;
 pub mod scenarios;
 pub mod value;
 
+pub use config::{FakeDataConfig, FakeDataConfigError};
 pub use encounter::*;
 pub use order::*;
 pub use patient::*;

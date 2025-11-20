@@ -1,5 +1,9 @@
-use dfps_eval::fake_data::scenarios::{
-    ServiceRequestScenario, fake_service_request_scenario, fake_service_request_scenario_with_seed,
+use dfps_eval::fake_data::{
+    config::FakeDataConfig,
+    scenarios::{
+        ServiceRequestScenario, fake_service_request_scenario,
+        fake_service_request_scenario_with_seed,
+    },
 };
 use serde_json::to_string;
 use std::env;
@@ -9,12 +13,17 @@ fn main() {
         eprintln!("dfps_eval::fake_data env error: {err}");
         std::process::exit(1);
     }
+    let config = FakeDataConfig::from_env().unwrap_or_default();
     let mut args = env::args().skip(1);
     let count = args
         .next()
         .and_then(|value| value.parse::<usize>().ok())
+        .or(config.default_count)
         .unwrap_or(1);
-    let seed = args.next().and_then(|value| value.parse::<u64>().ok());
+    let seed = args
+        .next()
+        .and_then(|value| value.parse::<u64>().ok())
+        .or(config.default_seed);
 
     if let Some(seed) = seed {
         emit_seeded(count, seed);

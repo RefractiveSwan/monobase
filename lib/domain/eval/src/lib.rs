@@ -424,6 +424,32 @@ pub struct EvalSummary {
     pub results: Vec<EvalResult>,
 }
 
+/// Metrics-only view of an evaluation summary (no `EvalResult` payloads).
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct EvalMetrics {
+    pub total_cases: usize,
+    pub predicted_cases: usize,
+    pub correct: usize,
+    pub incorrect: usize,
+    pub precision: f32,
+    pub recall: f32,
+    pub f1: f32,
+    pub accuracy: f32,
+    pub coverage: f32,
+    pub top1_accuracy: f32,
+    pub top3_accuracy: f32,
+    pub auto_mapped_total: usize,
+    pub auto_mapped_correct: usize,
+    pub auto_mapped_precision: f32,
+    pub state_counts: BTreeMap<String, usize>,
+    pub by_system: BTreeMap<String, StratifiedMetrics>,
+    pub by_license_tier: BTreeMap<String, StratifiedMetrics>,
+    pub score_buckets: Vec<ScoreBucket>,
+    pub reason_counts: BTreeMap<String, usize>,
+    pub system_confusion: BTreeMap<String, SystemConfusion>,
+    pub advanced: Option<AdvancedStats>,
+}
+
 impl Default for EvalSummary {
     fn default() -> Self {
         Self {
@@ -449,6 +475,115 @@ impl Default for EvalSummary {
             system_confusion: BTreeMap::new(),
             advanced: None,
             results: Vec::new(),
+        }
+    }
+}
+
+impl EvalSummary {
+    fn from_metrics(metrics: EvalMetrics, results: Vec<EvalResult>) -> Self {
+        Self {
+            total_cases: metrics.total_cases,
+            predicted_cases: metrics.predicted_cases,
+            correct: metrics.correct,
+            incorrect: metrics.incorrect,
+            precision: metrics.precision,
+            recall: metrics.recall,
+            f1: metrics.f1,
+            accuracy: metrics.accuracy,
+            coverage: metrics.coverage,
+            top1_accuracy: metrics.top1_accuracy,
+            top3_accuracy: metrics.top3_accuracy,
+            auto_mapped_total: metrics.auto_mapped_total,
+            auto_mapped_correct: metrics.auto_mapped_correct,
+            auto_mapped_precision: metrics.auto_mapped_precision,
+            state_counts: metrics.state_counts,
+            by_system: metrics.by_system,
+            by_license_tier: metrics.by_license_tier,
+            score_buckets: metrics.score_buckets,
+            reason_counts: metrics.reason_counts,
+            system_confusion: metrics.system_confusion,
+            advanced: metrics.advanced,
+            results,
+        }
+    }
+
+    fn apply_metrics(&mut self, metrics: &EvalMetrics) {
+        self.total_cases = metrics.total_cases;
+        self.predicted_cases = metrics.predicted_cases;
+        self.correct = metrics.correct;
+        self.incorrect = metrics.incorrect;
+        self.precision = metrics.precision;
+        self.recall = metrics.recall;
+        self.f1 = metrics.f1;
+        self.accuracy = metrics.accuracy;
+        self.coverage = metrics.coverage;
+        self.top1_accuracy = metrics.top1_accuracy;
+        self.top3_accuracy = metrics.top3_accuracy;
+        self.auto_mapped_total = metrics.auto_mapped_total;
+        self.auto_mapped_correct = metrics.auto_mapped_correct;
+        self.auto_mapped_precision = metrics.auto_mapped_precision;
+        self.state_counts = metrics.state_counts.clone();
+        self.by_system = metrics.by_system.clone();
+        self.by_license_tier = metrics.by_license_tier.clone();
+        self.score_buckets = metrics.score_buckets.clone();
+        self.reason_counts = metrics.reason_counts.clone();
+        self.system_confusion = metrics.system_confusion.clone();
+        self.advanced = metrics.advanced.clone();
+    }
+}
+
+impl Default for EvalMetrics {
+    fn default() -> Self {
+        Self {
+            total_cases: 0,
+            predicted_cases: 0,
+            correct: 0,
+            incorrect: 0,
+            precision: 0.0,
+            recall: 0.0,
+            f1: 0.0,
+            accuracy: 0.0,
+            coverage: 0.0,
+            top1_accuracy: 0.0,
+            top3_accuracy: 0.0,
+            auto_mapped_total: 0,
+            auto_mapped_correct: 0,
+            auto_mapped_precision: 0.0,
+            state_counts: BTreeMap::new(),
+            by_system: BTreeMap::new(),
+            by_license_tier: BTreeMap::new(),
+            score_buckets: Vec::new(),
+            reason_counts: BTreeMap::new(),
+            system_confusion: BTreeMap::new(),
+            advanced: None,
+        }
+    }
+}
+
+impl From<&EvalSummary> for EvalMetrics {
+    fn from(summary: &EvalSummary) -> Self {
+        Self {
+            total_cases: summary.total_cases,
+            predicted_cases: summary.predicted_cases,
+            correct: summary.correct,
+            incorrect: summary.incorrect,
+            precision: summary.precision,
+            recall: summary.recall,
+            f1: summary.f1,
+            accuracy: summary.accuracy,
+            coverage: summary.coverage,
+            top1_accuracy: summary.top1_accuracy,
+            top3_accuracy: summary.top3_accuracy,
+            auto_mapped_total: summary.auto_mapped_total,
+            auto_mapped_correct: summary.auto_mapped_correct,
+            auto_mapped_precision: summary.auto_mapped_precision,
+            state_counts: summary.state_counts.clone(),
+            by_system: summary.by_system.clone(),
+            by_license_tier: summary.by_license_tier.clone(),
+            score_buckets: summary.score_buckets.clone(),
+            reason_counts: summary.reason_counts.clone(),
+            system_confusion: summary.system_confusion.clone(),
+            advanced: summary.advanced.clone(),
         }
     }
 }
@@ -605,13 +740,7 @@ where
     if cases.is_empty() {
         return EvalSummary::default();
     }
-
-    let staging_rows: Vec<_> = cases
-        .iter()
-        .enumerate()
-        .map(|(idx, case)| case.to_staging_row(format!("eval-{idx:04}")))
-        .collect();
-    let mappings = mapper(staging_rows);
+    let mappings = invoke_mapper_with_offset(cases, &mut mapper, 0);
     assemble_summary(cases, mappings)
 }
 
@@ -627,6 +756,7 @@ where
 {
     let mut stream = crate::io::EvalCaseStream::new(reader);
     let mut aggregated = EvalSummary::default();
+    let mut processed = 0usize;
     loop {
         let mut chunk = Vec::with_capacity(chunk_size);
         while chunk.len() < chunk_size {
@@ -638,14 +768,74 @@ where
         if chunk.is_empty() {
             break;
         }
-        let summary = run_eval_with_mapper(&chunk, &mut mapper);
+        let mappings = invoke_mapper_with_offset(&chunk, &mut mapper, processed);
+        processed += chunk.len();
+        let summary = assemble_summary(&chunk, mappings);
         aggregate_summaries(&mut aggregated, summary);
     }
     Ok(aggregated)
 }
 
+/// Stream NDJSON datasets but only keep aggregate metrics (no `EvalResult` payloads).
+pub fn run_eval_streaming_metrics_with_mapper<R, F>(
+    reader: R,
+    mut mapper: F,
+    chunk_size: usize,
+) -> Result<EvalMetrics, DatasetError>
+where
+    R: BufRead,
+    F: FnMut(Vec<StgSrCodeExploded>) -> Vec<MappingResult>,
+{
+    let mut stream = crate::io::EvalCaseStream::new(reader);
+    let mut aggregated = EvalMetrics::default();
+    let mut processed = 0usize;
+    loop {
+        let mut chunk = Vec::with_capacity(chunk_size);
+        while chunk.len() < chunk_size {
+            match stream.next_case()? {
+                Some(case) => chunk.push(case),
+                None => break,
+            }
+        }
+        if chunk.is_empty() {
+            break;
+        }
+        let mappings = invoke_mapper_with_offset(&chunk, &mut mapper, processed);
+        processed += chunk.len();
+        let metrics = assemble_metrics(&chunk, mappings);
+        aggregate_metrics(&mut aggregated, metrics);
+    }
+    Ok(aggregated)
+}
+
+fn invoke_mapper_with_offset<F>(
+    cases: &[EvalCase],
+    mapper: &mut F,
+    start_index: usize,
+) -> Vec<MappingResult>
+where
+    F: FnMut(Vec<StgSrCodeExploded>) -> Vec<MappingResult>,
+{
+    let staging_rows: Vec<_> = cases
+        .iter()
+        .enumerate()
+        .map(|(idx, case)| {
+            case.to_staging_row(format!("eval-{index:04}", index = start_index + idx))
+        })
+        .collect();
+    mapper(staging_rows)
+}
+
 /// Merge a chunk summary into an aggregate summary (recomputes derived metrics).
 pub fn aggregate_summaries(base: &mut EvalSummary, chunk: EvalSummary) {
+    let mut base_metrics = EvalMetrics::from(&*base);
+    let chunk_metrics = EvalMetrics::from(&chunk);
+    aggregate_metrics(&mut base_metrics, chunk_metrics);
+    base.apply_metrics(&base_metrics);
+    base.results.extend(chunk.results);
+}
+
+pub fn aggregate_metrics(base: &mut EvalMetrics, chunk: EvalMetrics) {
     base.total_cases += chunk.total_cases;
     base.predicted_cases += chunk.predicted_cases;
     base.correct += chunk.correct;
@@ -726,8 +916,6 @@ pub fn aggregate_summaries(base: &mut EvalSummary, chunk: EvalSummary) {
     }
     base.system_confusion = finalize_confusion(base.system_confusion.clone());
 
-    base.results.extend(chunk.results);
-
     let (precision, recall, f1) =
         compute_metrics(base.correct, base.predicted_cases, base.total_cases);
     base.precision = precision;
@@ -754,13 +942,17 @@ pub fn aggregate_summaries(base: &mut EvalSummary, chunk: EvalSummary) {
     base.by_license_tier = finalize_stratified(base.by_license_tier.clone());
     base.advanced = None;
 }
-fn assemble_summary(cases: &[EvalCase], mappings: Vec<MappingResult>) -> EvalSummary {
-    let mut summary = EvalSummary {
+
+fn compute_chunk_metrics(
+    cases: &[EvalCase],
+    mappings: Vec<MappingResult>,
+    collect_results: bool,
+) -> (EvalMetrics, Vec<EvalResult>) {
+    let mut metrics = EvalMetrics {
         total_cases: cases.len(),
-        ..EvalSummary::default()
+        ..EvalMetrics::default()
     };
 
-    let mut results = Vec::with_capacity(cases.len());
     let mut by_system: BTreeMap<String, StratifiedMetrics> = BTreeMap::new();
     let mut by_license: BTreeMap<String, StratifiedMetrics> = BTreeMap::new();
     let mut system_confusion: BTreeMap<String, SystemConfusion> = BTreeMap::new();
@@ -769,11 +961,16 @@ fn assemble_summary(cases: &[EvalCase], mappings: Vec<MappingResult>) -> EvalSum
     let mut advanced_samples = Vec::with_capacity(cases.len());
     let mut auto_mapped_total = 0usize;
     let mut auto_mapped_correct = 0usize;
+    let mut results = if collect_results {
+        Some(Vec::with_capacity(cases.len()))
+    } else {
+        None
+    };
 
     for (case, mapping) in cases.iter().cloned().zip(mappings.into_iter()) {
         let predicted = mapping.ncit_id.is_some();
         if predicted {
-            summary.predicted_cases += 1;
+            metrics.predicted_cases += 1;
         }
         let is_correct = mapping
             .ncit_id
@@ -781,11 +978,11 @@ fn assemble_summary(cases: &[EvalCase], mappings: Vec<MappingResult>) -> EvalSum
             .map(|ncit| ncit == &case.expected_ncit_id)
             .unwrap_or(false);
         if is_correct {
-            summary.correct += 1;
+            metrics.correct += 1;
         }
 
         let label = state_label(mapping.state).to_string();
-        *summary.state_counts.entry(label).or_default() += 1;
+        *metrics.state_counts.entry(label).or_default() += 1;
         if matches!(mapping.state, MappingState::AutoMapped) && predicted {
             auto_mapped_total += 1;
             if is_correct {
@@ -825,52 +1022,62 @@ fn assemble_summary(cases: &[EvalCase], mappings: Vec<MappingResult>) -> EvalSum
 
         advanced_samples.push((predicted, is_correct));
 
-        results.push(EvalResult {
-            case,
-            mapping,
-            correct: is_correct,
-        });
+        if let Some(results_vec) = results.as_mut() {
+            results_vec.push(EvalResult {
+                case,
+                mapping,
+                correct: is_correct,
+            });
+        }
     }
 
-    summary.incorrect = summary.total_cases.saturating_sub(summary.correct);
+    metrics.incorrect = metrics.total_cases.saturating_sub(metrics.correct);
     let (precision, recall, f1) = compute_metrics(
-        summary.correct,
-        summary.predicted_cases,
-        summary.total_cases,
+        metrics.correct,
+        metrics.predicted_cases,
+        metrics.total_cases,
     );
-    summary.precision = precision;
-    summary.recall = recall;
-    summary.f1 = f1;
-    summary.accuracy = if summary.total_cases > 0 {
-        summary.correct as f32 / summary.total_cases as f32
+    metrics.precision = precision;
+    metrics.recall = recall;
+    metrics.f1 = f1;
+    metrics.accuracy = if metrics.total_cases > 0 {
+        metrics.correct as f32 / metrics.total_cases as f32
     } else {
         0.0
     };
-    summary.coverage = if summary.total_cases > 0 {
-        summary.predicted_cases as f32 / summary.total_cases as f32
+    metrics.coverage = if metrics.total_cases > 0 {
+        metrics.predicted_cases as f32 / metrics.total_cases as f32
     } else {
         0.0
     };
-    summary.top1_accuracy = summary.precision;
-    summary.top3_accuracy = summary.precision; // placeholder until multi-candidate plumbing exists
-    summary.auto_mapped_total = auto_mapped_total;
-    summary.auto_mapped_correct = auto_mapped_correct;
-    summary.auto_mapped_precision = if auto_mapped_total > 0 {
+    metrics.top1_accuracy = metrics.precision;
+    metrics.top3_accuracy = metrics.precision;
+    metrics.auto_mapped_total = auto_mapped_total;
+    metrics.auto_mapped_correct = auto_mapped_correct;
+    metrics.auto_mapped_precision = if auto_mapped_total > 0 {
         auto_mapped_correct as f32 / auto_mapped_total as f32
     } else {
         0.0
     };
-    summary.by_system = finalize_stratified(by_system);
-    summary.by_license_tier = finalize_stratified(by_license);
-    summary.score_buckets = finalize_score_buckets(score_bucket_map);
-    summary.reason_counts = reason_counts;
-    summary.system_confusion = finalize_confusion(system_confusion);
+    metrics.by_system = finalize_stratified(by_system);
+    metrics.by_license_tier = finalize_stratified(by_license);
+    metrics.score_buckets = finalize_score_buckets(score_bucket_map);
+    metrics.reason_counts = reason_counts;
+    metrics.system_confusion = finalize_confusion(system_confusion);
     #[cfg(feature = "eval-advanced")]
     {
-        summary.advanced = Some(crate::bootstrap_metrics(&advanced_samples, 100));
+        metrics.advanced = Some(crate::bootstrap_metrics(&advanced_samples, 100));
     }
-    summary.results = results;
-    summary
+    let result_vec = results.unwrap_or_default();
+    (metrics, result_vec)
+}
+fn assemble_summary(cases: &[EvalCase], mappings: Vec<MappingResult>) -> EvalSummary {
+    let (metrics, results) = compute_chunk_metrics(cases, mappings, true);
+    EvalSummary::from_metrics(metrics, results)
+}
+
+fn assemble_metrics(cases: &[EvalCase], mappings: Vec<MappingResult>) -> EvalMetrics {
+    compute_chunk_metrics(cases, mappings, false).0
 }
 
 /// Produce a deterministic fingerprint (sha256 hex) for an EvalSummary.
@@ -999,6 +1206,7 @@ fn finalize_confusion(
 mod tests {
     use super::*;
     use dfps_core::mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds};
+    use std::{fs::File, io::BufReader};
 
     #[test]
     fn load_sample_datasets() {
@@ -1065,5 +1273,58 @@ mod tests {
         assert!(summary.auto_mapped_precision >= 0.99);
         assert_eq!(summary.state_counts.get("auto_mapped"), Some(&2));
         assert_eq!(summary.results.len(), 2);
+    }
+
+    #[test]
+    fn streaming_metrics_match_summary() {
+        let cases = FileDatasetStore::default()
+            .load_dataset("pet_ct_small")
+            .expect("load dataset");
+        let summary = run_eval_with_mapper(&cases, map_stub);
+        let path = FileDatasetStore::default().dataset_path("pet_ct_small");
+        let file = File::open(path).expect("open dataset");
+        let metrics = run_eval_streaming_metrics_with_mapper(BufReader::new(file), map_stub, 1)
+            .expect("stream metrics");
+        let summary_metrics = EvalMetrics::from(&summary);
+        assert_eq!(metrics.total_cases, summary_metrics.total_cases);
+        assert_eq!(metrics.correct, summary_metrics.correct);
+        assert_eq!(metrics.state_counts, summary_metrics.state_counts);
+        assert_eq!(metrics.reason_counts, summary_metrics.reason_counts);
+    }
+
+    #[test]
+    fn fingerprint_consistent_across_chunk_sizes() {
+        let store = FileDatasetStore::default();
+        let path = store.dataset_path("pet_ct_small");
+        let file_full = File::open(&path).expect("open dataset");
+        let file_chunked = File::open(&path).expect("open dataset");
+        let summary_full =
+            run_eval_streaming_with_mapper(BufReader::new(file_full), map_stub, DEFAULT_CHUNK_SIZE)
+                .expect("stream eval full");
+        let summary_chunked =
+            run_eval_streaming_with_mapper(BufReader::new(file_chunked), map_stub, 1)
+                .expect("stream eval chunked");
+        assert_eq!(
+            fingerprint_summary(&summary_full),
+            fingerprint_summary(&summary_chunked)
+        );
+    }
+
+    fn map_stub(rows: Vec<StgSrCodeExploded>) -> Vec<MappingResult> {
+        rows.into_iter()
+            .map(|row| MappingResult {
+                code_element_id: row.sr_id.clone(),
+                ncit_id: row.code.clone(),
+                cui: None,
+                score: 0.9,
+                strategy: MappingStrategy::Lexical,
+                state: MappingState::AutoMapped,
+                thresholds: MappingThresholds::default(),
+                source_version: MappingSourceVersion::new("stub", "stub"),
+                reason: None,
+                license_tier: None,
+                source_kind: None,
+            })
+            .collect()
     }
 }

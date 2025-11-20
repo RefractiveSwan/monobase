@@ -40,6 +40,15 @@ fn benchmarks(c: &mut Criterion) {
     let store = FileDatasetStore::default();
     bench_dataset(c, &store, "pet_ct_small");
     bench_dataset(c, &store, "pet_ct_extended");
+    bench_fingerprint(c, &store, "pet_ct_small");
+}
+
+fn bench_fingerprint(c: &mut Criterion, store: &FileDatasetStore, dataset: &str) {
+    let cases = store.load_dataset(dataset).expect("load dataset");
+    let summary = dfps_eval::run_eval_with_mapper(&cases, |rows| map_stub(rows));
+    c.bench_function(&format!("fingerprint_{dataset}"), |b| {
+        b.iter(|| dfps_eval::fingerprint_summary(&summary))
+    });
 }
 
 criterion_group!(benches, benchmarks);
