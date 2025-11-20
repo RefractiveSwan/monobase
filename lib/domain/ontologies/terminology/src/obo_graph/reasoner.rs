@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use super::types::{Edge, Node, OntologyGraph};
 
-const DEFAULT_CACHE_CAPACITY: usize = 512;
+pub(crate) const DEFAULT_CACHE_CAPACITY: usize = 512;
 
 #[derive(Debug)]
 struct GraphCache {
