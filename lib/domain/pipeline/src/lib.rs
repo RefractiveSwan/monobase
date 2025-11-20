@@ -15,6 +15,7 @@ use dfps_core::{
 };
 use dfps_ingestion::{
     ExternalValidationContext, ValidationMode, bundle_to_staging_with_validation,
+    validation::ValidationReport,
 };
 use dfps_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes, map_staging_codes_with_vector,
@@ -38,6 +39,13 @@ pub struct PipelineOutput {
     pub mapping_results: Vec<MappingResult>,
     pub dim_concepts: Vec<DimNCITConcept>,
     pub vector_usage: Option<VectorUsageSnapshot>,
+}
+
+/// Combined pipeline output + validation metadata for a Bundle.
+#[derive(Debug)]
+pub struct PipelineExecution {
+    pub output: PipelineOutput,
+    pub validation: ValidationReport,
 }
 
 /// Runtime toggles for a pipeline run.
@@ -118,7 +126,17 @@ pub trait PipelinePort {
         bundle: &Bundle,
         config: &PipelineRunConfig<'_>,
         vector: Option<&VectorPipelineContext>,
-    ) -> Result<PipelineOutput, PipelineError>;
+    ) -> Result<PipelineOutput, PipelineError> {
+        self.map_bundle_with_validation(bundle, config, vector)
+            .map(|exec| exec.output)
+    }
+
+    fn map_bundle_with_validation(
+        &self,
+        bundle: &Bundle,
+        config: &PipelineRunConfig<'_>,
+        vector: Option<&VectorPipelineContext>,
+    ) -> Result<PipelineExecution, PipelineError>;
 }
 
 /// Default orchestrator implementing [`PipelinePort`].
@@ -126,34 +144,36 @@ pub trait PipelinePort {
 pub struct DefaultPipeline;
 
 impl PipelinePort for DefaultPipeline {
-    fn map_bundle(
+    fn map_bundle_with_validation(
         &self,
         bundle: &Bundle,
         config: &PipelineRunConfig<'_>,
         vector: Option<&VectorPipelineContext>,
-    ) -> Result<PipelineOutput, PipelineError> {
-        bundle_to_mapped_sr_with_opts(bundle, config, vector)
+    ) -> Result<PipelineExecution, PipelineError> {
+        bundle_to_mapped_sr_with_validation(bundle, config, vector)
     }
 }
 
 pub fn bundle_to_mapped_sr(bundle: &Bundle) -> Result<PipelineOutput, PipelineError> {
-    bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig::default(), None)
+    bundle_to_mapped_sr_with_validation(bundle, &PipelineRunConfig::default(), None)
+        .map(|exec| exec.output)
 }
 
 pub fn bundle_to_mapped_sr_with_vector_context(
     bundle: &Bundle,
     vector: Option<&VectorPipelineContext>,
 ) -> Result<PipelineOutput, PipelineError> {
-    bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig::default(), vector)
+    bundle_to_mapped_sr_with_validation(bundle, &PipelineRunConfig::default(), vector)
+        .map(|exec| exec.output)
 }
 
-/// Run the pipeline with explicit config + optional vector context.
-pub fn bundle_to_mapped_sr_with_opts<'a>(
+/// Run the pipeline with explicit config + optional vector context, returning validation details.
+pub fn bundle_to_mapped_sr_with_validation<'a>(
     bundle: &Bundle,
     config: &PipelineRunConfig<'a>,
     vector: Option<&VectorPipelineContext>,
-) -> Result<PipelineOutput, PipelineError> {
-    let ValidatedStage { flats, exploded } = staging_rows(bundle, config)?;
+) -> Result<PipelineExecution, PipelineError> {
+    let (ValidatedStage { flats, exploded }, validation) = staging_rows(bundle, config)?;
     let (mapping_results, dim_concepts, usage) = if config.mapping.lexical_only {
         let (results, dims) = map_staging_codes(exploded.clone());
         (results, dims, None)
@@ -166,12 +186,15 @@ pub fn bundle_to_mapped_sr_with_opts<'a>(
             })
     };
 
-    Ok(PipelineOutput {
-        flats,
-        exploded_codes: exploded,
-        mapping_results,
-        dim_concepts,
-        vector_usage: usage,
+    Ok(PipelineExecution {
+        output: PipelineOutput {
+            flats,
+            exploded_codes: exploded,
+            mapping_results,
+            dim_concepts,
+            vector_usage: usage,
+        },
+        validation,
     })
 }
 
@@ -183,14 +206,14 @@ struct ValidatedStage {
 fn staging_rows(
     bundle: &Bundle,
     config: &PipelineRunConfig<'_>,
-) -> Result<ValidatedStage, PipelineError> {
+) -> Result<(ValidatedStage, ValidationReport), PipelineError> {
     let validated = bundle_to_staging_with_validation(
         bundle,
         config.validation_mode,
         config.external_validation,
     )?;
     let (flats, exploded) = validated.value;
-    Ok(ValidatedStage { flats, exploded })
+    Ok((ValidatedStage { flats, exploded }, validated.report))
 }
 
 fn try_vector_mapping(
@@ -366,8 +389,9 @@ mod tests {
     fn pipeline_run_config_customization_executes() {
         let bundle = regression::baseline_fhir_bundle();
         let config = PipelineRunConfig::default().with_validation_mode(ValidationMode::Strict);
-        let output =
-            bundle_to_mapped_sr_with_opts(&bundle, &config, None).expect("strict lexical run");
+        let output = bundle_to_mapped_sr_with_validation(&bundle, &config, None)
+            .expect("strict lexical run")
+            .output;
         assert!(!output.mapping_results.is_empty());
     }
 
@@ -377,11 +401,22 @@ mod tests {
         let ctx = mock_vector_context();
         let config =
             PipelineRunConfig::default().with_mapping_config(MappingRunConfig::lexical_only());
-        let output =
-            bundle_to_mapped_sr_with_opts(&bundle, &config, Some(&ctx)).expect("lexical override");
+        let output = bundle_to_mapped_sr_with_validation(&bundle, &config, Some(&ctx))
+            .expect("lexical override")
+            .output;
         assert!(
             output.vector_usage.is_none(),
             "lexical-only mapping should ignore vector contexts"
         );
+    }
+
+    #[test]
+    fn validation_report_is_returned() {
+        let bundle = regression::baseline_fhir_bundle();
+        let exec =
+            bundle_to_mapped_sr_with_validation(&bundle, &PipelineRunConfig::default(), None)
+                .expect("pipeline run");
+        assert_eq!(exec.validation.issues.len(), 0);
+        assert!(!exec.output.mapping_results.is_empty());
     }
 }

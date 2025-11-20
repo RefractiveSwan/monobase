@@ -5,7 +5,7 @@ use dfps_observability::{
     PipelineMetrics, VectorUsageSnapshot, log_no_match, log_pipeline_output, metrics_snapshot,
 };
 use dfps_pipeline::bundle_to_mapped_sr;
-use dfps_vector_store::CapacityProxies;
+use dfps_vector_store::VectorCapacitySnapshot;
 
 #[test]
 fn metrics_snapshot_matches_expected_counts() {
@@ -44,15 +44,12 @@ fn vector_usage_metrics_are_recorded() {
         queries: 3,
         hits: 2,
         fallbacks: 1,
-        capacity: Some(
-            CapacityProxies {
-                geom_rm: Some(0.1),
-                geom_dm: Some(3.0),
-                geom_rm_sqrt_dm: Some(0.17),
-                cap_alpha_sim: Some(0.85),
-            }
-            .into(),
-        ),
+        capacity: Some(VectorCapacitySnapshot {
+            geom_rm: Some(0.1),
+            geom_dm: Some(3.0),
+            geom_rm_sqrt_dm: Some(0.17),
+            cap_alpha_sim: Some(0.85),
+        }),
     };
     log_pipeline_output(&[], &[], &[], &mut metrics, Some(usage), Some(120));
     assert_eq!(metrics.vector_queries, 3);

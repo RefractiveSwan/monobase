@@ -41,10 +41,19 @@ pub fn write_record<W: Write, T: Serialize>(
     kind: &'static str,
     value: &T,
 ) -> CliResult<()> {
-    let record = serde_json::json!({
-        "kind": kind,
-        "value": value
-    });
+    let mut record = serde_json::Map::new();
+    record.insert("kind".into(), Value::String(kind.into()));
+    let value = serde_json::to_value(value)?;
+    match value {
+        Value::Object(map) => {
+            for (key, val) in map {
+                record.insert(key, val);
+            }
+        }
+        other => {
+            record.insert("value".into(), other);
+        }
+    }
     serde_json::to_writer(&mut *writer, &record)?;
     writer.write_all(b"\n").map_err(CliError::from)
 }

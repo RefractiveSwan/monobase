@@ -1,8 +1,6 @@
 use std::{
     collections::HashSet,
-    env,
     net::{IpAddr, SocketAddr},
-    path::PathBuf,
     sync::Arc,
 };
 
@@ -14,21 +12,21 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use dfps_compliance::{ComplianceConfig, assert_export_allowed};
+use dfps_compliance::assert_export_allowed;
 use dfps_contracts::{
     DimNCITConcept, ErrorCode, ErrorKind, MappingResult, MappingState, PipelineMetrics,
     PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded, VectorUsageSnapshot,
 };
 use dfps_core::fhir::Bundle;
 use dfps_datamart::{CohortFilters, DatamartError, DatamartSink, SqliteDatamart};
-use dfps_eval::{DatasetStore, FileDatasetStore};
+use dfps_eval::DatasetStore;
 use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::{
     DefaultPipeline, PipelineError, PipelinePort, PipelineRunConfig, VectorPipelineContext,
 };
 use dfps_terminology::codesystem::LicenseTier;
 use dfps_vector_store::{
-    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, config_from_env,
+    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
 };
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -37,7 +35,10 @@ use thiserror::Error;
 use tokio::{net::TcpListener, sync::Mutex};
 use uuid::Uuid;
 
-use crate::dto::{AnalyticsSummaryResponse, CohortResponse, EvalRunResponse};
+use crate::{
+    config::{ApiConfig, DataPlaneConfig},
+    dto::{AnalyticsSummaryResponse, CohortResponse, EvalRunResponse},
+};
 /// Runtime configuration for the HTTP server.
 #[derive(Debug, Clone)]
 pub struct ApiServerConfig {
@@ -45,8 +46,8 @@ pub struct ApiServerConfig {
     pub port: u16,
 }
 
-impl Default for ApiServerConfig {
-    fn default() -> Self {
+impl ApiServerConfig {
+    pub fn from_env() -> Self {
         let host = match dfps_configuration::string_var("DFPS_API_HOST") {
             Ok(Some(value)) if !value.trim().is_empty() => value.trim().to_string(),
             Ok(_) => "127.0.0.1".into(),
@@ -64,6 +65,12 @@ impl Default for ApiServerConfig {
             }
         };
         Self { host, port }
+    }
+}
+
+impl Default for ApiServerConfig {
+    fn default() -> Self {
+        Self::from_env()
     }
 }
 
@@ -150,19 +157,16 @@ struct NodeDataPlane {
 }
 
 impl NodeDataPlane {
-    fn new() -> Self {
-        let compliance_config = ComplianceConfig::from_env()
-            .unwrap_or_else(|err| panic!("failed to load compliance config: {err}"));
-        let compliance_policy = compliance_config
-            .load_policy()
-            .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
+    fn from_config(config: DataPlaneConfig) -> Self {
         let dataset_store: Arc<dyn DatasetStore + Send + Sync> =
-            Arc::new(eval_dataset_store_from_env());
-        let vector_context = load_vector_context_from_env();
+            Arc::new(config.dataset_store.clone());
+        let vector_context = config.vector.as_ref().and_then(vector_context_from_config);
         let pipeline: Arc<dyn PipelinePort + Send + Sync> = Arc::new(DefaultPipeline);
-        let datamart: Arc<dyn DatamartSink + Send + Sync> = Arc::new(SqliteDatamart::from_env());
+        let datamart: Arc<dyn DatamartSink + Send + Sync> = Arc::new(
+            SqliteDatamart::from_optional_config(config.datamart.clone()),
+        );
         Self {
-            policy: compliance_policy,
+            policy: config.policy,
             vector_context,
             dataset_store,
             metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
@@ -195,9 +199,9 @@ pub struct ApiState {
 }
 
 impl ApiState {
-    pub fn new() -> Self {
+    pub fn from_plane_config(config: DataPlaneConfig) -> Self {
         Self {
-            plane: Arc::new(NodeDataPlane::new()),
+            plane: Arc::new(NodeDataPlane::from_config(config)),
             latest_eval: Arc::new(Mutex::new(None)),
         }
     }
@@ -205,21 +209,23 @@ impl ApiState {
 
 impl Default for ApiState {
     fn default() -> Self {
-        Self::new()
+        let config =
+            DataPlaneConfig::from_env().expect("dfps_api: failed to load plane configuration");
+        Self::from_plane_config(config)
     }
 }
 
 /// Start the HTTP server using the provided configuration.
 ///
 /// Builds the router, wires shared state, and blocks until Ctrl+C (or shutdown).
-pub async fn run(config: ApiServerConfig) -> Result<(), ServerError> {
-    let addr = config.socket_addr()?;
+pub async fn run(config: ApiConfig) -> Result<(), ServerError> {
+    let addr = config.server.socket_addr()?;
     info!(target: "dfps_api", "starting web backend on {addr}");
     let listener = TcpListener::bind(addr)
         .await
         .map_err(|source| ServerError::Bind { addr, source })?;
 
-    let router = router(ApiState::default());
+    let router = router(ApiState::from_plane_config(config.plane));
 
     axum::serve(listener, router.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
@@ -442,37 +448,19 @@ fn run_eval_internal(cases: &[dfps_eval::EvalCase], top_k: usize) -> dfps_eval::
     summary
 }
 
-fn eval_dataset_store_from_env() -> FileDatasetStore {
-    let root = match env::var("DFPS_EVAL_DATA_ROOT") {
-        Ok(value) if !value.trim().is_empty() => {
-            let candidate = PathBuf::from(&value);
-            if candidate.is_absolute() {
-                candidate
-            } else if let Ok(workspace) = dfps_configuration::workspace_root() {
-                workspace.join(candidate)
-            } else {
-                candidate
-            }
-        }
-        _ => dfps_eval::default_data_root(),
-    };
-    dfps_eval::FileDatasetStore::new(root)
-}
-
-fn load_vector_context_from_env() -> Option<VectorPipelineContext> {
-    let config = config_from_env().ok()?;
+fn vector_context_from_config(config: &VectorStoreConfig) -> Option<VectorPipelineContext> {
     if !config.enabled {
         return None;
     }
     let store: Arc<dyn VectorStore> = match config.backend {
         VectorBackend::Qdrant => {
-            let store = QdrantVectorStore::from_config(&config).ok()?;
+            let store = QdrantVectorStore::from_config(config).ok()?;
             Arc::new(store)
         }
         VectorBackend::Mock => Arc::new(MockVectorStore::new(config.namespace.clone())),
         _ => return None,
     };
-    Some(VectorPipelineContext::new(store, config))
+    Some(VectorPipelineContext::new(store, config.clone()))
 }
 
 async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {

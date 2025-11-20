@@ -151,6 +151,23 @@ pub async fn load_from_pipeline_output(
     Ok(summary)
 }
 
+/// Load a sequence of pipeline outputs without buffering them all in memory.
+pub async fn load_streaming_iter<I>(
+    pool: &Pool<Sqlite>,
+    outputs: &mut I,
+    policy: &Policy,
+) -> Result<LoadSummary, LoadError>
+where
+    I: Iterator<Item = PipelineOutput>,
+{
+    let mut agg = LoadSummary::default();
+    while let Some(output) = outputs.next() {
+        let chunk = load_from_pipeline_output(pool, &output, policy).await?;
+        agg.accumulate(&chunk);
+    }
+    Ok(agg)
+}
+
 pub async fn connect_sqlite(cfg: &WarehouseConfig) -> Result<Pool<Sqlite>, sqlx::Error> {
     SqlitePool::connect_lazy(&cfg.url)
 }
@@ -511,13 +528,18 @@ mod tests {
     use super::*;
     use dfps_compliance::{ComplianceMode, Policy};
     use dfps_contracts::{
-        DimNCITConcept, MappingResult, MappingState, PipelineOutput, StgSrCodeExploded,
+        DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, PipelineOutput,
+        StgSrCodeExploded,
     };
     use dfps_core::{
-        mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},
+        mapping::{MappingStrategy, MappingThresholds},
         staging::StgServiceRequestFlat,
     };
     use sqlx::sqlite::SqlitePoolOptions;
+    use std::env;
+    use std::sync::Mutex;
+
+    static ENV_GUARD: Mutex<()> = Mutex::new(());
 
     fn sample_output() -> PipelineOutput {
         PipelineOutput {
@@ -558,6 +580,53 @@ mod tests {
         }
     }
 
+    fn sample_no_match_output() -> PipelineOutput {
+        PipelineOutput {
+            flats: vec![StgServiceRequestFlat {
+                sr_id: "SR-NM-1".into(),
+                patient_id: "PAT-NM-1".into(),
+                encounter_id: None,
+                status: "active".into(),
+                intent: "order".into(),
+                description: "Unknown".into(),
+                ordered_at: None,
+            }],
+            exploded_codes: vec![StgSrCodeExploded {
+                sr_id: "SR-NM-1".into(),
+                system: Some("http://example.org".into()),
+                code: Some("UNK-1".into()),
+                display: Some("unknown".into()),
+            }],
+            mapping_results: vec![MappingResult {
+                code_element_id: "SR-NM-1::http://example.org::UNK-1".into(),
+                cui: None,
+                ncit_id: None,
+                score: 0.0,
+                strategy: MappingStrategy::Lexical,
+                state: MappingState::NoMatch,
+                thresholds: MappingThresholds::default(),
+                source_version: MappingSourceVersion::new("ncit", "regression"),
+                reason: Some("no_match".into()),
+                license_tier: None,
+                source_kind: None,
+            }],
+            dim_concepts: Vec::new(),
+            vector_usage: None,
+        }
+    }
+
+    fn reset_env() {
+        for key in [
+            "DFPS_WAREHOUSE_URL",
+            "DFPS_WAREHOUSE_SCHEMA",
+            "DFPS_WAREHOUSE_MAX_CONNECTIONS",
+        ] {
+            unsafe {
+                env::remove_var(key);
+            }
+        }
+    }
+
     async fn seed_pool() -> Pool<Sqlite> {
         let pool = SqlitePoolOptions::new()
             .max_connections(1)
@@ -570,6 +639,96 @@ mod tests {
             .await
             .expect("load pipeline output");
         pool
+    }
+
+    #[test]
+    fn warehouse_config_requires_url() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        reset_env();
+        let err = WarehouseConfig::from_env().unwrap_err();
+        matches!(err, WarehouseConfigError::MissingUrl);
+    }
+
+    #[test]
+    fn warehouse_config_parses_env_values() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        reset_env();
+        unsafe {
+            env::set_var("DFPS_WAREHOUSE_URL", "sqlite://datamart.db");
+            env::set_var("DFPS_WAREHOUSE_SCHEMA", "analytics");
+            env::set_var("DFPS_WAREHOUSE_MAX_CONNECTIONS", "9");
+        }
+        let cfg = WarehouseConfig::from_env().expect("config");
+        assert_eq!(cfg.url, "sqlite://datamart.db");
+        assert_eq!(cfg.schema.as_deref(), Some("analytics"));
+        assert_eq!(cfg.max_connections, 9);
+        reset_env();
+    }
+
+    #[tokio::test]
+    async fn streaming_loader_accumulates_rows() {
+        let cfg = WarehouseConfig {
+            url: "sqlite::memory:".into(),
+            schema: None,
+            max_connections: 1,
+        };
+        let pool = connect_sqlite(&cfg).await.expect("pool");
+        migrate(&pool).await.expect("migrate");
+        let policy = Policy::default_for_mode(ComplianceMode::Partner);
+        let mut iterator = vec![sample_output(), sample_output()].into_iter();
+        let summary = load_streaming_iter(&pool, &mut iterator, &policy)
+            .await
+            .expect("streaming summary");
+        assert_eq!(summary.facts, 2);
+        assert_eq!(summary.patients, 1);
+    }
+
+    #[tokio::test]
+    async fn load_handles_no_match_and_duplicates() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect sqlite");
+        super::migrate(&pool).await.expect("migrate");
+        let policy = Policy::default_for_mode(ComplianceMode::Internal);
+        super::load_from_pipeline_output(&pool, &sample_no_match_output(), &policy)
+            .await
+            .expect("initial load");
+        super::load_from_pipeline_output(&pool, &sample_no_match_output(), &policy)
+            .await
+            .expect("duplicate load");
+        let fact_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM fact_service_request")
+            .fetch_one(&pool)
+            .await
+            .expect("count facts");
+        assert_eq!(fact_count, 1);
+        let dims: Vec<String> = sqlx::query_scalar("SELECT ncit_id FROM dim_ncit")
+            .fetch_all(&pool)
+            .await
+            .expect("fetch dim_ncit");
+        assert!(
+            dims.iter().any(|id| id == "NO_MATCH"),
+            "expected NO_MATCH dim in {:?}",
+            dims
+        );
+    }
+
+    #[tokio::test]
+    async fn load_rejects_compliance_export() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect sqlite");
+        super::migrate(&pool).await.expect("migrate");
+        let policy = Policy::default_for_mode(ComplianceMode::OpenSource);
+        let mut restricted = sample_output();
+        restricted.mapping_results[0].license_tier = Some("licensed".into());
+        let err = super::load_from_pipeline_output(&pool, &restricted, &policy)
+            .await
+            .expect_err("compliance block");
+        assert!(matches!(err, LoadError::Compliance(_)));
     }
 
     #[tokio::test]

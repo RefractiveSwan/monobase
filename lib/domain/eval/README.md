@@ -24,9 +24,9 @@ streaming runners consumed by the CLI, API, and frontend. See:
 
 - `DEFAULT_DATA_ROOT` points at the checked-in fixtures under
   `lib/domain/eval/data/eval`. Apps should read `DFPS_EVAL_DATA_ROOT`
-  (via `dfps_configuration` or their config layer) and build a
-  `FileDatasetStore::new(path)` to override the location, instead of calling env APIs
-  from this crate.
+  via `dfps_eval::config::EvalDatasetConfig::from_env()` to override the location;
+  the helper resolves relative paths against the workspace and hands back a
+  `FileDatasetStore` ready for use in CLIs/web/API layers.
 - `FileDatasetStore` exposes helpers for manifests, NDJSON readers, and baseline
   snapshots. Convenience wrappers (`load_dataset*`, `list_manifests`) still exist for
   simple tests, but surfaces that need configurability should hold a store instance.

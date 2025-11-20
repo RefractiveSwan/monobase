@@ -4,9 +4,11 @@
 //! binaries) can spin up the server in-process without binding to a global
 //! executable.
 
+pub mod config;
 pub mod dto;
 pub mod server;
 
+pub use config::{ApiConfig, DataPlaneConfig};
 pub use server::{ApiServerConfig, ApiState, ServerError, router, run};
 
 use env_logger::{Builder, Env};

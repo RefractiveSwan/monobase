@@ -1,15 +1,16 @@
 use clap::Parser;
 use dfps_cli::cli_core::{
-    CliError, CliResult, init_cli_env, input_reader, json_stream, load_policy,
+    CliError, CliResult, JsonStream, init_cli_env, input_reader, json_stream, load_policy,
     pipeline_vector_context_from_env, run_bin, write_record,
 };
-use dfps_contracts::{LoadSummary, PipelineOutput};
+use dfps_contracts::LoadSummary;
 use dfps_core::fhir::Bundle;
-use dfps_datamart::{
-    LoadError, WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate,
+use dfps_datamart::{LoadError, WarehouseConfig, connect_sqlite, load_streaming_iter, migrate};
+use dfps_pipeline::{
+    DefaultPipeline, PipelineOutput, PipelinePort, PipelineRunConfig, VectorPipelineContext,
 };
-use dfps_pipeline::bundle_to_mapped_sr_with_vector_context;
 use serde::Deserialize;
+use std::io::BufRead;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -51,53 +52,30 @@ fn run() -> CliResult<()> {
     };
     let cfg = WarehouseConfig::from_env()
         .map_err(|err| CliError::config(format!("warehouse config error: {err}")))?;
-    let outputs = read_inputs(&args, vector_ctx.as_ref())?;
+    let mut outputs = read_inputs_stream(&args, vector_ctx)?;
 
     let rt = tokio::runtime::Runtime::new()
         .map_err(|err| CliError::external(format!("runtime init failed: {err}")))?;
-    rt.block_on(async move {
+    let summary = rt.block_on(async {
         let pool = connect_sqlite(&cfg).await?;
         migrate(&pool).await?;
-
-        let mut agg = LoadSummary::default();
-        for output in outputs {
-            let summary = load_from_pipeline_output(&pool, &output, &policy)
-                .await
-                .map_err(map_load_error)?;
-            agg.accumulate(&summary);
-        }
-
-        emit_summary(&agg)?;
-        Ok::<(), CliError>(())
+        load_streaming_iter(&pool, &mut outputs, &policy)
+            .await
+            .map_err(map_load_error)
     })?;
+    outputs.finish()?;
+    emit_summary(&summary)?;
     Ok(())
 }
 
-fn read_inputs(
+fn read_inputs_stream(
     args: &Args,
-    vector_ctx: Option<&dfps_pipeline::VectorPipelineContext>,
-) -> CliResult<Vec<PipelineOutput>> {
+    vector_ctx: Option<VectorPipelineContext>,
+) -> CliResult<PipelineOutputStream> {
     let reader = input_reader(Some(&args.input))?;
     match args.input_kind {
-        InputKind::Pipeline => {
-            let mut stream = json_stream::<PipelineOutput>(reader);
-            let mut outputs = Vec::new();
-            while let Some(record) = stream.next() {
-                outputs.push(record?);
-            }
-            Ok(outputs)
-        }
-        InputKind::Bundle => {
-            let mut stream = json_stream::<Bundle>(reader);
-            let mut outputs = Vec::new();
-            while let Some(bundle) = stream.next() {
-                let bundle = bundle?;
-                let output = bundle_to_mapped_sr_with_vector_context(&bundle, vector_ctx)
-                    .map_err(|err| CliError::invalid(format!("pipeline mapping error: {err}")))?;
-                outputs.push(output);
-            }
-            Ok(outputs)
-        }
+        InputKind::Pipeline => Ok(PipelineOutputStream::from_pipeline(reader)),
+        InputKind::Bundle => Ok(PipelineOutputStream::from_bundle(reader, vector_ctx)),
     }
 }
 
@@ -111,5 +89,90 @@ fn map_load_error(err: LoadError) -> CliError {
     match err {
         LoadError::Compliance(msg) => CliError::compliance(msg),
         LoadError::Sql(inner) => CliError::external(inner.to_string()),
+    }
+}
+
+enum PipelineOutputStreamInner {
+    Pipeline(JsonStream<Box<dyn BufRead>, PipelineOutput>),
+    Bundle {
+        stream: JsonStream<Box<dyn BufRead>, Bundle>,
+        pipeline: DefaultPipeline,
+        config: PipelineRunConfig<'static>,
+        vector: Option<VectorPipelineContext>,
+    },
+}
+
+struct PipelineOutputStream {
+    inner: PipelineOutputStreamInner,
+    error: Option<CliError>,
+}
+
+impl PipelineOutputStream {
+    fn from_pipeline(reader: Box<dyn BufRead>) -> Self {
+        Self {
+            inner: PipelineOutputStreamInner::Pipeline(json_stream(reader)),
+            error: None,
+        }
+    }
+
+    fn from_bundle(reader: Box<dyn BufRead>, vector: Option<VectorPipelineContext>) -> Self {
+        Self {
+            inner: PipelineOutputStreamInner::Bundle {
+                stream: json_stream(reader),
+                pipeline: DefaultPipeline::default(),
+                config: PipelineRunConfig::default(),
+                vector,
+            },
+            error: None,
+        }
+    }
+
+    fn finish(self) -> CliResult<()> {
+        match self.error {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
+    }
+}
+
+impl Iterator for PipelineOutputStream {
+    type Item = PipelineOutput;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.error.is_some() {
+            return None;
+        }
+        match &mut self.inner {
+            PipelineOutputStreamInner::Pipeline(stream) => match stream.next() {
+                Some(Ok(output)) => Some(output),
+                Some(Err(err)) => {
+                    self.error = Some(err);
+                    None
+                }
+                None => None,
+            },
+            PipelineOutputStreamInner::Bundle {
+                stream,
+                pipeline,
+                config,
+                vector,
+            } => match stream.next() {
+                Some(Ok(bundle)) => {
+                    match pipeline.map_bundle_with_validation(&bundle, config, vector.as_ref()) {
+                        Ok(exec) => Some(exec.output),
+                        Err(err) => {
+                            self.error =
+                                Some(CliError::invalid(format!("pipeline mapping error: {err}")));
+                            None
+                        }
+                    }
+                }
+                Some(Err(err)) => {
+                    self.error = Some(err);
+                    None
+                }
+                None => None,
+            },
+        }
     }
 }

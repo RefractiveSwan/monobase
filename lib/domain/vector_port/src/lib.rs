@@ -144,6 +144,17 @@ pub struct CapacityProxies {
     pub cap_alpha_sim: Option<f32>,
 }
 
+impl From<CapacityProxies> for VectorCapacitySnapshot {
+    fn from(proxies: CapacityProxies) -> Self {
+        Self {
+            geom_rm: proxies.geom_rm,
+            geom_dm: proxies.geom_dm,
+            geom_rm_sqrt_dm: proxies.geom_rm_sqrt_dm,
+            cap_alpha_sim: proxies.cap_alpha_sim,
+        }
+    }
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum VectorStoreError {
     #[error("vector store disabled")]
@@ -219,12 +230,7 @@ impl VectorUsageHandle {
     pub fn snapshot(&self) -> VectorUsageSnapshot {
         let mut snapshot = self.counters.snapshot();
         let capacity = self.capacity.lock().expect("capacity lock").clone();
-        snapshot.capacity = capacity.map(|proxies| VectorCapacitySnapshot {
-            geom_rm: proxies.geom_rm,
-            geom_dm: proxies.geom_dm,
-            geom_rm_sqrt_dm: proxies.geom_rm_sqrt_dm,
-            cap_alpha_sim: proxies.cap_alpha_sim,
-        });
+        snapshot.capacity = capacity.map(VectorCapacitySnapshot::from);
         snapshot
     }
 }
@@ -300,6 +306,17 @@ impl VectorStore for MockVectorStore {
     fn index_items(&self, namespace: &str, items: &[VectorItem]) -> Result<(), VectorStoreError> {
         if namespace != self.namespace {
             return Err(VectorStoreError::InvalidNamespace);
+        }
+        if let Some(first) = items.first() {
+            let dim = first.embedding.vector.len();
+            if dim == 0 {
+                return Err(VectorStoreError::IndexFailed("empty embedding".into()));
+            }
+            if !items.iter().all(|item| item.embedding.vector.len() == dim) {
+                return Err(VectorStoreError::IndexFailed(
+                    "dimension mismatch in batch".into(),
+                ));
+            }
         }
         if let Some(delay) = self.simulated_latency {
             std::thread::sleep(delay);

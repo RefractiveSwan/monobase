@@ -8,17 +8,25 @@ use crate::{
     views,
 };
 
-/// Register landing page route.
+/// Register landing page and workbench routes.
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("/").route(web::get().to(index)));
+    cfg.service(web::resource("/").route(web::get().to(landing_page)));
+    cfg.service(web::resource("/map").route(web::get().to(workbench)));
 }
 
-/// Landing page handler that renders the workbench.
-pub async fn index(state: web::Data<AppState>) -> Result<HttpResponse> {
+/// Landing page handler.
+pub async fn landing_page() -> Result<HttpResponse> {
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_landing_page()))
+}
+
+/// Workbench page handler.
+pub async fn workbench(state: web::Data<AppState>) -> Result<HttpResponse> {
     let ctx = build_base_context(&state.client, state.dataset_store.as_ref()).await;
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(views::render_page(&ctx)))
+        .body(views::render_workbench_page(&ctx)))
 }
 
 /// Shared context builder reused across feature handlers so everything pulls from the same backend calls.

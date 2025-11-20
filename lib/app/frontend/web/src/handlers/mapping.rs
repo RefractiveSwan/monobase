@@ -132,7 +132,7 @@ fn respond(ctx: PageContext, hx: bool) -> HttpResponse {
     } else {
         HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
-            .body(views::render_page(&ctx))
+            .body(views::render_workbench_page(&ctx))
     }
 }
 

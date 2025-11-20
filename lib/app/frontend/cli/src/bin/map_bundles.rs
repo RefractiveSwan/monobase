@@ -8,7 +8,7 @@ use dfps_cli::cli_core::{
 };
 use dfps_contracts::{MappingState, PipelineMetrics};
 use dfps_core::fhir::Bundle;
-use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
+use dfps_ingestion::validation::ValidationSeverity;
 use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::{DefaultPipeline, PipelinePort, PipelineRunConfig};
 use log::{info, warn};
@@ -60,29 +60,29 @@ fn run() -> CliResult<()> {
 
     while let Some(bundle) = bundles.next() {
         let bundle = bundle?;
-        let validation = validate_bundle(&bundle);
-        if validation.has_errors() {
+        let exec = pipeline
+            .map_bundle_with_validation(&bundle, &config, vector_ctx.as_ref())
+            .map_err(|err| CliError::invalid(format!("pipeline error: {err}")))?;
+        if exec.validation.has_errors() {
             warn!(
                 "validation detected {} issue(s) ({} errors).",
-                validation.issues.len(),
-                validation
+                exec.validation.issues.len(),
+                exec.validation
                     .issues
                     .iter()
                     .filter(|issue| matches!(issue.severity, ValidationSeverity::Error))
                     .count()
             );
-        } else if !validation.issues.is_empty() {
+        } else if !exec.validation.issues.is_empty() {
             info!(
                 "validation reported {} warning(s)/info messages.",
-                validation.issues.len()
+                exec.validation.issues.len()
             );
         }
-        for issue in &validation.issues {
+        for issue in &exec.validation.issues {
             write_record(&mut handle, "validation_issue", issue)?;
         }
-        let output = pipeline
-            .map_bundle(&bundle, &config, vector_ctx.as_ref())
-            .map_err(|err| CliError::invalid(format!("pipeline error: {err}")))?;
+        let output = exec.output;
         let vector_usage = output.vector_usage.clone();
         log_pipeline_output(
             &output.flats,

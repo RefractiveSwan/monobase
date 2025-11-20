@@ -50,6 +50,17 @@ impl From<Mode> for ValidationMode {
     }
 }
 
+impl Mode {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Mode::Lenient => "lenient",
+            Mode::Strict => "strict",
+            Mode::ExternalPreferred => "external_preferred",
+            Mode::ExternalStrict => "external_strict",
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct SummaryRow {
     total_bundles: usize,
@@ -57,6 +68,8 @@ struct SummaryRow {
     errors: usize,
     warnings: usize,
     infos: usize,
+    mode: &'static str,
+    external_validator: Option<String>,
 }
 
 fn main() {
@@ -115,6 +128,8 @@ fn run() -> CliResult<()> {
         errors: total_errors,
         warnings: total_warnings,
         infos: total_infos,
+        mode: args.mode.as_str(),
+        external_validator: validator.as_ref().map(|v| v.endpoint().to_string()),
     };
     write_record(&mut handle, "validation_summary", &summary)?;
 
@@ -140,18 +155,26 @@ struct BlockingHttpValidator {
 
 impl BlockingHttpValidator {
     fn try_new() -> CliResult<Self> {
-        let base_url = std::env::var("DFPS_FHIR_VALIDATOR_BASE_URL").map_err(|_| {
-            CliError::config("DFPS_FHIR_VALIDATOR_BASE_URL must be set for external validation")
-        })?;
-        let timeout_secs = std::env::var("DFPS_FHIR_VALIDATOR_TIMEOUT_SECS")
-            .ok()
-            .and_then(|raw| raw.parse::<u64>().ok())
+        let _ = dfps_configuration::load_env("app.cli");
+        let base_url = dfps_configuration::string_var("DFPS_FHIR_VALIDATOR_BASE_URL")
+            .map_err(|err| CliError::config(format!("validator config error: {err}")))?
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                CliError::config("DFPS_FHIR_VALIDATOR_BASE_URL must be set for external validation")
+            })?;
+        let timeout_secs = dfps_configuration::u64_var("DFPS_FHIR_VALIDATOR_TIMEOUT_SECS")
+            .map_err(|err| CliError::config(format!("validator config error: {err}")))?
             .unwrap_or(10);
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(timeout_secs))
             .build()
             .map_err(|err| CliError::external(err.to_string()))?;
-        let default_profile = std::env::var("DFPS_FHIR_VALIDATOR_PROFILE").ok();
+        let default_profile = dfps_configuration::string_var("DFPS_FHIR_VALIDATOR_PROFILE")
+            .ok()
+            .flatten()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
         Ok(Self {
             client,
             base_url,
@@ -161,6 +184,10 @@ impl BlockingHttpValidator {
 
     fn profile<'a>(&'a self, override_url: Option<&'a str>) -> Option<&'a str> {
         override_url.or(self.default_profile.as_deref())
+    }
+
+    fn endpoint(&self) -> &str {
+        &self.base_url
     }
 }
 

@@ -1,9 +1,7 @@
-use std::{env, path::PathBuf};
-
 use dfps_configuration::load_env;
-use dfps_eval::{FileDatasetStore, default_data_root};
+use dfps_eval::{FileDatasetStore, config::EvalDatasetConfig};
 use env_logger::Builder;
-use log::LevelFilter;
+use log::{LevelFilter, warn};
 
 use super::{CliError, CliResult};
 
@@ -24,8 +22,10 @@ pub fn init_logging(level: &str) -> CliResult<()> {
 }
 
 pub fn dataset_store_from_env() -> FileDatasetStore {
-    let root = env::var("DFPS_EVAL_DATA_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| default_data_root());
-    FileDatasetStore::new(root)
+    EvalDatasetConfig::from_env()
+        .map(|cfg| cfg.dataset_store())
+        .unwrap_or_else(|err| {
+            warn!("dfps_cli dataset config error ({err}); using default fixtures");
+            FileDatasetStore::default()
+        })
 }

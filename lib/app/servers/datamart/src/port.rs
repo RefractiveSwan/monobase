@@ -61,6 +61,14 @@ impl SqliteDatamart {
         }
     }
 
+    /// Construct from an optional config (disabled when `None`).
+    pub fn from_optional_config(config: Option<WarehouseConfig>) -> Self {
+        Self {
+            config,
+            pool: Arc::new(OnceCell::new()),
+        }
+    }
+
     async fn pool(&self) -> Result<Pool<Sqlite>, DatamartError> {
         let cfg = self.config.as_ref().ok_or(DatamartError::Disabled)?;
         let pool = self

@@ -43,7 +43,7 @@ pub async fn analytics_dashboard(
     state.record_analytics(ctx.cohort.as_ref().map(|view| view.total));
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(views::render_page(&ctx)))
+        .body(views::render_analytics_page(&ctx)))
 }
 
 #[cfg(test)]

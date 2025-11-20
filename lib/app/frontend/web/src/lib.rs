@@ -1,4 +1,5 @@
 pub mod client;
+pub mod components;
 pub mod config;
 pub mod handlers;
 pub mod routes;
@@ -9,8 +10,9 @@ pub mod views;
 use actix_web::{App, HttpServer, web};
 use client::BackendClient;
 use config::AppConfig;
+use log::warn;
 use state::AppState;
-use std::{env, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 pub async fn run() -> std::io::Result<()> {
     if let Err(err) = dfps_configuration::load_env("app.web.frontend") {
@@ -37,8 +39,11 @@ pub async fn run() -> std::io::Result<()> {
 }
 
 fn dataset_store_from_env() -> Arc<dyn dfps_eval::DatasetStore + Send + Sync> {
-    let root = env::var("DFPS_EVAL_DATA_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| dfps_eval::default_data_root());
-    Arc::new(dfps_eval::FileDatasetStore::new(root))
+    match dfps_eval::config::EvalDatasetConfig::from_env() {
+        Ok(cfg) => Arc::new(cfg.dataset_store()),
+        Err(err) => {
+            log::warn!("dfps_web_frontend dataset config error ({err}); using bundled fixtures");
+            Arc::new(dfps_eval::FileDatasetStore::default())
+        }
+    }
 }

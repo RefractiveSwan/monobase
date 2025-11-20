@@ -124,9 +124,7 @@ fn eval_mapping_outputs_contract_summary() {
         .next()
         .expect("eval_summary record");
     assert_eq!(kind, "eval_summary");
-    let response: EvalRunResponse =
-        serde_json::from_value(payload.get("value").cloned().unwrap_or(Value::Null))
-            .expect("eval summary contract");
+    let response: EvalRunResponse = serde_json::from_value(payload).expect("eval summary contract");
     assert_eq!(response.dataset, dataset);
     assert!(response.summary.total_cases > 0);
 }

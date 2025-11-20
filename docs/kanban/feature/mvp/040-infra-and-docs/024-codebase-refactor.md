@@ -26,10 +26,10 @@
 - [ ] For each of the following crates, work through organizing and refactoring the primary logic base:
   - [ ] `lib/app/`
     - [ ] `lib/app/frontend/cli` (`dfps_cli`)
-      - [ ] Extract shared NDJSON streaming/logging/compliance helpers (used in map_bundles/map_codes/validate_fhir/load_datamart) into an internal module to cut duplication.
-      - [ ] Avoid double-validation in `map_bundles` by plumbing ingestion validation data from `bundle_to_mapped_sr` instead of re-running `validate_bundle`.
-      - [ ] Add a streaming mapping path in `map_codes` (no upfront Vec) that still propagates vector usage metrics and compliance failures.
-      - [ ] Centralize CLI config/logging setup via `dfps_configuration` (namespace `app.cli`) so each bin stops initializing env_logger/env parsing manually.
+      - [x] Extract shared NDJSON streaming/logging/compliance helpers (used in map_bundles/map_codes/validate_fhir/load_datamart) into an internal module to cut duplication.
+      - [x] Avoid double-validation in `map_bundles` by plumbing ingestion validation data from `bundle_to_mapped_sr` instead of re-running `validate_bundle`.
+      - [x] Add a streaming mapping path in `map_codes` (no upfront Vec) that still propagates vector usage metrics and compliance failures.
+      - [x] Centralize CLI config/logging setup via `dfps_configuration` (namespace `app.cli`) so each bin stops initializing env_logger/env parsing manually.
     - [ ] `lib/app/web`
       - [x] Add app-level README describing the split between frontend (Actix) and backend (Axum) and where shared DTOs/configs live. (`lib/app/web/README.md` now documents the split + env namespaces.)
       - [x] Introduce a shared web DTO module so frontend client types, backend API responses, and analytics structs do not diverge. (`dfps_web_dto` crate re-exports the canonical contracts.)
@@ -38,16 +38,16 @@
         - [x] Centralize backend client error handling/logging (currently inline in routes) and emit analytics request metrics via `dfps_observability`. (Backend client now logs via `log`, and `AppState` tracks analytics metrics with `PipelineMetrics`.)
         - [x] Add regression test for `/analytics` error handling (backend 5xx/timeout) to keep user-facing messages stable. (New Wiremock test covers the error path.)
       - [ ] `lib/app/servers` (`dfps_web_backend`)
-        - [ ] Document ownership/boundaries for API vs datamart crates and the expected env namespaces for each.
+        - [x] Document ownership/boundaries for API vs datamart crates and the expected env namespaces for each.
         - [x] Hoist shared analytics DTOs into a reusable module so API handlers and frontend client structs stay in sync. (`dfps_web_dto` is now consumed by both API and frontend client.)
         - [ ] `lib/app/servers/api` (`dfps_dataplane`{formerly `dfps_api`})
-          - [ ] Add a config module (using `dfps_configuration`) for host/port/warehouse/compliance instead of scattered `std::env::var` lookups in `server.rs`.
-          - [ ] Extract analytics persistence/state management into a component with eviction/metrics to avoid unbounded HashMap growth.
-          - [ ] Load compliance policy once at startup and thread it through handlers instead of calling `load_policy_from_env` per request.
+          - [x] Add a config module (using `dfps_configuration`) for host/port/warehouse/compliance instead of scattered `std::env::var` lookups in `server.rs`.
+          - [x] Extract analytics persistence/state management into a component with eviction/metrics to avoid unbounded HashMap growth.
+          - [x] Load compliance policy once at startup and thread it through handlers instead of calling `load_policy_from_env` per request.
         - [ ] `lib/app/servers/datamart` (`dfps_datamart`)
-          - [ ] Refactor `WarehouseConfig::from_env` to use `dfps_configuration` validation (url/schema/pool) and cover it with unit tests.
-          - [ ] Add idempotent migration/load tests for NO_MATCH handling, duplicate SR rows, and compliance export filtering.
-          - [ ] Provide a streaming insert API so CLI/API callers don’t buffer full PipelineOutput lists before writing to SQLite.
+          - [x] Refactor `WarehouseConfig::from_env` to use `dfps_configuration` validation (url/schema/pool) and cover it with unit tests.
+          - [x] Add idempotent migration/load tests for NO_MATCH handling, duplicate SR rows, and compliance export filtering.
+          - [x] Provide a streaming insert API so CLI/API callers don’t buffer full PipelineOutput lists before writing to SQLite.
   - [ ] `lib/domain`
     - [ ] Document domain layering (core/ingestion/mapping/eval/terminology) and keep domain crates free of direct environment reads.
     - [ ] Align error/reporting semantics across domain crates (ValidationError/Policy errors) to simplify pipeline/app boundaries.
@@ -56,12 +56,12 @@
       - [ ] Expose a helper for constructing stable `CodeElement` IDs so ingestion/mapping/datamart share the same format.
       - [ ] Add a crate README tying modules to system-design docs and clarifying staging vs mapping vs order invariants.
     - [ ] `lib/domain/evaluation/eval` (`dfps_eval`)
-      - [ ] Replace raw `std::env` dataset root resolution with a config struct built via `dfps_configuration` (still honoring DFPS_EVAL_DATA_ROOT).
+      - [x] Replace raw `std::env` dataset root resolution with a config struct built via `dfps_configuration` (still honoring DFPS_EVAL_DATA_ROOT).
       - [ ] Split IO/parsing from scoring so eval functions accept injected readers/writers instead of reading files directly.
       - [ ] Add determinism/benchmark tests for fingerprint computation across chunk sizes and `top_k` settings.
     - [ ] `lib/domain/evaluation/eval::fake_data` (`dfps_eval::fake_data`)
-      - [ ] Add module docs describing generator outputs/seed controls and link them from `data/eval/README.md`.
-      - [ ] Centralize RNG seeding helpers to keep fixtures deterministic across modules and CLI bins.
+      - [x] Add module docs describing generator outputs/seed controls and link them from `data/eval/README.md`.
+      - [x] Centralize RNG seeding helpers to keep fixtures deterministic across modules and CLI bins.
       - [ ] Provide a thin config wrapper over `dfps_configuration` for the generators instead of ad-hoc env access.
     - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
       - [x] Embed FHIR profiles under `dfps_ingestion::profiles` with tests for required snapshot elements and documented URLs.
@@ -539,7 +539,7 @@ Add invariants:
   * [x] `mapping_config: MappingRunConfig` (lexical-only toggle for now).
 * [x] Add helper:
 
-  * [x] `bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig, ctx: Option<&VectorPipelineContext>)`.
+  * [x] `bundle_to_mapped_sr_with_validation(bundle, &PipelineRunConfig, ctx: Option<&VectorPipelineContext>)`.
 * [x] Keep existing functions as sugar that call this with defaults.
 
 ##### 09.C – Remove any logging/env bleed-through

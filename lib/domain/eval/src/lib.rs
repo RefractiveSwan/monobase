@@ -5,6 +5,7 @@
 //! - docs/runbook/030-mapping-and-terminology/mapping-eval-quickstart.md
 //! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md (REFR-07)
 
+pub mod config;
 pub mod fake_data;
 
 use dfps_core::{
@@ -27,6 +28,7 @@ pub const DEFAULT_DATA_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/e
 
 pub mod io;
 pub mod report;
+pub use config::{EvalConfigError, EvalDatasetConfig};
 
 pub const DEFAULT_CHUNK_SIZE: usize = 1_000;
 
@@ -43,7 +45,9 @@ pub struct FileDatasetStore {
 
 impl Default for FileDatasetStore {
     fn default() -> Self {
-        Self::new(default_data_root())
+        EvalDatasetConfig::from_env()
+            .map(|cfg| cfg.dataset_store())
+            .unwrap_or_else(|_| FileDatasetStore::new(default_data_root()))
     }
 }
 
@@ -51,6 +55,11 @@ impl FileDatasetStore {
     /// Create a store rooted at the provided directory.
     pub fn new(root: impl Into<PathBuf>) -> Self {
         Self { root: root.into() }
+    }
+
+    /// Build a store from environment-driven configuration.
+    pub fn from_env() -> Result<Self, EvalConfigError> {
+        EvalDatasetConfig::from_env().map(|cfg| cfg.dataset_store())
     }
 
     /// Absolute path to the root directory.

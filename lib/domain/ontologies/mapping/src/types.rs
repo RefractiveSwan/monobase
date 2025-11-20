@@ -72,4 +72,50 @@ impl MappingSummary {
     pub fn record_external_error(&mut self) {
         self.extern_lookup_error += 1;
     }
+
+    pub fn merge(&mut self, other: &MappingSummary) {
+        self.total += other.total;
+        for (key, value) in &other.by_code_kind {
+            *self.by_code_kind.entry(key.clone()).or_default() += value;
+        }
+        for (key, value) in &other.by_license_tier {
+            *self.by_license_tier.entry(key.clone()).or_default() += value;
+        }
+        self.extern_lookup_success += other.extern_lookup_success;
+        self.extern_lookup_miss += other.extern_lookup_miss;
+        self.extern_lookup_error += other.extern_lookup_error;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn merge_accumulates_counts() {
+        let mut a = MappingSummary::default();
+        a.record(
+            crate::types::CodeKind::KnownLicensedSystem,
+            Some("licensed"),
+        );
+        a.record_external_success();
+
+        let mut b = MappingSummary::default();
+        b.record(
+            crate::types::CodeKind::KnownLicensedSystem,
+            Some("licensed"),
+        );
+        b.record_external_miss();
+
+        a.merge(&b);
+        assert_eq!(a.total, 2);
+        assert_eq!(a.extern_lookup_success, 1);
+        assert_eq!(a.extern_lookup_miss, 1);
+        assert_eq!(
+            a.by_code_kind
+                .get(crate::types::CodeKind::KnownLicensedSystem.as_str()),
+            Some(&2)
+        );
+        assert_eq!(a.by_license_tier.get("licensed"), Some(&2));
+    }
 }
