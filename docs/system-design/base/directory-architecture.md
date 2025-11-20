@@ -130,6 +130,13 @@ No heavy business logic should live here. If you find complex logic in `app/`, m
 **Path:** `code/lib/domain`
 
 These crates represent what the system **does**, independent of UI or specific deployment details.
+They share two invariants:
+
+- **Layer ordering:** data flows `core → ingestion → mapping → pipeline → eval/terminology`. Higher
+  layers can depend on lower layers but never the other way around.
+- **Env-free domain:** no crate under `lib/domain/**` performs `std::env` reads or IO. Configuration
+  lives in app/platform crates via `dfps_configuration`, and domain crates accept typed configs
+  (`MappingConfig`, `EvalDatasetConfig`, `FakeDataConfig`, etc.) so pipelines remain deterministic.
 
 Current structure:
 

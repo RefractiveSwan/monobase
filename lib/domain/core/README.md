@@ -16,6 +16,10 @@
 - `interop/fhir/` – minimal FHIR R4 shapes needed for ingestion; `interop/staging/` – flattened landing rows (`StgServiceRequestFlat`, `StgSrCodeExploded`) used by ingestion/pipeline/datamart.
 - `semantics/mapping/` – `CodeElement`, `MappingResult`, thresholds/source versions, and NCIt concept views. Cross-domain bridges (e.g., `From<StgSrCodeExploded> for CodeElement`) live under `semantics/mapping/bridge/`.
 - `prelude.rs` – convenience re-exports so consumers can keep using `dfps_core::{patient, order, staging, mapping, value, fhir}` paths.
+- `semantics/mapping/element.rs` exposes `CodeElement::id_for(sr_id, system, code, display)` so ingestion,
+  mapping, and datamart generate the exact same `code_element_id` string (`<sr_id>::<system>::<code>`).
+- `semantics/mapping/result.rs` provides the canonical `MappingResult::auto_mapped / needs_review / no_match`
+  builders so downstream crates do not hand-roll reason/state handling.
 
 ## Helpers and invariants
 - `CodeElement::id_for` (semantics/mapping) standardizes the `code_element_id` format across ingestion, mapping, and datamart.
