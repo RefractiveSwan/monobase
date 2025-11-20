@@ -1006,6 +1006,7 @@ dependencies = [
  "dfps_pipeline",
  "dfps_terminology",
  "dfps_vector_store",
+ "dfps_web_dto",
  "env_logger",
  "log",
  "serde",
@@ -1243,6 +1244,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dfps_web_dto"
+version = "0.1.0"
+dependencies = [
+ "dfps_contracts",
+ "serde",
+]
+
+[[package]]
 name = "dfps_web_frontend"
 version = "0.1.0"
 dependencies = [
@@ -1254,8 +1263,10 @@ dependencies = [
  "dfps_core",
  "dfps_eval",
  "dfps_observability",
+ "dfps_web_dto",
  "futures-util",
  "insta",
+ "log",
  "maud",
  "reqwest",
  "serde",

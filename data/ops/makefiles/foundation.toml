@@ -137,11 +137,28 @@ Write-Host "Edit files in $ENV_DIR as needed"
 
 # 🟡 INTERMEDIATE: Setup required tooling
 [tasks.setup-tooling]
-description = "🟡 Install required development tools (cargo-make, mdbook, etc.)"
+description = "🟡 Install required development tools (cargo-make, mdbook, cargo-watch, cargo-insta)"
+linux_alias = "setup-tooling-unix"
+mac_alias = "setup-tooling-unix"
+windows_alias = "setup-tooling-windows"
+
+[tasks.setup-tooling-unix]
+script_runner = "bash"
 script = [
-    "cargo install cargo-make --version 0.37.22 --locked || echo 'cargo-make already installed'",
-    "cargo install mdbook --version 0.4.40 --locked || echo 'mdbook already installed'",
-    "cargo install cargo-watch --version 8.5.3 --locked || echo 'cargo-watch already installed'",
+    '''
+set -euo pipefail
+echo "Running Rust tooling installation script..."
+bash data/ops/scripts/install_rust_tooling.sh
+    '''
+]
+
+[tasks.setup-tooling-windows]
+script_runner = "powershell"
+script = [
+    '''
+Write-Host "Running Rust tooling installation script..."
+bash data/ops/scripts/install_rust_tooling.sh
+    '''
 ]
 
 # 🔴 ADVANCED: Generate custom env template

@@ -2,6 +2,8 @@
 
 This quickstart lists the most useful `cargo make` commands organized by workflow area and complexity level.
 
+**New to the project?** See [setup-quickstart.md](./setup-quickstart.md) for initial environment setup.
+
 **Complexity Levels**:
 - 🟢 **Beginner**: Single-command flows, just works
 - 🟡 **Intermediate**: Granular control, some configuration needed
@@ -17,7 +19,7 @@ cargo make setup-env        # Interactive wizard to create .env files
 cargo make validate-env     # Check all required .env files exist
 
 # 🟡 Tooling
-cargo make setup-tooling    # Install cargo-make, mdbook, cargo-watch
+cargo make setup-tooling    # Install cargo-make, mdbook, cargo-watch, cargo-insta
 
 # 🔴 Custom templates
 NAMESPACE=app.new.service cargo make env-template

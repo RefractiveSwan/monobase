@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the Rust toolchain (via rustup), mdBook, and cargo-make.
+# Installs the Rust toolchain (via rustup), mdBook, cargo-make, cargo-watch, and cargo-insta.
 # Can be re-run safely; existing installations are reused.
 
 set -euo pipefail
@@ -45,6 +45,7 @@ main() {
     install_cargo_crate mdbook
     install_cargo_crate cargo-make
     install_cargo_crate cargo-watch
+    install_cargo_crate cargo-insta
 
     echo "Tooling installation complete."
 }
