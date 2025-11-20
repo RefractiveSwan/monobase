@@ -11,6 +11,9 @@ downstream tooling can parse output consistently.
   guards, vector config, and exit-code aware errors. Each bin calls `run_bin` so
   failures exit with a stable `ExitCode` (config, invalid input, compliance,
   external, etc.).
+- `dfps_pipeline::DefaultPipeline` implements the `PipelinePort` trait; CLI bins
+  treat it as the inbound hexagonal port so orchestration stays in the domain
+  layer while IO/NDJSON parsing stays in CLI adapters.
 - Binaries stream input via `json_stream`, so large NDJSON files and stdin pipes
   are processed incrementally without buffering everything in memory.
 - Shared compliance helpers mirror API/web behavior (e.g., `--fail-on-license-block`
@@ -33,7 +36,7 @@ downstream tooling can parse output consistently.
 
 | Binary | Flow | Notes |
 | --- | --- | --- |
-| `map_bundles` | `dfps_ingestion::validation` → `dfps_pipeline::bundle_to_mapped_sr_with_vector_context` → `dfps_observability::PipelineMetrics` | Streams Bundles/NDJSON, emits per-row artifacts plus `pipeline_output`/`metrics_summary` records; shared compliance + vector helpers. |
+| `map_bundles` | `dfps_ingestion::validation` → `dfps_pipeline::DefaultPipeline::map_bundle` (via `PipelinePort`) → `dfps_observability::PipelineMetrics` | Streams Bundles/NDJSON, emits per-row artifacts plus `pipeline_output`/`metrics_summary` records; shared compliance + vector helpers. |
 | `map_codes` | `dfps_mapping::{map_staging_codes_with_vector_and_policy,map_staging_codes_with_summary_and_policy}` | Shares vector config with `build_vector_index`; explanation rows use the same contract as API. |
 | `eval_mapping` | `dfps_eval::run_eval_streaming_with_mapper` (lexical mapping) | Dataset loading/reporting matches API eval endpoints; writes `eval_summary`/`eval_result` NDJSON for downstream dashboards. |
 | `validate_fhir` | `dfps_ingestion::validation::{validate_bundle_with_external_profile}` | Modes (`lenient`, `strict`, `external_preferred`, `external_strict`) align with ingestion docs and API options; emits `validation_issue` + `validation_summary`. |
@@ -46,7 +49,9 @@ downstream tooling can parse output consistently.
 
 Reads FHIR Bundles (JSON/array/NDJSON) from a file or stdin, validates them, and
 streams `pipeline_output`, `staging_flat`, `staging_code`, `mapping_result`,
-`dim_concept`, `validation_issue`, and `metrics_summary` records.
+`dim_concept`, `validation_issue`, and `metrics_summary` records. CLI adapters
+call the `PipelinePort` trait so domain orchestration remains testable and
+transport-agnostic.
 
 ```bash
 cd code

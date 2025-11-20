@@ -1,3 +1,7 @@
+//! Outbound adapter for dfps_web_frontend. Wraps reqwest so routes/views only
+//! talk to contracts/DTOs instead of domain crates. Ports documented in
+//! docs/system-design/base/dependency-seams.md.
+
 use dfps_contracts::{
     PipelineOutput,
     errors::{ErrorCode, ErrorKind},

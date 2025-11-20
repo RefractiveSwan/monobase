@@ -10,7 +10,7 @@ use dfps_contracts::{MappingState, PipelineMetrics};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{ValidationSeverity, validate_bundle};
 use dfps_observability::{log_no_match, log_pipeline_output};
-use dfps_pipeline::bundle_to_mapped_sr_with_vector_context;
+use dfps_pipeline::{DefaultPipeline, PipelinePort, PipelineRunConfig};
 use log::{info, warn};
 
 #[derive(Parser)]
@@ -55,6 +55,8 @@ fn run() -> CliResult<()> {
             None
         }
     };
+    let pipeline = DefaultPipeline::default();
+    let config = PipelineRunConfig::default();
 
     while let Some(bundle) = bundles.next() {
         let bundle = bundle?;
@@ -78,7 +80,8 @@ fn run() -> CliResult<()> {
         for issue in &validation.issues {
             write_record(&mut handle, "validation_issue", issue)?;
         }
-        let output = bundle_to_mapped_sr_with_vector_context(&bundle, vector_ctx.as_ref())
+        let output = pipeline
+            .map_bundle(&bundle, &config, vector_ctx.as_ref())
             .map_err(|err| CliError::invalid(format!("pipeline error: {err}")))?;
         let vector_usage = output.vector_usage.clone();
         log_pipeline_output(

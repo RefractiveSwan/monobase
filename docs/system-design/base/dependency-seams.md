@@ -46,6 +46,13 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 * Platform/App load policy from env (or files) via `dfps_compliance::ComplianceConfig`
   and inject it into CLI/API orchestrators.
 
+### CLI pipeline command
+
+* Domain: `dfps_pipeline::{PipelinePort, DefaultPipeline}` exposes an inbound port
+  (`map_bundle`) that orchestrates ingestion + mapping without touching IO/env.
+* App: `dfps_cli` bins construct `DefaultPipeline` and treat each bin as a command
+  adapter (parse args/NDJSON, call the port, emit DTOs).
+
 ## How to use this doc
 
 * When defining a new DTO or cross-layer payload, decide which crate owns it and

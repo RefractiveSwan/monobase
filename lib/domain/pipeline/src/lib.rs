@@ -111,6 +111,31 @@ pub enum PipelineError {
     Ingestion(#[from] dfps_ingestion::IngestionError),
 }
 
+/// Port trait for application layers to orchestrate Bundle -> PipelineOutput flows.
+pub trait PipelinePort {
+    fn map_bundle(
+        &self,
+        bundle: &Bundle,
+        config: &PipelineRunConfig<'_>,
+        vector: Option<&VectorPipelineContext>,
+    ) -> Result<PipelineOutput, PipelineError>;
+}
+
+/// Default orchestrator implementing [`PipelinePort`].
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DefaultPipeline;
+
+impl PipelinePort for DefaultPipeline {
+    fn map_bundle(
+        &self,
+        bundle: &Bundle,
+        config: &PipelineRunConfig<'_>,
+        vector: Option<&VectorPipelineContext>,
+    ) -> Result<PipelineOutput, PipelineError> {
+        bundle_to_mapped_sr_with_opts(bundle, config, vector)
+    }
+}
+
 pub fn bundle_to_mapped_sr(bundle: &Bundle) -> Result<PipelineOutput, PipelineError> {
     bundle_to_mapped_sr_with_opts(bundle, &PipelineRunConfig::default(), None)
 }

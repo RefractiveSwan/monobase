@@ -8,17 +8,6 @@ pub enum TerminologyMode {
     HttpOnly,
 }
 
-impl TerminologyMode {
-    pub(crate) fn from_env_value(raw: &str) -> Option<Self> {
-        match raw {
-            "mock_only" => Some(Self::MockOnly),
-            "http_fallback" => Some(Self::HttpFallback),
-            "http_only" => Some(Self::HttpOnly),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct CuiRecord {
     pub cui: String,
