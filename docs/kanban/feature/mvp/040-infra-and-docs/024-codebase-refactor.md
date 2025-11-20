@@ -112,7 +112,7 @@
 - [x] Verify no platform crate imports domain/app types (except shared primitives) and codify this as a CI check (same `layers-check` task).
 - [x] Add a “dependency seams” doc mapping DTO ownership: FHIR/staging (dfps_core/dfps_ingestion), mapping (dfps_core/dfps_mapping), analytics (dfps_datamart/dfps_api), UI views (dfps_web_frontend) (`docs/system-design/base/dependency-seams.md`).
   - [ ] Hex-port flow – lib/app (ports = HTTP/CLI; adapters = domain orchestration)
-    - [ ] `lib/app/frontend/cli` — classify each bin: define hexagonal ports (commands) for ingestion/mapping/eval/vector-index and move IO/NDJSON parsing into adapters; replace direct domain calls with orchestrator traits in `dfps_pipeline`.
+    - [x] `lib/app/frontend/cli` — classify each bin: define hexagonal ports (commands) for ingestion/mapping/eval/vector-index and move IO/NDJSON parsing into adapters; replace direct domain calls with orchestrator traits in `dfps_pipeline`. (PipelinePort added; CLI `map_bundles` now drives the port and shared README updated.)
     - [ ] `lib/app/frontend/web` — treat reqwest client as outbound adapter; ensure routes/views depend only on frontend-facing ports (DTOs) and never on domain structs directly; document adapter boundary in `routes.rs`, `client.rs`.
     - [ ] `lib/app/servers/api` — expose inbound ports as axum handlers; push pipeline/datamart/compliance into injected application services; ensure `server.rs` only wires adapters (HTTP ↔ app services).
     - [ ] `lib/app/servers/datamart` — model DB as outbound adapter; keep fact/dim builders as domain mappers; surface a port trait (`DatamartSink`) consumed by API/CLI.
