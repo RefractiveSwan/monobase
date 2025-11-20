@@ -56,6 +56,13 @@ ports that cross the application ↔ domain ↔ platform layers. See also
   analytics. `SqliteDatamart` lives in the `dfps_datamart` crate and is injected
   into `dfps_api` and CLI loaders, keeping HTTP/CLI code free of SQL details.
 
+### Web DTOs
+
+* Domain contracts live in `dfps_contracts`, but the web layer re-exports the
+  subset used by HTTP responses via `dfps_web_dto`. Both the Axum API and the
+  Actix frontend depend on that crate so analytics/cohort/eval payloads stay in
+  sync without bespoke structs.
+
 ### Eval dataset store
 
 * Domain: `dfps_eval::DatasetStore` abstracts dataset/case access. The default

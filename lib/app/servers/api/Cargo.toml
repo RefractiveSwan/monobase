@@ -29,3 +29,4 @@ dfps_compliance = { path = "../../../platform/compliance" }
 dfps_terminology = { path = "../../../domain/ontologies/terminology" }
 dfps_vector_store = { path = "../vector_store" }
 dfps_contracts = { path = "../../../domain/contracts" }
+dfps_web_dto = { path = "../../web/dto" }

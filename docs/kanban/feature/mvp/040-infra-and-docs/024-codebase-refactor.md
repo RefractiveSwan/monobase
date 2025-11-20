@@ -31,15 +31,15 @@
       - [ ] Add a streaming mapping path in `map_codes` (no upfront Vec) that still propagates vector usage metrics and compliance failures.
       - [ ] Centralize CLI config/logging setup via `dfps_configuration` (namespace `app.cli`) so each bin stops initializing env_logger/env parsing manually.
     - [ ] `lib/app/web`
-      - [ ] Add app-level README describing the split between frontend (Actix) and backend (Axum) and where shared DTOs/configs live.
-      - [ ] Introduce a shared web DTO module so frontend client types, backend API responses, and analytics structs do not diverge.
+      - [x] Add app-level README describing the split between frontend (Actix) and backend (Axum) and where shared DTOs/configs live. (`lib/app/web/README.md` now documents the split + env namespaces.)
+      - [x] Introduce a shared web DTO module so frontend client types, backend API responses, and analytics structs do not diverge. (`dfps_web_dto` crate re-exports the canonical contracts.)
       - [ ] `lib/app/frontend/web` (`dfps_web_frontend`)
-        - [ ] Replace manual env parsing in `config.rs` with a typed config sourced from `dfps_configuration` (timeout validation, docs URL normalization).
-        - [ ] Centralize backend client error handling/logging (currently inline in routes) and emit analytics request metrics via `dfps_observability`.
-        - [ ] Add regression test for `/analytics` error handling (backend 5xx/timeout) to keep user-facing messages stable.
+        - [x] Replace manual env parsing in `config.rs` with a typed config sourced from `dfps_configuration` (timeout validation, docs URL normalization). (Already wired via `AppConfig::from_env()`.)
+        - [x] Centralize backend client error handling/logging (currently inline in routes) and emit analytics request metrics via `dfps_observability`. (Backend client now logs via `log`, and `AppState` tracks analytics metrics with `PipelineMetrics`.)
+        - [x] Add regression test for `/analytics` error handling (backend 5xx/timeout) to keep user-facing messages stable. (New Wiremock test covers the error path.)
       - [ ] `lib/app/servers` (`dfps_web_backend`)
         - [ ] Document ownership/boundaries for API vs datamart crates and the expected env namespaces for each.
-        - [ ] Hoist shared analytics DTOs into a reusable module so API handlers and frontend client structs stay in sync.
+        - [x] Hoist shared analytics DTOs into a reusable module so API handlers and frontend client structs stay in sync. (`dfps_web_dto` is now consumed by both API and frontend client.)
         - [ ] `lib/app/servers/api` (`dfps_dataplane`{formerly `dfps_api`})
           - [ ] Add a config module (using `dfps_configuration`) for host/port/warehouse/compliance instead of scattered `std::env::var` lookups in `server.rs`.
           - [ ] Extract analytics persistence/state management into a component with eviction/metrics to avoid unbounded HashMap growth.
@@ -102,6 +102,14 @@
       - [ ] Rework env parsing into a typed config builder using `dfps_configuration` (replace manual `env_flag`/parse) with per-backend unit tests.
       - [ ] Add backend health/index abstractions so unsupported backends (Milvus) fail fast and CLI/pipeline share indexing code paths.
 
+---
+
+## INPROGRESS
+- _Empty_
+
+---
+
+## REVIEW
 
 ### REFR-02 – Layer boundaries & dependency hygiene
 
@@ -128,15 +136,6 @@
     - [x] `lib/app/servers/vector_store` — pure adapter for vector backends implementing domain port; validate configs; document boundaries to mapping/pipeline/app. (`config_from_env` lives here; crate re-exports the `dfps_vector_port` traits and only implements adapters.)
     - [ ] `lib/platform/compliance` — policy loader as adapter; enforcement callable from app/domain ports without env.
     - [ ] `lib/platform/test_suite` — test-only adapters (datasets/db), no production env mutation.
-
----
-
-## INPROGRESS
-- _Empty_
-
----
-
-## REVIEW
 
 ### REFR-03 – Cross-surface contracts & DTO alignment
 

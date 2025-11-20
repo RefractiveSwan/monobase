@@ -28,7 +28,7 @@ use dfps_pipeline::{
 };
 use dfps_terminology::codesystem::LicenseTier;
 use dfps_vector_store::{
-    config_from_env, MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore,
+    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, config_from_env,
 };
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};

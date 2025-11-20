@@ -11,6 +11,7 @@ members = [
     "lib/app/servers/api",
     "lib/app/servers/datamart",
     "lib/app/servers/vector_store",    
+    "lib/app/web/dto",
     "lib/domain/eval",
     "lib/domain/core",
     "lib/domain/ontologies/ingestion",

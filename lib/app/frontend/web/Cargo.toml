@@ -17,6 +17,7 @@ bytes.workspace = true
 dfps_core = { path = "../../../domain/core" }
 dfps_eval = { path = "../../../domain/eval" }
 dfps_contracts = { path = "../../../domain/contracts" }
+dfps_web_dto = { path = "../../web/dto" }
 dfps_observability = { path = "../../../platform/observability" }
 dfps_configuration = { path = "../../../platform/configuration" }
 futures-util.workspace = true
@@ -25,6 +26,7 @@ reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror = "2.0.17"
+log = "0.4"
 
 [dev-dependencies]
 wiremock = "0.6"
