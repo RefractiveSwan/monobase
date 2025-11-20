@@ -9,32 +9,13 @@ pub struct TerminologyClientConfig {
     pub mode: TerminologyMode,
 }
 
-impl TerminologyClientConfig {
-    /// Build a config from environment variables.
-    ///
-    /// - `DFPS_TERMINOLOGY_BASE_URL`
-    /// - `DFPS_TERMINOLOGY_API_KEY`
-    /// - `DFPS_TERMINOLOGY_TIMEOUT_SECS`
-    /// - `DFPS_TERMINOLOGY_MODE` (`mock_only` | `http_fallback` | `http_only`)
-    ///
-    /// Platform adapters should prefer loading env/config via `dfps_configuration`
-    /// (or equivalent) and then constructing this struct explicitly; this helper
-    /// exists for legacy CLIs/tests.
-    pub fn from_env() -> Self {
-        let base_url = std::env::var("DFPS_TERMINOLOGY_BASE_URL").ok();
-        let api_key = std::env::var("DFPS_TERMINOLOGY_API_KEY").ok();
-        let timeout_secs = std::env::var("DFPS_TERMINOLOGY_TIMEOUT_SECS")
-            .ok()
-            .and_then(|raw| raw.parse::<u64>().ok());
-        let mode = std::env::var("DFPS_TERMINOLOGY_MODE")
-            .ok()
-            .and_then(|raw| TerminologyMode::from_env_value(&raw))
-            .unwrap_or(TerminologyMode::MockOnly);
+impl Default for TerminologyClientConfig {
+    fn default() -> Self {
         Self {
-            base_url,
-            api_key,
-            timeout_secs,
-            mode,
+            base_url: None,
+            api_key: None,
+            timeout_secs: None,
+            mode: TerminologyMode::MockOnly,
         }
     }
 }

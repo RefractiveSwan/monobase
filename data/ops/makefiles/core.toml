@@ -18,6 +18,11 @@ description = "Clippy lint (deny warnings)"
 command = "cargo"
 args = ["clippy", "--all-targets", "--", "-D", "warnings"]
 
+[tasks.layers-check]
+description = "Enforce app/domain/platform boundaries + domain env lint"
+command = "cargo"
+args = ["run", "-p", "layer_lint"]
+
 [tasks.test]
 description = "Run all tests (workspace libs + integration + curated doc tests)"
 dependencies = ["test-workspace", "test-docs"]
@@ -67,7 +72,7 @@ script = [
 
 [tasks.ci]
 description = "CI convenience target (fmt + clippy + test)"
-dependencies = ["fmt", "clippy", "contracts-check", "test"]
+dependencies = ["fmt", "clippy", "contracts-check", "layers-check", "test"]
 
 [tasks.clean]
 description = "Clean target dir and book output"

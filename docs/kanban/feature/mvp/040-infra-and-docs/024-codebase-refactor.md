@@ -102,13 +102,14 @@
       - [ ] Rework env parsing into a typed config builder using `dfps_configuration` (replace manual `env_flag`/parse) with per-backend unit tests.
       - [ ] Add backend health/index abstractions so unsupported backends (Milvus) fail fast and CLI/pipeline share indexing code paths.
 
+
 ### REFR-02 – Layer boundaries & dependency hygiene
 
-- [ ] Enforce one-way dependencies (app → domain → platform) with an automated graph check (guppy/cargo metadata) and report exceptions.
-- [ ] Document boundary rules per layer (app owns transport/adapters; domain owns business logic; platform owns infra/config) in `docs/system-design/base/directory-architecture.md` and link from crate READMEs.
+- [x] Enforce one-way dependencies (app → domain → platform) with an automated graph check (guppy/cargo metadata) and report exceptions (`cargo make layers-check` via `tools/layer_lint`; currently allowlists `dfps_compliance`/`dfps_observability` edges until their adapters move).
+- [x] Document boundary rules per layer (app owns transport/adapters; domain owns business logic; platform owns infra/config) in `docs/system-design/base/directory-architecture.md` and link from crate READMEs.
 - [ ] Add crate-level `//!` headers in each lib pointing to the exact system-design pages and kanban IDs governing its behavior.
-- [ ] Introduce a “no env in domain” lint (deny `std::env` usage) for `lib/domain/**`; shift env lookup to app/platform configs.
-- [ ] Verify no platform crate imports domain/app types (except shared primitives) and codify this as a CI check.
+- [x] Introduce a “no env in domain” lint (deny `std::env` usage) for `lib/domain/**`; shift env lookup to app/platform configs (`TerminologyClientConfig` + external validator env seams now live in app/platform adapters; enforced via `tools/layer_lint`).
+- [x] Verify no platform crate imports domain/app types (except shared primitives) and codify this as a CI check (same `layers-check` task).
 - [ ] Add a “dependency seams” doc mapping DTO ownership: FHIR/staging (dfps_core/dfps_ingestion), mapping (dfps_core/dfps_mapping), analytics (dfps_datamart/dfps_api), UI views (dfps_web_frontend).
   - [ ] Hex-port flow – lib/app (ports = HTTP/CLI; adapters = domain orchestration)
     - [ ] `lib/app/frontend/cli` — classify each bin: define hexagonal ports (commands) for ingestion/mapping/eval/vector-index and move IO/NDJSON parsing into adapters; replace direct domain calls with orchestrator traits in `dfps_pipeline`.
@@ -127,45 +128,6 @@
     - [ ] `lib/app/servers/vector_store` — pure adapter for vector backends implementing domain port; validate configs; document boundaries to mapping/pipeline/app.
     - [ ] `lib/platform/compliance` — policy loader as adapter; enforcement callable from app/domain ports without env.
     - [ ] `lib/platform/test_suite` — test-only adapters (datasets/db), no production env mutation.
-
-
-
-
----
-
-
-### REFR-15 – CLI surfaces & orchestration (`dfps_cli`)
-
-**Goal:** Treat `dfps_cli` as a thin orchestration layer over domain + platform crates, with shared IO/config/compliance handling and consistent UX across all binaries.
-
-- [x] Add/expand `lib/app/frontend/cli/README.md` to:
-  - [x] Map each bin (`map_bundles`, `map_codes`, `eval_mapping`, `validate_fhir`, `load_datamart`, `build_vector_index`) to its underlying domain flows (ingestion, mapping, eval, datamart load, vector index).
-  - [x] Document common flags (env namespace, log level, compliance behavior) and how they relate to API/web behavior.
-- [x] Introduce a small internal “CLI core” module (e.g., `src/cli_core.rs`) that:
-  - [x] Provides shared helpers for env loading (`load_env("app.cli")`), log initialization, and structured error reporting.
-  - [x] Wraps repeated NDJSON reading/writing logic (streaming readers for Bundles, StgSrCodeExploded, PipelineOutput, EvalCase).
-  - [x] Centralizes exit code conventions (e.g., non-zero on compliance block, threshold failure, invalid input).
-- [x] `map_bundles`:
-  - [x] Replace inline env/logging setup with shared CLI core helpers and ensure validation + pipeline + metrics calls are consistently structured.
-  - [x] Add a streaming path (reading Bundles incrementally) that still accumulates a single `PipelineMetrics` summary.
-  - [x] Align JSON output schema (`kind` field) with API responses for easier downstream parsing.
-- [x] `map_codes`:
-  - [x] Share vector config handling with `build_vector_index` (via a small helper that wraps `VectorStoreConfig::from_env` and backend selection).
-  - [x] Move compliance reporting and `fail_on_license_block` behavior behind a single helper used by both CLI and API surfaces.
-  - [x] Ensure explanation output (`--explain`, `--explain-top`) is documented and stable for downstream tooling.
-- [x] `eval_mapping`:
-  - [x] Factor dataset loading/reporting into reusable helpers that mirror API eval endpoints (dataset list, summary, run).
-  - [x] Clarify top-k semantics (“placeholder until multi-candidate support”) and future-proof the flag by plumbing top-k into `dfps_mapping` when available.
-  - [x] Ensure threshold/compare/deterministic checks share code with API eval (minimize duplicated logic).
-- [x] `validate_fhir`:
-  - [x] Align mode flags (`lenient`, `strict`, `external_preferred`, `external_strict`) with ingestion docs and API options.
-  - [x] Provide a stable NDJSON output schema for issues and summaries that can be consumed by CI dashboards and dfps_web_frontend.
-- [x] `load_datamart`:
-  - [x] Remove duplicated export-policy logic by delegating to a shared helper that is also used in `dfps_dataplane`{formerly `dfps_api`} and `dfps_datamart`.
-  - [x] Ensure `WarehouseConfig::from_env` uses `dfps_configuration` for env parsing and that CLI errors surface actionable messages for missing URL/schema/permissions.
-- [x] `build_vector_index`:
-  - [x] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
-  - [x] Share embedding/version metadata semantics with mapping/vector-store docs (documented in mdBook and CLI help).
 
 ---
 
@@ -860,6 +822,39 @@ Add doc examples:
   - [x] Provide recommended command lines (`cargo test -p dfps_test_suite --features backend-pgvector`) to reproduce CI locally.
 
 ---
+
+### REFR-15 – CLI surfaces & orchestration (`dfps_cli`)
+
+**Goal:** Treat `dfps_cli` as a thin orchestration layer over domain + platform crates, with shared IO/config/compliance handling and consistent UX across all binaries.
+
+- [x] Add/expand `lib/app/frontend/cli/README.md` to:
+  - [x] Map each bin (`map_bundles`, `map_codes`, `eval_mapping`, `validate_fhir`, `load_datamart`, `build_vector_index`) to its underlying domain flows (ingestion, mapping, eval, datamart load, vector index).
+  - [x] Document common flags (env namespace, log level, compliance behavior) and how they relate to API/web behavior.
+- [x] Introduce a small internal “CLI core” module (e.g., `src/cli_core.rs`) that:
+  - [x] Provides shared helpers for env loading (`load_env("app.cli")`), log initialization, and structured error reporting.
+  - [x] Wraps repeated NDJSON reading/writing logic (streaming readers for Bundles, StgSrCodeExploded, PipelineOutput, EvalCase).
+  - [x] Centralizes exit code conventions (e.g., non-zero on compliance block, threshold failure, invalid input).
+- [x] `map_bundles`:
+  - [x] Replace inline env/logging setup with shared CLI core helpers and ensure validation + pipeline + metrics calls are consistently structured.
+  - [x] Add a streaming path (reading Bundles incrementally) that still accumulates a single `PipelineMetrics` summary.
+  - [x] Align JSON output schema (`kind` field) with API responses for easier downstream parsing.
+- [x] `map_codes`:
+  - [x] Share vector config handling with `build_vector_index` (via a small helper that wraps `VectorStoreConfig::from_env` and backend selection).
+  - [x] Move compliance reporting and `fail_on_license_block` behavior behind a single helper used by both CLI and API surfaces.
+  - [x] Ensure explanation output (`--explain`, `--explain-top`) is documented and stable for downstream tooling.
+- [x] `eval_mapping`:
+  - [x] Factor dataset loading/reporting into reusable helpers that mirror API eval endpoints (dataset list, summary, run).
+  - [x] Clarify top-k semantics (“placeholder until multi-candidate support”) and future-proof the flag by plumbing top-k into `dfps_mapping` when available.
+  - [x] Ensure threshold/compare/deterministic checks share code with API eval (minimize duplicated logic).
+- [x] `validate_fhir`:
+  - [x] Align mode flags (`lenient`, `strict`, `external_preferred`, `external_strict`) with ingestion docs and API options.
+  - [x] Provide a stable NDJSON output schema for issues and summaries that can be consumed by CI dashboards and dfps_web_frontend.
+- [x] `load_datamart`:
+  - [x] Remove duplicated export-policy logic by delegating to a shared helper that is also used in `dfps_dataplane`{formerly `dfps_api`} and `dfps_datamart`.
+  - [x] Ensure `WarehouseConfig::from_env` uses `dfps_configuration` for env parsing and that CLI errors surface actionable messages for missing URL/schema/permissions.
+- [x] `build_vector_index`:
+  - [x] Refactor panicking paths (dimension overflows, unsupported backends) into structured CLI errors.
+  - [x] Share embedding/version metadata semantics with mapping/vector-store docs (documented in mdBook and CLI help).
 
 ### REFR-16 – HTTP backend, warehouse & analytics surfaces (`dfps_api` + `dfps_datamart`)
 

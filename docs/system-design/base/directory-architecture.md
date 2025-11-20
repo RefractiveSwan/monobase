@@ -50,6 +50,21 @@ At a glance:
 * `domain/` – the problem-space logic and data flow.
 * `platform/` – cross-cutting support: observability, testing, infra-style helpers.
 
+### Layer boundaries & dependency hygiene
+
+- **App → Domain → Platform (one way).** App crates may depend on domain/platform,
+  domain crates may consume platform helpers, and platform crates must never
+  depend on domain/app crates.
+- **No env/config in domain.** All configuration/env reads live in app/platform
+  adapters. Domain crates accept typed configs/traits. Enforced via
+  `cargo make layers-check` (see `tools/layer_lint`).
+- **Package graph check.** `cargo make layers-check` uses `guppy` metadata to verify
+  dependencies obey the layer ordering and that `lib/domain/**` sources do not
+  reference `std::env`. The task runs as part of `cargo make ci`.
+- **Ports & adapters.** Domain crates expose traits/DTOs; app crates implement
+  inbound/outbound adapters (HTTP, CLI, NDJSON), and platform crates host
+  reusable adapters (configuration, observability, vector stores, compliance).
+
 ---
 
 ## Buckets and responsibilities

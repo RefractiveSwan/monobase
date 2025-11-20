@@ -19,10 +19,9 @@ See:
   observability labels for mapping/compliance.
 - `valueset` – metadata and lookups for curated ValueSets used across ingestion
   and compliance policies.
-- `client` – traits (`TerminologyClient`) plus mock/HTTP client adapters; the
-  optional `TerminologyClientConfig::from_env` convenience reads
-  `DFPS_TERMINOLOGY_*` variables for CLI/tests, but platform layers should inject
-  typed configs instead of letting domain crates read the environment.
+- `client` – traits (`TerminologyClient`) plus mock/HTTP client adapters. They
+  accept a `TerminologyClientConfig` built by the application/platform layer so
+  domain code stays environment-free.
 - `obo_graph` – embedded NCIt/MONDO graph parser + cached reasoning helpers
   (ancestors, descendants, synonyms, related concepts) used by the OBO bridge.
 - `obo` – high-level bridge that exposes versioned graph contexts, merging the
@@ -39,11 +38,10 @@ etc.) across ingestion and mapping.
 
 ## Term clients & env seams
 
-`TerminologyClientConfig::from_env` loads a base URL/API key/timeout/mode from
-`DFPS_TERMINOLOGY_*` environment variables for legacy CLIs. Production surfaces
-should construct the config via their platform configuration layer and pass it
-into `HttpTerminologyClient::from_config`, keeping HTTP/env responsibilities out
-of domain crates.
+Application layers should construct `TerminologyClientConfig` via their
+configuration adapters (e.g., `dfps_configuration`) and pass it to
+`HttpTerminologyClient::from_config`, keeping HTTP/env responsibilities out of
+domain crates.
 
 ## Related crates
 

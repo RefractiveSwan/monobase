@@ -13,7 +13,7 @@ export DFPS_TERMINOLOGY_MODE=http_fallback   # mock_only | http_fallback | http_
 
 ## Enable the client
 - Build with the `http-client` feature in `dfps_terminology` (default enabled in workspace builds).
-- Construct an `HttpTerminologyClient` from `TerminologyClientConfig::from_env()` and wrap it in `CompositeTerminologyClient` alongside `MockTerminologyClient` for safe fallbacks.
+- Load the env values via `dfps_configuration` (or your adapter of choice), build a `TerminologyClientConfig`, and pass it to `HttpTerminologyClient::from_config`. Wrap it in `CompositeTerminologyClient` alongside `MockTerminologyClient` for safe fallbacks.
 
 ## Usage in mapping
 - `dfps_mapping::map_staging_codes_with_summary_with_client(codes, Some(&client))` — enables external lookups for unknown systems.

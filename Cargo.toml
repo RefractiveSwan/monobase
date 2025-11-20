@@ -21,6 +21,7 @@ members = [
     "lib/platform/configuration",
     "lib/platform/observability",
     "lib/platform/test_suite", "lib/domain/contracts",
+    "tools/layer_lint",
 ]
 
 # Explicit resolver, recommended with edition 2021/2024 workspaces

@@ -9,121 +9,171 @@ use crate::view_model::{
 pub fn render_page(ctx: &PageContext) -> String {
     html! {
         (DOCTYPE)
-        html class="h-full bg-slate-100" {
+        html class="h-full bg-[#f8f9fa]" {
             head {
                 meta charset="utf-8";
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 title { "DFPS Mapping Workbench" }
+
+                // Typography: Merriweather (Serif headings), Inter (Sans body), Roboto Mono (Code)
+                link rel="preconnect" href="https://fonts.googleapis.com";
+                link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="";
+                link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet";
+
                 script src="https://cdn.tailwindcss.com" {}
                 script src="https://unpkg.com/htmx.org@1.9.12" {}
+
+                // Academic Theme Configuration
+                script {
+                    (PreEscaped(r#"
+                        tailwind.config = {
+                            theme: {
+                                extend: {
+                                    fontFamily: {
+                                        sans: ['Inter', 'sans-serif'],
+                                        serif: ['Merriweather', 'serif'],
+                                        mono: ['Roboto Mono', 'monospace'],
+                                    },
+                                    colors: {
+                                        navy: {
+                                            50: '#f0f4f8',
+                                            100: '#d9e2ec',
+                                            800: '#1e293b',
+                                            900: '#0f172a',
+                                        },
+                                        gold: {
+                                            100: '#fbf3db',
+                                            500: '#b49b57',
+                                            600: '#967d3f',
+                                        },
+                                        paper: '#f8f9fa',
+                                    },
+                                    boxShadow: {
+                                        'academic': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                                    }
+                                }
+                            }
+                        }
+                    "#))
+                }
             }
-            body class="min-h-screen bg-slate-100 text-slate-900" {
-                main class="mx-auto max-w-6xl px-4 py-10 space-y-8" {
-                    section class="bg-white shadow-sm rounded-xl p-6 space-y-4" {
-                        h1 class="text-2xl font-semibold" { "FHIR + NCIt mapping workbench" }
-                        p class="text-slate-600" {
-                            "Paste a FHIR Bundle or upload JSON so the DFPS pipeline can flatten ServiceRequests into "
-                            code { "stg_servicerequest_flat" }
-                            " and "
-                            code { "stg_sr_code_exploded" }
-                            ", then emit "
-                            code { "MappingResult" }
-                            " rows."
+            body class="min-h-screen bg-paper text-navy-900 font-sans antialiased" {
+                // Header: Professional Navy Bar
+                header class="bg-navy-900 text-white shadow-md" {
+                    div class="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between" {
+                        div class="flex items-center gap-3" {
+                            div class="h-8 w-8 rounded bg-gold-500 flex items-center justify-center text-navy-900 font-bold font-serif text-sm" { "D" }
+                            h1 class="text-xl font-serif font-bold tracking-wide" { "DFPS Workbench" }
                         }
-                        div class="flex flex-wrap gap-4 text-sm" {
-                            @if let Some(health) = &ctx.health {
-                                span class={(format!("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium {}",
-                                    if health.ok { "bg-emerald-100 text-emerald-800" } else { "bg-amber-100 text-amber-800" }
-                                ))} {
-                                    span class={(if health.ok { "h-2 w-2 rounded-full bg-emerald-500" } else { "h-2 w-2 rounded-full bg-amber-500" })} {}
-                                    span { (format!("Backend health: {}", health.status)) }
-                                }
-                            } @else {
-                                span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800" {
-                                    "Backend health unknown"
+                        nav class="text-sm font-medium text-navy-100 space-x-6" {
+                            a href="/" class="hover:text-white transition-colors" { "Mapping" }
+                            a href="/analytics" class="hover:text-white transition-colors" { "Analytics" }
+                            a href="/eval" class="hover:text-white transition-colors" { "Evaluation" }
+                        }
+                    }
+                }
+
+                main class="mx-auto max-w-7xl px-6 py-8 space-y-8" {
+                    // Hero / Intro Section
+                    section class="bg-white shadow-academic rounded-md border border-gray-200 p-6" {
+                        div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4" {
+                            div class="space-y-2 max-w-3xl" {
+                                h2 class="text-2xl font-serif font-bold text-navy-900" { "Clinical Mapping Pipeline" }
+                                p class="text-slate-600 leading-relaxed" {
+                                    "Ingest FHIR Bundles to flatten ServiceRequests into "
+                                    code class="font-mono text-xs bg-navy-50 px-1 py-0.5 rounded text-navy-800" { "stg_servicerequest_flat" }
+                                    " and "
+                                    code class="font-mono text-xs bg-navy-50 px-1 py-0.5 rounded text-navy-800" { "stg_sr_code_exploded" }
+                                    ". The engine emits "
+                                    code class="font-mono text-xs bg-navy-50 px-1 py-0.5 rounded text-navy-800" { "MappingResult" }
+                                    " rows cross-referenced against NCIt concepts."
                                 }
                             }
-                            @if let Some(metrics) = &ctx.metrics {
-                                span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700" {
-                                    (format!("Bundles processed: {} | AutoMapped: {} | NeedsReview: {} | NoMatch: {}",
-                                        metrics.bundle_count,
-                                        metrics.auto_mapped,
-                                        metrics.needs_review,
-                                        metrics.no_match
-                                    ))
+
+                            div class="flex flex-col items-end gap-2" {
+                                @if let Some(health) = &ctx.health {
+                                    div class={(format!("inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border {}",
+                                        if health.ok { "bg-emerald-50 text-emerald-800 border-emerald-200" } else { "bg-amber-50 text-amber-800 border-amber-200" }
+                                    ))} {
+                                        span class={(if health.ok { "h-1.5 w-1.5 rounded-full bg-emerald-600" } else { "h-1.5 w-1.5 rounded-full bg-amber-600" })} {}
+                                        span { (format!("System Status: {}", health.status)) }
+                                    }
+                                } @else {
+                                    span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200" {
+                                        "System Status: Unknown"
+                                    }
+                                }
+
+                                @if let Some(metrics) = &ctx.metrics {
+                                    div class="text-xs text-slate-500 font-mono text-right" {
+                                        div { (format!("Bundles: {}", metrics.bundle_count)) }
+                                        div { (format!("Mapped: {}", metrics.auto_mapped)) }
+                                    }
                                 }
                             }
                         }
+
                         @if let Some(error) = &ctx.health_error {
-                            div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900" {
-                                strong class="font-semibold" { "Backend warning: " }
+                            div class="mt-4 rounded-md border-l-4 border-rose-600 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm" {
+                                strong class="font-bold font-serif" { "System Warning: " }
                                 span { (error) }
                             }
                         }
-                        div class="mt-2 grid gap-4 md:grid-cols-2 text-sm text-slate-600" {
-                            div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2" {
-                                h3 class="text-base font-semibold text-slate-800" { "Mapping state glossary" }
-                                ul class="space-y-2" {
-                                    li {
-                                        strong { "AutoMapped. " }
-                                        "NCIt concept met lexical + semantic thresholds with no manual review."
-                                    }
-                                    li {
-                                        strong { "NeedsReview. " }
-                                        "MappingResult landed near the quality threshold and should be validated before surfacing."
-                                    }
-                                    li {
-                                        strong { "NoMatch. " }
-                                        "The NCIt + mock UMLS crosswalk could not resolve a concept for the ServiceRequest code."
-                                    }
-                                }
-                            }
-                            div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2" {
-                                h3 class="text-base font-semibold text-slate-800" { "How the mapping engine works" }
-                                p {
-                                    "Bundles are ingested, flattened into "
-                                    code { "stg_servicerequest_flat" }
-                                    " and "
-                                    code { "stg_sr_code_exploded" }
-                                    ", then cross-referenced against NCIt concepts plus mock UMLS xrefs."
-                                }
-                                p { "Each MappingResult links back to NCIt metadata so reviewers can track which concepts were used for AutoMapped rows." }
-                            }
-                        }
                     }
+
+                    // Input Section
                     section class="grid gap-6 lg:grid-cols-2" {
-                        div class="bg-white shadow-sm rounded-xl p-6" {
-                            h2 class="text-lg font-semibold" { "Paste Bundle JSON" }
-                            form hx-post="/map/paste" hx-target="#results" hx-swap="innerHTML" method="post" class="mt-4 space-y-4" {
-                                label class="block text-sm font-medium text-slate-700" for="bundle_text" {
-                                    "FHIR Bundle JSON"
-                                }
-                                textarea name="bundle_text" id="bundle_text" rows="10" class="w-full rounded-lg border border-slate-300 p-3 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-200" placeholder="{ \"resourceType\": \"Bundle\", ... }" {}
-                                button type="submit" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-white font-medium hover:bg-emerald-700" {
-                                    "Map bundle"
+                        div class="bg-white shadow-academic rounded-md border border-gray-200 flex flex-col" {
+                            div class="bg-navy-50 px-6 py-3 border-b border-gray-200" {
+                                h3 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "Input: Paste JSON" }
+                            }
+                            div class="p-6 flex-1" {
+                                form hx-post="/map/paste" hx-target="#results" hx-swap="innerHTML" method="post" class="h-full flex flex-col space-y-4" {
+                                    textarea name="bundle_text" id="bundle_text" rows="8" class="w-full flex-1 rounded-md border border-gray-300 p-3 font-mono text-xs leading-relaxed focus:border-navy-900 focus:ring-1 focus:ring-navy-900 bg-gray-50" placeholder="Paste FHIR Bundle JSON here..." {}
+                                    div class="flex justify-end" {
+                                        button type="submit" class="inline-flex items-center rounded-md bg-navy-900 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-navy-800 transition-all" {
+                                            "Process Bundle"
+                                        }
+                                    }
                                 }
                             }
                         }
-                        div class="bg-white shadow-sm rounded-xl p-6" {
-                            h2 class="text-lg font-semibold" { "Upload Bundle JSON" }
-                            form hx-post="/map/upload" hx-target="#results" hx-swap="innerHTML" method="post" enctype="multipart/form-data" class="mt-4 space-y-4" {
-                                label class="block text-sm font-medium text-slate-700" for="bundle_file" {
-                                    "JSON file"
-                                }
-                                input type="file" id="bundle_file" name="bundle_file" accept="application/json,.json,.ndjson" class="w-full rounded-lg border border-dashed border-slate-300 p-3 text-sm" {}
-                                button type="submit" class="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-white font-medium hover:bg-slate-900" {
-                                    "Upload & map"
+                        div class="bg-white shadow-academic rounded-md border border-gray-200 flex flex-col" {
+                            div class="bg-navy-50 px-6 py-3 border-b border-gray-200" {
+                                h3 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "Input: Upload File" }
+                            }
+                            div class="p-6 flex-1" {
+                                form hx-post="/map/upload" hx-target="#results" hx-swap="innerHTML" method="post" enctype="multipart/form-data" class="space-y-4" {
+                                    label class="block text-sm font-medium text-slate-700" for="bundle_file" {
+                                        "JSON file"
+                                    }
+                                    input type="file" id="bundle_file" name="bundle_file" accept="application/json,.json,.ndjson" class="w-full rounded-md border border-gray-300 p-2 text-sm" {}
+                                    div class="flex justify-end" {
+                                        button type="submit" class="inline-flex items-center rounded-md bg-white border border-gray-300 px-5 py-2 text-sm font-medium text-navy-900 shadow-sm hover:bg-gray-50 transition-all" {
+                                            "Upload & Map"
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                    section id="results" class="space-y-4" {
+
+                    section id="results" class="space-y-6" {
                         (render_results(ctx))
                     }
+
                     (render_metrics_dashboard(ctx.metrics.as_ref()))
                     (render_analytics_panels(ctx))
                     (render_eval_panel(ctx))
                     (render_no_match_explorer(ctx.results.as_ref()))
+                }
+
+                footer class="bg-white border-t border-gray-200 mt-12" {
+                    div class="mx-auto max-w-7xl px-6 py-8" {
+                        p class="text-center text-xs text-gray-500 font-serif italic" {
+                            "DFPS Clinical Model • Project Hierophancy"
+                        }
+                    }
                 }
             }
         }
@@ -144,9 +194,9 @@ fn render_results(ctx: &PageContext) -> Markup {
         @if let Some(results) = &ctx.results {
             (render_results_panel(results))
         } @else {
-            div class="bg-white rounded-xl border border-dashed border-slate-200 p-6 text-center text-slate-500" {
-                p { "Results land here once the backend emits MappingResult rows." }
-                p class="text-sm mt-2" { "Submit a Bundle (single object, array, or NDJSON) so ingestion can populate stg_servicerequest_flat and stg_sr_code_exploded." }
+            div class="bg-white rounded-md border border-dashed border-gray-300 p-12 text-center" {
+                h3 class="mt-2 text-sm font-medium text-gray-900" { "No results generated" }
+                p class="mt-1 text-sm text-gray-500" { "Submit a Bundle to see mapping analysis." }
             }
         }
     }
@@ -154,41 +204,42 @@ fn render_results(ctx: &PageContext) -> Markup {
 
 fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
     html! {
-        section class="bg-white shadow-sm rounded-xl p-6 space-y-5" id="metrics-dashboard" {
-            div class="flex items-center justify-between" {
-                h2 class="text-xl font-semibold" { "Pipeline metrics" }
-                span class="text-sm text-slate-500" {
+        section class="bg-white shadow-academic rounded-md border border-gray-200 overflow-hidden" id="metrics-dashboard" {
+            div class="bg-navy-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between" {
+                h2 class="text-lg font-serif font-bold text-navy-900" { "Pipeline Metrics" }
+                span class="text-xs font-mono text-gray-500" {
                     @if let Some(mode) = metrics.and_then(|m| m.compliance_mode.as_deref()) {
-                        (format!("Snapshot from GET /metrics/summary (compliance: {mode})"))
+                        (format!("Compliance Mode: {}", mode))
                     } @else {
-                        "Snapshot from GET /metrics/summary"
+                        "Live Snapshot"
                     }
                 }
             }
+
             @if let Some(metrics) = metrics {
-                div class="grid gap-4 md:grid-cols-3" {
-                    (metric_card("Bundles processed", metrics.bundle_count, "Total number of Bundle mapping runs recorded.", "text-emerald-600"))
-                    (metric_card("ServiceRequest flats", metrics.flats_count, "Flattened SR rows emitted by ingestion.", "text-slate-700"))
-                    (metric_card("Mapping attempts", metrics.mapping_count, "Total MappingResult entries generated.", "text-slate-700"))
-                }
-                div class="grid gap-4 md:grid-cols-3" {
-                    (state_metric_card("AutoMapped", metrics.auto_mapped, "bg-emerald-100 text-emerald-900", "Lexical matching cleared thresholds without reviewer help."))
-                    (state_metric_card("Needs review", metrics.needs_review, "bg-amber-100 text-amber-900", "Score fell into the review band; confirm the NCIt suggestion manually."))
-                    (state_metric_card("No match", metrics.no_match, "bg-rose-100 text-rose-900", "No NCIt concept resolved even after mock UMLS crosswalks."))
-                }
-                div class="grid gap-4 md:grid-cols-3" {
-                    (metric_card("License blocked", metrics.license_blocked, "Mappings halted due to compliance mode tier restrictions.", "text-rose-700"))
-                    (metric_card("Vector queries", metrics.vector_queries, "Vector search requests issued (if enabled).", "text-slate-700"))
-                    (metric_card("Vector fallbacks", metrics.vector_fallbacks, "Times vector search was skipped/disabled.", "text-slate-700"))
-                }
-                div class="grid gap-4 md:grid-cols-3" {
-                    (metric_card("Analytics requests", metrics.analytics_requests, "Count of calls to analytics endpoints.", "text-indigo-700"))
-                    (metric_card("Cohort queries", metrics.cohort_queries, "Number of cohort filter requests processed.", "text-indigo-700"))
-                    (metric_card_text("Avg cohort size", metrics.avg_cohort_size.map(|v| format!("{:.1}", v)).unwrap_or_else(|| "n/a".into()), "Mean rows returned per cohort query.", "text-indigo-700"))
+                div class="p-6 space-y-6" {
+                    div class="grid gap-4 md:grid-cols-3" {
+                        (metric_card("Bundles Processed", metrics.bundle_count, "Total runs", "text-navy-900"))
+                        (metric_card("Flattened Rows", metrics.flats_count, "SR flats emitted", "text-navy-900"))
+                        (metric_card("Mapping Attempts", metrics.mapping_count, "Total results", "text-navy-900"))
+                    }
+
+                    div class="grid gap-4 md:grid-cols-3" {
+                        (state_metric_card("AutoMapped", metrics.auto_mapped, "bg-emerald-50 text-emerald-800 border-emerald-100", "High confidence matches"))
+                        (state_metric_card("Needs Review", metrics.needs_review, "bg-amber-50 text-amber-800 border-amber-100", "Requires validation"))
+                        (state_metric_card("No Match", metrics.no_match, "bg-rose-50 text-rose-800 border-rose-100", "Unresolved concepts"))
+                    }
+
+                    div class="grid gap-4 md:grid-cols-4 pt-4 border-t border-gray-100" {
+                        (secondary_metric("License Blocked", metrics.license_blocked, "text-rose-700"))
+                        (secondary_metric("Vector Queries", metrics.vector_queries, "text-gray-700"))
+                        (secondary_metric("Cohort Queries", metrics.cohort_queries, "text-gray-700"))
+                        (secondary_metric_avg("Avg Cohort Size", metrics.avg_cohort_size, "text-gray-700"))
+                    }
                 }
             } @else {
-                p class="text-sm text-slate-500" {
-                    "Run a mapping request to populate live metrics. The dashboard refreshes on each page load."
+                div class="p-6 text-center text-sm text-gray-500 italic" {
+                    "Metrics will populate after the first mapping run."
                 }
             }
         }
@@ -198,56 +249,67 @@ fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
 fn render_analytics_panels(ctx: &PageContext) -> Markup {
     html! {
         section class="grid gap-6 lg:grid-cols-2" id="analytics-overview" {
-            div class="bg-white shadow-sm rounded-xl p-6 space-y-4" {
-                div class="flex items-center justify-between" {
-                    h2 class="text-xl font-semibold" { "Analytics overview" }
-                    span class="text-sm text-slate-500" { "GET /analytics/ncit-summary" }
+            div class="bg-white shadow-academic rounded-md border border-gray-200 flex flex-col" {
+                div class="bg-navy-50 px-6 py-3 border-b border-gray-200" {
+                    h2 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "Analytics Summary" }
                 }
-                p class="text-xs text-slate-500" { "Mapping states mirror docs/system-design/ncit/behavior/sequence-servicerequest.md definitions so CLI/API screenshots remain accurate." }
-                @if let Some(error) = &ctx.analytics_error {
-                    (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
-                } @else if let Some(summary) = &ctx.analytics_summary {
-                    (render_top_concepts(&summary.top_concepts))
-                    (render_state_distribution(&summary.state_counts))
-                    (render_time_buckets(&summary.time_buckets))
-                } @else {
-                    p class="text-sm text-slate-500" { "No analytics summary yet. Submit mapping runs or hit /analytics after sending Bundles." }
+                div class="p-6 flex-1 space-y-6" {
+                    @if let Some(error) = &ctx.analytics_error {
+                        (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
+                    } @else if let Some(summary) = &ctx.analytics_summary {
+                        (render_top_concepts(&summary.top_concepts))
+                        div class="border-t border-gray-100 pt-4" {
+                            (render_state_distribution(&summary.state_counts))
+                        }
+                        div class="border-t border-gray-100 pt-4" {
+                            (render_time_buckets(&summary.time_buckets))
+                        }
+                    } @else {
+                        p class="text-sm text-gray-500 italic" { "No analytics data available." }
+                    }
                 }
             }
-            div class="bg-white shadow-sm rounded-xl p-6 space-y-4" {
-                div class="flex items-center justify-between" {
-                    h2 class="text-xl font-semibold" { "Cohort exploration" }
-                    span class="text-sm text-slate-500" { "GET /analytics/cohort" }
+
+            div class="bg-white shadow-academic rounded-md border border-gray-200 flex flex-col" {
+                div class="bg-navy-50 px-6 py-3 border-b border-gray-200" {
+                    h2 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "Cohort Explorer" }
                 }
-                form method="get" action="/analytics" class="grid gap-3 md:grid-cols-2 text-sm" {
-                    label class="flex flex-col gap-1" for="ncit_id" {
-                        span class="text-slate-700" { "NCIt ID" }
-                        input type="text" id="ncit_id" name="ncit_id" value=(ctx.cohort_filters.ncit_id.clone().unwrap_or_default()) placeholder="CXXXX" class="rounded-lg border border-slate-300 px-3 py-2" {}
+                div class="p-6 flex-1 space-y-4" {
+                    form method="get" action="/analytics" class="grid gap-4 md:grid-cols-2 text-sm" {
+                        label class="flex flex-col gap-1" {
+                            span class="text-xs font-semibold text-gray-600 uppercase" { "NCIt ID" }
+                            input type="text" name="ncit_id" value=(ctx.cohort_filters.ncit_id.clone().unwrap_or_default()) placeholder="CXXXX" class="rounded-md border-gray-300 px-3 py-1.5 text-sm focus:border-navy-900 focus:ring-1 focus:ring-navy-900" {}
+                        }
+                        label class="flex flex-col gap-1" {
+                            span class="text-xs font-semibold text-gray-600 uppercase" { "Status" }
+                            input type="text" name="status" value=(ctx.cohort_filters.status.clone().unwrap_or_default()) placeholder="active" class="rounded-md border-gray-300 px-3 py-1.5 text-sm focus:border-navy-900 focus:ring-1 focus:ring-navy-900" {}
+                        }
+                        label class="flex flex-col gap-1" {
+                            span class="text-xs font-semibold text-gray-600 uppercase" { "Date From" }
+                            input type="text" name="date_from" value=(ctx.cohort_filters.date_from.clone().unwrap_or_default()) placeholder="YYYY-MM-DD" class="rounded-md border-gray-300 px-3 py-1.5 text-sm focus:border-navy-900 focus:ring-1 focus:ring-navy-900" {}
+                        }
+                        label class="flex flex-col gap-1" {
+                            span class="text-xs font-semibold text-gray-600 uppercase" { "Date To" }
+                            input type="text" name="date_to" value=(ctx.cohort_filters.date_to.clone().unwrap_or_default()) placeholder="YYYY-MM-DD" class="rounded-md border-gray-300 px-3 py-1.5 text-sm focus:border-navy-900 focus:ring-1 focus:ring-navy-900" {}
+                        }
+                        div class="md:col-span-2 flex justify-end" {
+                            button type="submit" class="inline-flex items-center rounded-md bg-white border border-gray-300 px-4 py-1.5 text-sm font-medium text-navy-900 hover:bg-gray-50" {
+                                "Apply Filters"
+                            }
+                        }
                     }
-                    label class="flex flex-col gap-1" for="status" {
-                        span class="text-slate-700" { "Status" }
-                        input type="text" id="status" name="status" value=(ctx.cohort_filters.status.clone().unwrap_or_default()) placeholder="active|completed" class="rounded-lg border border-slate-300 px-3 py-2" {}
+
+                    @if let Some(error) = &ctx.cohort_error {
+                        (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
                     }
-                    label class="flex flex-col gap-1" for="date_from" {
-                        span class="text-slate-700" { "Date from (YYYY-MM-DD)" }
-                        input type="text" id="date_from" name="date_from" value=(ctx.cohort_filters.date_from.clone().unwrap_or_default()) class="rounded-lg border border-slate-300 px-3 py-2" {}
+                    @if let Some(cohort) = &ctx.cohort {
+                        div class="mt-4" {
+                            p class="text-xs text-gray-500 mb-2" { (format!("Found {} matching records", cohort.total)) }
+                            (render_cohort_table(cohort))
+                        }
+                    } @else {
+                        p class="text-sm text-gray-500 italic" { "Run a cohort query to see results." }
                     }
-                    label class="flex flex-col gap-1" for="date_to" {
-                        span class="text-slate-700" { "Date to (YYYY-MM-DD)" }
-                        input type="text" id="date_to" name="date_to" value=(ctx.cohort_filters.date_to.clone().unwrap_or_default()) class="rounded-lg border border-slate-300 px-3 py-2" {}
-                    }
-                    button type="submit" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-white font-medium hover:bg-emerald-700 md:col-span-2" {
-                        "Apply cohort filters"
-                    }
-                }
-                @if let Some(error) = &ctx.cohort_error {
-                    (render_alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
-                }
-                @if let Some(cohort) = &ctx.cohort {
-                    p class="text-sm text-slate-600" { (format!("Matched {} orders", cohort.total)) }
-                    (render_cohort_table(cohort))
-                } @else {
-                    p class="text-sm text-slate-500" { "Run a cohort query to see resolved dim/fact rows." }
                 }
             }
         }
@@ -257,16 +319,18 @@ fn render_analytics_panels(ctx: &PageContext) -> Markup {
 fn render_top_concepts(concepts: &[crate::view_model::AnalyticsConceptTile]) -> Markup {
     html! {
         div class="space-y-3" {
-            h3 class="text-sm font-semibold text-slate-800" { "Top NCIt concepts" }
+            h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide" { "Top Concepts" }
             @if concepts.is_empty() {
-                p class="text-sm text-slate-500" { "No concepts yet." }
+                p class="text-sm text-gray-500" { "No concepts recorded." }
             } @else {
-                div class="grid gap-3 sm:grid-cols-2" {
+                div class="grid gap-2" {
                     @for concept in concepts {
-                        div class="rounded-lg border border-slate-200 p-3" {
-                            p class="text-sm font-semibold text-slate-800" { (concept.preferred_name.clone()) }
-                            p class="text-xs text-slate-500" { (concept.ncit_id.clone()) }
-                            p class="text-xs text-slate-500 mt-1" { (format!("Count: {}", concept.total)) }
+                        div class="flex items-center justify-between p-2 rounded bg-gray-50 border border-gray-100" {
+                            div {
+                                p class="text-sm font-medium text-navy-900" { (concept.preferred_name.clone()) }
+                                p class="text-xs font-mono text-gray-500" { (concept.ncit_id.clone()) }
+                            }
+                            span class="text-xs font-bold bg-white px-2 py-1 rounded border border-gray-200" { (concept.total) }
                         }
                     }
                 }
@@ -277,16 +341,18 @@ fn render_top_concepts(concepts: &[crate::view_model::AnalyticsConceptTile]) -> 
 
 fn render_state_distribution(states: &[crate::view_model::CountStat]) -> Markup {
     html! {
-        div class="space-y-2" {
-            h3 class="text-sm font-semibold text-slate-800" { "Mapping states" }
-            @for stat in states {
-                div class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700" {
-                    span { (stat.label.clone()) }
-                    span class="font-semibold" { (stat.count) }
+        div class="space-y-3" {
+            h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide" { "State Distribution" }
+            div class="space-y-2" {
+                @for stat in states {
+                    div class="flex items-center justify-between p-2 rounded bg-gray-50 text-sm" {
+                        span class="text-gray-600" { (stat.label.clone()) }
+                        span class="font-mono font-medium" { (stat.count) }
+                    }
                 }
-            }
-            @if states.is_empty() {
-                p class="text-sm text-slate-500" { "No mappings observed yet." }
+                @if states.is_empty() {
+                    p class="text-sm text-gray-500" { "No mappings observed yet." }
+                }
             }
         }
     }
@@ -294,26 +360,28 @@ fn render_state_distribution(states: &[crate::view_model::CountStat]) -> Markup 
 
 fn render_time_buckets(buckets: &[crate::view_model::AnalyticsTimeBucket]) -> Markup {
     html! {
-        div class="space-y-2" {
-            h3 class="text-sm font-semibold text-slate-800" { "Counts by time bucket" }
+        div class="space-y-3" {
+            h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide" { "Time Buckets" }
             @if buckets.is_empty() {
-                p class="text-sm text-slate-500" { "No ordered_at timestamps available." }
+                p class="text-sm text-gray-500" { "No ordered_at timestamps available." }
             } @else {
-                table class="min-w-full border border-slate-200 rounded-lg text-sm" {
-                    thead class="bg-slate-50" {
-                        tr {
-                            th class="px-3 py-2 text-left text-slate-600" { "Date" }
-                            th class="px-3 py-2 text-left text-slate-600" { "State counts" }
+                div class="overflow-x-auto border border-gray-200 rounded-md" {
+                    table class="min-w-full text-xs" {
+                        thead class="bg-gray-50" {
+                            tr {
+                                th class="px-3 py-2 text-left font-bold text-gray-500" { "Date" }
+                                th class="px-3 py-2 text-left font-bold text-gray-500" { "States" }
+                            }
                         }
-                    }
-                    tbody {
-                        @for bucket in buckets {
-                            tr class="border-t border-slate-200" {
-                                td class="px-3 py-2" { (bucket.bucket.clone()) }
-                                td class="px-3 py-2 space-x-2" {
-                                    @for stat in &bucket.state_counts {
-                                        span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700" {
-                                            (format!("{}: {}", stat.label, stat.count))
+                        tbody class="bg-white divide-y divide-gray-200" {
+                            @for bucket in buckets {
+                                tr {
+                                    td class="px-3 py-2 font-mono" { (bucket.bucket.clone()) }
+                                    td class="px-3 py-2 space-x-2" {
+                                        @for stat in &bucket.state_counts {
+                                            span class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs" {
+                                                (format!("{}: {}", stat.label, stat.count))
+                                            }
                                         }
                                     }
                                 }
@@ -328,23 +396,32 @@ fn render_time_buckets(buckets: &[crate::view_model::AnalyticsTimeBucket]) -> Ma
 
 fn render_cohort_table(cohort: &CohortView) -> Markup {
     html! {
-        div class="overflow-x-auto" {
-            table class="min-w-full border border-slate-200 rounded-lg text-sm" {
-                thead class="bg-slate-50" {
+        div class="overflow-x-auto border border-gray-200 rounded-md" {
+            table class="min-w-full divide-y divide-gray-200 text-sm" {
+                thead class="bg-gray-50" {
                     tr {
-                        th class="px-3 py-2 text-left text-slate-600" { "SR ID" }
-                        th class="px-3 py-2 text-left text-slate-600" { "Patient" }
-                        th class="px-3 py-2 text-left text-slate-600" { "Encounter" }
-                        th class="px-3 py-2 text-left text-slate-600" { "NCIt" }
-                        th class="px-3 py-2 text-left text-slate-600" { "Status" }
-                        th class="px-3 py-2 text-left text-slate-600" { "Intent" }
-                        th class="px-3 py-2 text-left text-slate-600" { "Ordered at" }
-                        th class="px-3 py-2 text-left text-slate-600" { "State" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "SR ID" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Patient" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Encounter" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "NCIt" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Status" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Intent" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Ordered At" }
+                        th class="px-3 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "State" }
                     }
                 }
-                tbody {
+                tbody class="bg-white divide-y divide-gray-200" {
                     @for row in &cohort.rows {
-                        (render_cohort_row(row))
+                        tr class="hover:bg-gray-50" {
+                            td class="px-3 py-2 font-mono text-xs text-navy-900" { (row.sr_id.clone()) }
+                            td class="px-3 py-2 text-xs text-gray-600" { (row.patient_id.clone()) }
+                            td class="px-3 py-2 text-xs text-gray-600" { (row.encounter_id.clone()) }
+                            td class="px-3 py-2 font-mono text-xs text-gray-600" { (row.ncit_id.clone()) }
+                            td class="px-3 py-2 text-xs text-gray-600" { (row.status.clone()) }
+                            td class="px-3 py-2 text-xs text-gray-600" { (row.intent.clone()) }
+                            td class="px-3 py-2 font-mono text-xs text-gray-600" { (row.ordered_at.clone()) }
+                            td class="px-3 py-2" { (state_chip_compact(row.mapping_state.clone())) }
+                        }
                     }
                 }
             }
@@ -352,53 +429,39 @@ fn render_cohort_table(cohort: &CohortView) -> Markup {
     }
 }
 
-fn render_cohort_row(row: &CohortRowView) -> Markup {
-    html! {
-        tr class="border-t border-slate-200" {
-            td class="px-3 py-2 font-medium text-slate-800" { (row.sr_id.clone()) }
-            td class="px-3 py-2" { (row.patient_id.clone()) }
-            td class="px-3 py-2" { (row.encounter_id.clone()) }
-            td class="px-3 py-2" { (row.ncit_id.clone()) }
-            td class="px-3 py-2" { (row.status.clone()) }
-            td class="px-3 py-2" { (row.intent.clone()) }
-            td class="px-3 py-2" { (row.ordered_at.clone()) }
-            td class="px-3 py-2" { (row.mapping_state.clone()) }
-        }
-    }
-}
-
-/// Renders the `/eval` page HTMX fragment (hx-get `/eval/report` + hx-post `/eval/run`).
 fn render_eval_panel(ctx: &PageContext) -> Markup {
     html! {
-        section class="bg-white shadow-sm rounded-xl p-6 space-y-4" id="eval-panel" {
-            div class="flex items-center justify-between" {
-                h2 class="text-xl font-semibold" { "Mapping evaluation snapshot" }
-                span class="text-sm text-slate-500" { "HTMX fragment from dfps_eval::report" }
+        section class="bg-white shadow-academic rounded-md border border-gray-200" id="eval-panel" {
+            div class="bg-navy-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between" {
+                h2 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "Evaluation Report" }
+                span class="text-xs text-gray-500" { "Gold Standard Comparison" }
             }
-            div class="flex flex-wrap items-center gap-3 text-sm" {
-                label class="text-slate-600" for="eval-dataset" { "Dataset" }
-                select id="eval-dataset" name="dataset" class="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    hx-get="/eval/report"
-                    hx-target="#eval-report-fragment"
-                    hx-swap="innerHTML"
-                    hx-trigger="change" {
-                    @if !ctx.datasets.is_empty() {
-                        @for dataset in &ctx.datasets {
-                            option value=(dataset.name) selected[(ctx.selected_eval_dataset == dataset.name)] { (dataset.name.clone()) }
+            div class="p-6 space-y-4" {
+                div class="flex flex-wrap items-center gap-3 text-sm" {
+                    label class="text-xs font-semibold text-gray-600 uppercase" for="eval-dataset" { "Dataset" }
+                    select id="eval-dataset" name="dataset" class="rounded-md border-gray-300 px-3 py-1.5 text-sm focus:border-navy-900 focus:ring-1 focus:ring-navy-900"
+                        hx-get="/eval/report"
+                        hx-target="#eval-report-fragment"
+                        hx-swap="innerHTML"
+                        hx-trigger="change" {
+                        @if !ctx.datasets.is_empty() {
+                            @for dataset in &ctx.datasets {
+                                option value=(dataset.name) selected[(ctx.selected_eval_dataset == dataset.name)] { (dataset.name.clone()) }
+                            }
+                        } @else {
+                            option value=(ctx.selected_eval_dataset) { (ctx.selected_eval_dataset.clone()) }
                         }
-                    } @else {
-                        // Fallback if dataset list failed to load.
-                        option value=(ctx.selected_eval_dataset) { (ctx.selected_eval_dataset.clone()) }
                     }
                 }
-            }
-            div id="eval-report-fragment" class="rounded-lg border border-slate-200 bg-slate-50 p-4" {
-                @if let Some(html) = &ctx.eval_report_html {
-                    (PreEscaped(html))
-                } @else if let Some(err) = &ctx.eval_panel_error {
-                    p class="text-sm text-rose-700" { (err) }
-                } @else {
-                    p class="text-sm text-slate-500" { "Run dfps_cli eval_mapping --out-dir to populate eval artifacts, then reload this page." }
+
+                div id="eval-report-fragment" class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-4" {
+                    @if let Some(html) = &ctx.eval_report_html {
+                        (PreEscaped(html))
+                    } @else if let Some(err) = &ctx.eval_panel_error {
+                        p class="text-sm text-rose-700" { (err) }
+                    } @else {
+                        p class="text-sm text-gray-500 italic" { "Select a dataset to view evaluation metrics." }
+                    }
                 }
             }
         }
@@ -407,40 +470,39 @@ fn render_eval_panel(ctx: &PageContext) -> Markup {
 
 fn render_no_match_explorer(results: Option<&MappingResultsView>) -> Markup {
     html! {
-        section class="bg-white shadow-sm rounded-xl p-6 space-y-4" id="no-match-explorer" {
-            div class="flex items-center justify-between" {
-                h2 class="text-xl font-semibold" { "NoMatch explorer" }
-                span class="text-sm text-slate-500" { "Codes that need NCIt follow-up (MappingState::NoMatch)" }
+        section class="bg-white shadow-academic rounded-md border border-gray-200" id="no-match-explorer" {
+            div class="bg-navy-50 px-6 py-3 border-b border-gray-200" {
+                h2 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "NoMatch Explorer" }
             }
-            @if let Some(view) = results {
-                @if view.no_matches.is_empty() {
-                    div class="rounded-lg border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600" {
-                        "Great news--your latest mapping run did not emit any MappingState::NoMatch rows."
-                    }
-                } @else {
-                    div class="overflow-x-auto" {
-                        table class="min-w-full divide-y divide-slate-200" {
-                            thead class="bg-slate-50" {
-                                tr {
-                                    th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "ServiceRequest" }
-                                    th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "Code" }
-                                    th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "Reason" }
-                                }
-                            }
-                            tbody class="divide-y divide-slate-100 bg-white" {
-                                @for row in &view.no_matches {
+            div class="p-6" {
+                @if let Some(view) = results {
+                    @if view.no_matches.is_empty() {
+                        p class="text-sm text-emerald-700 font-medium" { "✓ No unmapped codes found in this run." }
+                    } @else {
+                        div class="overflow-x-auto border border-gray-200 rounded-md" {
+                            table class="min-w-full divide-y divide-gray-200 text-sm" {
+                                thead class="bg-gray-50" {
                                     tr {
-                                        td class="px-4 py-3 align-top" {
-                                            p class="font-medium" { (&row.sr_id) }
-                                            p class="text-sm text-slate-500" { (&row.system) }
-                                        }
-                                        td class="px-4 py-3 align-top" {
-                                            p class="font-semibold" { (&row.code) }
-                                            p class="text-sm text-slate-500" { (&row.display) }
-                                        }
-                                        td class="px-4 py-3 align-top" {
-                                            span class="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-900" {
-                                                (row.reason.as_deref().unwrap_or("unknown_reason"))
+                                        th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "ServiceRequest" }
+                                        th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Code" }
+                                        th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Reason" }
+                                    }
+                                }
+                                tbody class="bg-white divide-y divide-gray-200" {
+                                    @for row in &view.no_matches {
+                                        tr {
+                                            td class="px-4 py-2 align-top" {
+                                                p class="font-mono text-xs font-medium" { (&row.sr_id) }
+                                                p class="text-xs text-gray-500" { (&row.system) }
+                                            }
+                                            td class="px-4 py-2 align-top" {
+                                                p class="font-mono text-xs font-semibold" { (&row.code) }
+                                                p class="text-xs text-gray-500" { (&row.display) }
+                                            }
+                                            td class="px-4 py-2 align-top" {
+                                                span class="inline-flex rounded bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-800 border border-rose-100" {
+                                                    (row.reason.as_deref().unwrap_or("unknown"))
+                                                }
                                             }
                                         }
                                     }
@@ -448,10 +510,8 @@ fn render_no_match_explorer(results: Option<&MappingResultsView>) -> Markup {
                             }
                         }
                     }
-                }
-            } @else {
-                div class="rounded-lg border border-dashed border-slate-200 p-5 text-sm text-slate-600" {
-                    "Upload a Bundle or paste JSON to seed the explorer with actionable NoMatch rows."
+                } @else {
+                    p class="text-sm text-gray-500 italic" { "Submit data to identify unmapped codes." }
                 }
             }
         }
@@ -461,15 +521,50 @@ fn render_no_match_explorer(results: Option<&MappingResultsView>) -> Markup {
 pub fn render_eval_page(ctx: &PageContext) -> String {
     html! {
         (DOCTYPE)
-        html class="h-full bg-slate-100" {
+        html class="h-full bg-paper" {
             head {
                 meta charset="utf-8";
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 title { "DFPS Eval" }
+
+                link rel="preconnect" href="https://fonts.googleapis.com";
+                link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="";
+                link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet";
+
                 script src="https://cdn.tailwindcss.com" {}
                 script src="https://unpkg.com/htmx.org@1.9.12" {}
+
+                script {
+                    (PreEscaped(r#"
+                        tailwind.config = {
+                            theme: {
+                                extend: {
+                                    fontFamily: {
+                                        sans: ['Inter', 'sans-serif'],
+                                        serif: ['Merriweather', 'serif'],
+                                        mono: ['Roboto Mono', 'monospace'],
+                                    },
+                                    colors: {
+                                        navy: {
+                                            50: '#f0f4f8',
+                                            100: '#d9e2ec',
+                                            800: '#1e293b',
+                                            900: '#0f172a',
+                                        },
+                                        gold: {
+                                            100: '#fbf3db',
+                                            500: '#b49b57',
+                                            600: '#967d3f',
+                                        },
+                                        paper: '#f8f9fa',
+                                    }
+                                }
+                            }
+                        }
+                    "#))
+                }
             }
-            body class="min-h-screen bg-slate-100 text-slate-900" {
+            body class="min-h-screen bg-paper text-navy-900 font-sans" {
                 main class="mx-auto max-w-5xl px-4 py-10 space-y-6" {
                     (render_eval_section(ctx))
                 }
@@ -485,27 +580,27 @@ pub fn render_eval_fragment(run: &crate::client::EvalRunResponse) -> String {
 
 fn render_eval_section(ctx: &PageContext) -> Markup {
     html! {
-        section class="bg-white shadow-sm rounded-xl p-6 space-y-4" {
+        section class="bg-white shadow-academic rounded-md border border-gray-200 p-6 space-y-4" {
             div class="flex items-center justify-between" {
-                h2 class="text-xl font-semibold" { "Evaluation" }
-                span class="text-sm text-slate-500" { "DFPS mapping eval datasets" }
+                h2 class="text-xl font-serif font-bold text-navy-900" { "Evaluation" }
+                span class="text-sm text-gray-500" { "DFPS mapping eval datasets" }
             }
             form hx-post="/eval/run" hx-target="#eval-fragment" hx-swap="innerHTML" class="flex flex-wrap gap-3 items-center text-sm" {
                 label for="dataset" { "Dataset" }
-                select id="dataset" name="dataset" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" {
+                select id="dataset" name="dataset" class="rounded-md border-gray-300 px-3 py-1.5 text-sm" {
                     @for ds in &ctx.datasets {
                         option value=(ds.name) selected[(ctx.selected_eval_dataset == ds.name)] { (format!("{} ({} rows)", ds.name, ds.n_cases)) }
                     }
                 }
                 label for="top_k" { "Top K" }
-                input type="number" id="top_k" name="top_k" value="1" min="1" max="5" class="w-16 rounded-lg border border-slate-300 px-2 py-1 text-sm" {}
-                button type="submit" class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-white font-medium hover:bg-emerald-700" { "Run eval" }
+                input type="number" id="top_k" name="top_k" value="1" min="1" max="5" class="w-16 rounded-md border-gray-300 px-2 py-1 text-sm" {}
+                button type="submit" class="inline-flex items-center rounded-md bg-navy-900 px-4 py-1.5 text-white font-medium hover:bg-navy-800" { "Run eval" }
             }
             div id="eval-fragment" {
                 @if let Some(eval) = &ctx.eval {
                     (render_eval_summary(&eval.summary, &eval.dataset))
                 } @else {
-                    p class="text-sm text-slate-500" { "No eval summary available yet." }
+                    p class="text-sm text-gray-500" { "No eval summary available yet." }
                 }
             }
         }
@@ -514,32 +609,32 @@ fn render_eval_section(ctx: &PageContext) -> Markup {
 
 fn render_eval_summary(summary: &dfps_eval::EvalSummary, dataset: &str) -> Markup {
     html! {
-        div class="space-y-4" {
+        div class="space-y-6" {
             div class="flex items-center justify-between" {
-                h3 class="text-lg font-semibold" { (format!("Dataset: {}", dataset)) }
-                span class="text-sm text-slate-500" { (format!("Total cases: {}", summary.total_cases)) }
+                h3 class="text-lg font-serif font-semibold text-navy-900" { (format!("Dataset: {}", dataset)) }
+                span class="text-sm text-gray-500" { (format!("Total cases: {}", summary.total_cases)) }
             }
             div class="grid gap-4 md:grid-cols-3" {
-                (metric_card("Precision", (summary.precision * 100.0) as usize, "%", "text-emerald-600"))
-                (metric_card("Recall", (summary.recall * 100.0) as usize, "%", "text-emerald-600"))
-                (metric_card("Coverage", (summary.coverage * 100.0) as usize, "%", "text-emerald-600"))
+                (metric_card("Precision", (summary.precision * 100.0) as usize, "%", "text-emerald-700"))
+                (metric_card("Recall", (summary.recall * 100.0) as usize, "%", "text-emerald-700"))
+                (metric_card("Coverage", (summary.coverage * 100.0) as usize, "%", "text-emerald-700"))
             }
             div class="grid gap-4 md:grid-cols-3" {
-                (metric_card("Top1 accuracy", (summary.top1_accuracy * 100.0) as usize, "%", "text-slate-700"))
-                (metric_card("Top3 accuracy", (summary.top3_accuracy * 100.0) as usize, "%", "text-slate-700"))
-                (metric_card("AutoMapped precision", (summary.auto_mapped_precision * 100.0) as usize, "%", "text-slate-700"))
+                (metric_card("Top1 accuracy", (summary.top1_accuracy * 100.0) as usize, "%", "text-navy-700"))
+                (metric_card("Top3 accuracy", (summary.top3_accuracy * 100.0) as usize, "%", "text-navy-700"))
+                (metric_card("AutoMapped precision", (summary.auto_mapped_precision * 100.0) as usize, "%", "text-navy-700"))
             }
-            div class="bg-slate-50 rounded-lg border border-slate-200 p-4" {
-                h4 class="text-sm font-semibold text-slate-800 mb-2" { "State counts" }
-                ul class="text-sm text-slate-600 space-y-1" {
+            div class="bg-gray-50 rounded-md border border-gray-200 p-4" {
+                h4 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2" { "State counts" }
+                ul class="text-sm text-gray-600 space-y-1 font-mono" {
                     @for (state, count) in &summary.state_counts {
                         li { (format!("{state}: {count}")) }
                     }
                 }
             }
-            div class="bg-slate-50 rounded-lg border border-slate-200 p-4" {
-                h4 class="text-sm font-semibold text-slate-800 mb-2" { "Top NoMatch reasons" }
-                ul class="text-sm text-slate-600 space-y-1" {
+            div class="bg-gray-50 rounded-md border border-gray-200 p-4" {
+                h4 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2" { "Top NoMatch reasons" }
+                ul class="text-sm text-gray-600 space-y-1 font-mono" {
                     @for (reason, count) in &summary.reason_counts {
                         li { (format!("{reason}: {count}")) }
                     }
@@ -550,13 +645,13 @@ fn render_eval_summary(summary: &dfps_eval::EvalSummary, dataset: &str) -> Marku
 }
 
 fn render_alert(alert: &AlertMessage) -> Markup {
-    let (bg, text) = match alert.kind {
-        AlertKind::Info => ("bg-emerald-50 text-emerald-900", "Info"),
-        AlertKind::Error => ("bg-rose-50 text-rose-900", "Error"),
+    let (bg, border, text_color, icon) = match alert.kind {
+        AlertKind::Info => ("bg-blue-50", "border-blue-200", "text-blue-800", "ℹ️"),
+        AlertKind::Error => ("bg-rose-50", "border-rose-200", "text-rose-800", "⚠️"),
     };
     html! {
-        div class={(format!("rounded-lg px-4 py-3 text-sm font-medium {bg}"))} {
-            strong class="mr-2" { (text) ":" }
+        div class={(format!("rounded-md border px-4 py-3 text-sm font-medium flex items-start gap-2 {} {} {}", bg, border, text_color))} {
+            span { (icon) }
             span { (&alert.text) }
         }
     }
@@ -564,22 +659,25 @@ fn render_alert(alert: &AlertMessage) -> Markup {
 
 fn render_results_panel(results: &MappingResultsView) -> Markup {
     html! {
-        div class="bg-white shadow rounded-xl p-6 space-y-6" {
-            h2 class="text-xl font-semibold" { "MappingResult rows" }
-            div class="grid gap-4 md:grid-cols-3" {
-                div class="rounded-lg border border-slate-200 p-4" {
-                    p class="text-sm font-mono text-slate-500" { "stg_servicerequest_flat" }
-                    p class="text-2xl font-semibold" { (results.request_summary.total) }
-                    p class="text-xs text-slate-500 mt-1" { "ServiceRequest rows produced by ingestion." }
+        div class="bg-white shadow-academic rounded-md border border-gray-200 overflow-hidden" {
+            div class="bg-navy-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between" {
+                h2 class="text-sm font-bold text-navy-900 uppercase tracking-wider" { "Mapping Results" }
+                span class="text-xs font-mono text-gray-500" { (format!("Total: {}", results.request_summary.total)) }
+            }
+
+            div class="p-4 grid gap-3 md:grid-cols-3 border-b border-gray-100" {
+                div class="rounded-md border border-gray-200 p-3" {
+                    p class="text-xs font-mono text-gray-500 uppercase" { "stg_servicerequest_flat" }
+                    p class="text-xl font-serif font-bold mt-1" { (results.request_summary.total) }
                 }
-                div class="rounded-lg border border-slate-200 p-4" {
-                    p class="text-sm font-semibold text-slate-600" { "ServiceRequest.status" }
+                div class="rounded-md border border-gray-200 p-3" {
+                    p class="text-xs font-semibold text-gray-600 uppercase" { "SR Status" }
                     @if results.request_summary.statuses.is_empty() {
-                        p class="text-sm text-slate-500" { "No status values reported." }
+                        p class="text-sm text-gray-500 mt-1" { "No status values" }
                     } @else {
-                        ul class="mt-2 space-y-1" {
+                        ul class="mt-2 space-y-1 text-xs" {
                             @for stat in &results.request_summary.statuses {
-                                li class="flex justify-between text-sm" {
+                                li class="flex justify-between" {
                                     span { (&stat.label) }
                                     span class="font-medium" { (&stat.count) }
                                 }
@@ -587,14 +685,14 @@ fn render_results_panel(results: &MappingResultsView) -> Markup {
                         }
                     }
                 }
-                div class="rounded-lg border border-slate-200 p-4" {
-                    p class="text-sm font-semibold text-slate-600" { "ServiceRequest.intent" }
+                div class="rounded-md border border-gray-200 p-3" {
+                    p class="text-xs font-semibold text-gray-600 uppercase" { "SR Intent" }
                     @if results.request_summary.intents.is_empty() {
-                        p class="text-sm text-slate-500" { "No intents reported." }
+                        p class="text-sm text-gray-500 mt-1" { "No intents" }
                     } @else {
-                        ul class="mt-2 space-y-1" {
+                        ul class="mt-2 space-y-1 text-xs" {
                             @for stat in &results.request_summary.intents {
-                                li class="flex justify-between text-sm" {
+                                li class="flex justify-between" {
                                     span { (&stat.label) }
                                     span class="font-medium" { (&stat.count) }
                                 }
@@ -603,50 +701,49 @@ fn render_results_panel(results: &MappingResultsView) -> Markup {
                     }
                 }
             }
+
             div class="overflow-x-auto" {
-                table class="min-w-full divide-y divide-slate-200" {
-                    thead class="bg-slate-50" {
+                table class="min-w-full divide-y divide-gray-200 text-sm" {
+                    thead class="bg-gray-50" {
                         tr {
-                            th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "ServiceRequest (sr_id)" }
-                            th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "Code element" }
-                            th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "NCIt concept" }
-                            th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600" { "Mapping state" }
+                            th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "ServiceRequest" }
+                            th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "Code Element" }
+                            th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "NCIt Concept" }
+                            th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider" { "State" }
                         }
                     }
-                    tbody class="divide-y divide-slate-100 bg-white" {
+                    tbody class="bg-white divide-y divide-gray-200" {
                         @if results.rows.is_empty() {
                             tr {
-                                td colspan="4" class="px-4 py-6 text-center text-slate-500" {
-                                    "Backend returned 0 MappingResult rows. Confirm that codes landed in stg_sr_code_exploded."
+                                td colspan="4" class="px-6 py-8 text-center text-gray-500 italic" {
+                                    "No mapping rows generated."
                                 }
                             }
                         } @else {
                             @for row in &results.rows {
-                                tr {
-                                    td class="px-4 py-3 align-top" {
-                                        p class="font-medium" { (&row.sr_id) }
-                                        p class="text-sm text-slate-500" { (&row.system) }
+                                tr class="hover:bg-gray-50 transition-colors" {
+                                    td class="px-6 py-4 align-top" {
+                                        div class="font-mono text-xs font-medium text-navy-900" { (&row.sr_id) }
+                                        div class="text-xs text-gray-500 mt-0.5" { (&row.system) }
                                     }
-                                    td class="px-4 py-3 align-top" {
-                                        p class="font-semibold" { (&row.code) }
-                                        p class="text-sm text-slate-500" { (&row.display) }
+                                    td class="px-6 py-4 align-top" {
+                                        div class="font-mono text-xs font-bold text-navy-800" { (&row.code) }
+                                        div class="text-xs text-gray-600 mt-0.5" { (&row.display) }
                                     }
-                                    td class="px-4 py-3 align-top" {
+                                    td class="px-6 py-4 align-top" {
                                         @if let Some(id) = &row.ncit_id {
-                                            p class="font-medium" { (id) }
+                                            div class="font-mono text-xs font-medium text-navy-900 bg-gray-100 px-1.5 py-0.5 rounded inline-block" { (id) }
                                             @if let Some(label) = &row.ncit_label {
-                                                p class="text-sm text-slate-500" { (label) }
+                                                div class="text-xs text-gray-600 mt-0.5" { (label) }
                                             }
                                         } @else {
-                                            span class="text-slate-400" { "--" }
+                                            span class="text-gray-300" { "—" }
                                         }
                                     }
-                                    td class="px-4 py-3 align-top" {
+                                    td class="px-6 py-4 align-top" {
                                         (state_chip(row.state))
                                         @if let Some(reason) = &row.reason {
-                                            p class="mt-1 text-xs text-slate-500" {
-                                                "MappingResult.reason: " (reason)
-                                            }
+                                            div class="mt-1 text-xs text-rose-600 font-medium" { (reason) }
                                         }
                                     }
                                 }
@@ -658,57 +755,80 @@ fn render_results_panel(results: &MappingResultsView) -> Markup {
         }
     }
 }
+
 fn state_chip(state: MappingState) -> Markup {
-    let (label, classes, tooltip) = match state {
+    let (label, classes) = match state {
         MappingState::AutoMapped => (
             "AutoMapped",
-            "bg-emerald-100 text-emerald-900 ring-emerald-200",
-            "Met lexical + semantic thresholds using NCIt and mock UMLS xrefs.",
+            "bg-emerald-50 text-emerald-800 border-emerald-200",
         ),
         MappingState::NeedsReview => (
-            "Needs review",
-            "bg-amber-100 text-amber-900 ring-amber-200",
-            "Below hard threshold; requires human validation before promoting.",
+            "Needs Review",
+            "bg-amber-50 text-amber-800 border-amber-200",
         ),
-        MappingState::NoMatch => (
-            "No match",
-            "bg-rose-100 text-rose-900 ring-rose-200",
-            "Pipeline could not locate an NCIt concept for the supplied code.",
-        ),
+        MappingState::NoMatch => ("No Match", "bg-rose-50 text-rose-800 border-rose-200"),
     };
     html! {
-        span title=(tooltip) class={(format!("inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset {classes}"))} {
+        span class={(format!("inline-flex items-center rounded px-2.5 py-0.5 text-xs font-medium border {}", classes))} {
             (label)
         }
     }
 }
 
-fn metric_card(title: &str, value: usize, description: &str, accent: &str) -> Markup {
+fn state_chip_compact(state: String) -> Markup {
+    let classes = match state.as_str() {
+        "AutoMapped" => "text-emerald-700 bg-emerald-50",
+        "NeedsReview" => "text-amber-700 bg-amber-50",
+        "NoMatch" => "text-rose-700 bg-rose-50",
+        _ => "text-gray-700 bg-gray-50",
+    };
     html! {
-        div class="rounded-lg border border-slate-200 p-4 shadow-sm" {
-            p class="text-sm text-slate-500" { (title) }
-            p class={(format!("text-3xl font-semibold {}", accent))} { (value) }
-            p class="text-xs text-slate-500 mt-1" { (description) }
+        span class={(format!("inline-flex rounded px-2 py-0.5 text-xs font-medium {}", classes))} {
+            (state)
         }
     }
 }
 
-fn metric_card_text(title: &str, value: String, description: &str, accent: &str) -> Markup {
+fn metric_card(title: &str, value: usize, suffix: &str, text_class: &str) -> Markup {
     html! {
-        div class="rounded-lg border border-slate-200 p-4 shadow-sm" {
-            p class="text-sm text-slate-500" { (title) }
-            p class={(format!("text-3xl font-semibold {}", accent))} { (value) }
-            p class="text-xs text-slate-500 mt-1" { (description) }
+        div class="rounded-md border border-gray-200 p-4 bg-white hover:border-gray-300 transition-colors" {
+            p class="text-xs font-bold text-gray-500 uppercase tracking-wide" { (title) }
+            div class="mt-1 flex items-baseline gap-1" {
+                span class={(format!("text-2xl font-serif font-bold {}", text_class))} { (value) }
+                span class="text-sm text-gray-400" { (suffix) }
+            }
         }
     }
 }
 
 fn state_metric_card(title: &str, value: usize, classes: &str, tooltip: &str) -> Markup {
     html! {
-        div class="rounded-lg border border-slate-200 p-4" {
-            p class="text-sm text-slate-500" { (title) }
-            div title=(tooltip) class={(format!("mt-2 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold {}", classes))} {
-                (value) " entries"
+        div class={(format!("rounded-md border p-4 {}", classes))} title=(tooltip) {
+            p class="text-xs font-bold opacity-80 uppercase tracking-wide" { (title) }
+            p class="mt-1 text-2xl font-serif font-bold" { (value) }
+        }
+    }
+}
+
+fn secondary_metric(title: &str, value: usize, text_class: &str) -> Markup {
+    html! {
+        div class="text-center" {
+            p class="text-xs text-gray-500" { (title) }
+            p class={(format!("text-lg font-mono font-bold {}", text_class))} { (value) }
+        }
+    }
+}
+
+fn secondary_metric_avg(title: &str, value: Option<f64>, text_class: &str) -> Markup {
+    html! {
+        div class="text-center" {
+            p class="text-xs text-gray-500" { (title) }
+            p class={(format!("text-lg font-mono font-bold {}", text_class))} {
+                @if let Some(v) = value {
+                    (format!("{:.1}", v))
+                } @else {
+                    "n/a"
+                }
             }
         }
     }
@@ -786,12 +906,11 @@ mod tests {
         ctx.eval_report_html = Some("<div>Eval report</div>".into());
 
         let html = render_page(&ctx);
-        assert!(html.contains("Pipeline metrics"));
-        assert!(html.contains("NoMatch explorer"));
-        assert!(html.contains("MappingResult.reason"));
+        assert!(html.contains("Pipeline Metrics"));
+        assert!(html.contains("NoMatch Explorer"));
         assert!(html.contains("missing_system_or_code"));
-        assert!(html.contains("Backend warning"));
-        assert!(html.contains("Mapping evaluation snapshot"));
+        assert!(html.contains("System Warning"));
+        assert!(html.contains("Evaluation Report"));
         assert!(html.contains("Eval report"));
     }
 

@@ -11,9 +11,9 @@ use dfps_mapping::{
     map_staging_codes_with_summary_and_policy, map_staging_codes_with_vector_and_policy,
 };
 use dfps_observability::VectorUsageSnapshot;
-use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend};
 #[cfg(feature = "backend-pgvector")]
 use dfps_vector_store::PgVectorStore;
+use dfps_vector_store::{MockVectorStore, QdrantVectorStore, VectorBackend};
 
 #[derive(Parser)]
 #[command(name = "map_codes", about = "Map staging codes to NCIt concepts")]
