@@ -46,6 +46,14 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 * Platform/App load policy from env (or files) via `dfps_compliance::ComplianceConfig`
   and inject it into CLI/API orchestrators.
 
+### Datamart sink (analytics adapter)
+
+* Domain: `dfps_pipeline::PipelinePort` emits `PipelineOutput`/mapping rows without
+  caring about storage.
+* App: `dfps_datamart::DatamartSink` is the outbound port that persists/query
+  analytics. `SqliteDatamart` lives in the `dfps_datamart` crate and is injected
+  into `dfps_api` and CLI loaders, keeping HTTP/CLI code free of SQL details.
+
 ### CLI pipeline command
 
 * Domain: `dfps_pipeline::{PipelinePort, DefaultPipeline}` exposes an inbound port

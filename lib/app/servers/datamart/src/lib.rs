@@ -1,6 +1,7 @@
 pub mod dim;
 pub mod fact;
 pub mod keys;
+pub mod port;
 pub mod sql;
 
 use std::collections::{BTreeMap, HashMap};
@@ -17,6 +18,7 @@ pub use dfps_contracts::LoadSummary;
 pub use dim::*;
 pub use fact::*;
 pub use keys::*;
+pub use port::{DatamartError, DatamartSink, SqliteDatamart};
 pub use sql::{
     CohortFilters, LoadError, WarehouseConfig, cohort, connect_sqlite, ddl_statements,
     load_from_pipeline_output, migrate, ncit_summary,

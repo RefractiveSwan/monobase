@@ -15,18 +15,15 @@ use axum::{
     routing::{get, post},
 };
 use dfps_compliance::{ComplianceConfig, assert_export_allowed};
-use dfps_contracts::{ErrorCode, ErrorKind, PipelineMetrics, VectorUsageSnapshot};
-use dfps_core::{
-    fhir::Bundle,
-    mapping::{DimNCITConcept, MappingResult, MappingState},
-    staging::{StgServiceRequestFlat, StgSrCodeExploded},
+use dfps_contracts::{
+    DimNCITConcept, ErrorCode, ErrorKind, MappingResult, MappingState, PipelineMetrics,
+    PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded, VectorUsageSnapshot,
 };
-use dfps_datamart::{
-    CohortFilters, WarehouseConfig, connect_sqlite, load_from_pipeline_output, migrate,
-};
+use dfps_core::fhir::Bundle;
+use dfps_datamart::{CohortFilters, DatamartError, DatamartSink, SqliteDatamart};
 use dfps_observability::{log_no_match, log_pipeline_output};
 use dfps_pipeline::{
-    PipelineError, PipelineOutput, VectorPipelineContext, bundle_to_mapped_sr_with_vector_context,
+    DefaultPipeline, PipelineError, PipelinePort, PipelineRunConfig, VectorPipelineContext,
 };
 use dfps_terminology::codesystem::LicenseTier;
 use dfps_vector_store::{
@@ -35,12 +32,8 @@ use dfps_vector_store::{
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sqlx::{Pool, Sqlite};
 use thiserror::Error;
-use tokio::{
-    net::TcpListener,
-    sync::{Mutex, OnceCell},
-};
+use tokio::{net::TcpListener, sync::Mutex};
 use uuid::Uuid;
 
 use crate::dto::{AnalyticsSummaryResponse, CohortResponse, EvalRunResponse};
@@ -104,72 +97,6 @@ pub enum ServerError {
     Serve(#[source] std::io::Error),
 }
 
-#[derive(Clone)]
-struct AnalyticsPersistence {
-    config: Option<WarehouseConfig>,
-    pool: Arc<OnceCell<Pool<Sqlite>>>,
-}
-
-impl AnalyticsPersistence {
-    fn from_env() -> Self {
-        Self {
-            config: WarehouseConfig::from_env().ok(),
-            pool: Arc::new(OnceCell::new()),
-        }
-    }
-
-    async fn pool(&self) -> Option<Pool<Sqlite>> {
-        let Some(cfg) = &self.config else {
-            return None;
-        };
-        let pool = self
-            .pool
-            .get_or_try_init(|| async {
-                let pool = connect_sqlite(cfg).await?;
-                migrate(&pool).await?;
-                Ok::<_, sqlx::Error>(pool)
-            })
-            .await;
-        match pool {
-            Ok(pool) => Some(pool.clone()),
-            Err(err) => {
-                warn!(target: "dfps_api", "analytics persistence disabled: {err}");
-                None
-            }
-        }
-    }
-
-    async fn persist(&self, output: &PipelineOutput, policy: &dfps_compliance::Policy) {
-        if let Some(pool) = self.pool().await
-            && let Err(err) = load_from_pipeline_output(&pool, output, policy).await
-        {
-            warn!(target: "dfps_api", "analytics persistence failed: {err}");
-        }
-    }
-
-    async fn query_ncit_summary(&self) -> Option<AnalyticsSummaryResponse> {
-        let pool = self.pool().await?;
-        match dfps_datamart::ncit_summary(&pool).await {
-            Ok(response) => Some(response),
-            Err(err) => {
-                warn!(target: "dfps_api", "analytics summary query failed: {err}");
-                None
-            }
-        }
-    }
-
-    async fn query_cohort(&self, filters: &CohortFilters) -> Option<CohortResponse> {
-        let pool = self.pool().await?;
-        match dfps_datamart::cohort(&pool, filters).await {
-            Ok(response) => Some(response),
-            Err(err) => {
-                warn!(target: "dfps_api", "cohort query failed: {err}");
-                None
-            }
-        }
-    }
-}
-
 fn license_tiers_from_output(output: &PipelineOutput) -> Vec<LicenseTier> {
     let mut tiers = HashSet::new();
     for mapping in &output.mapping_results {
@@ -209,13 +136,16 @@ fn enforce_export_policy(
     })
 }
 
+/// Application node state that wires domain ports + adapters (pipeline, datamart,
+/// datasets, metrics, compliance policy) for handlers.
 #[derive(Clone)]
 struct NodeDataPlane {
     policy: dfps_compliance::Policy,
     vector_context: Option<VectorPipelineContext>,
     dataset_store: Arc<dfps_eval::FileDatasetStore>,
     metrics: Arc<Mutex<PipelineMetrics>>,
-    analytics: AnalyticsPersistence,
+    pipeline: Arc<dyn PipelinePort + Send + Sync>,
+    datamart: Arc<dyn DatamartSink + Send + Sync>,
 }
 
 impl NodeDataPlane {
@@ -227,12 +157,15 @@ impl NodeDataPlane {
             .unwrap_or_else(|err| panic!("failed to load compliance policy: {err}"));
         let dataset_store = Arc::new(eval_dataset_store_from_env());
         let vector_context = load_vector_context_from_env();
+        let pipeline: Arc<dyn PipelinePort + Send + Sync> = Arc::new(DefaultPipeline);
+        let datamart: Arc<dyn DatamartSink + Send + Sync> = Arc::new(SqliteDatamart::from_env());
         Self {
             policy: compliance_policy,
             vector_context,
             dataset_store,
             metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
-            analytics: AnalyticsPersistence::from_env(),
+            pipeline,
+            datamart,
         }
     }
 
@@ -242,6 +175,14 @@ impl NodeDataPlane {
 
     fn dataset_store(&self) -> Arc<dfps_eval::FileDatasetStore> {
         Arc::clone(&self.dataset_store)
+    }
+
+    fn datamart(&self) -> Arc<dyn DatamartSink + Send + Sync> {
+        Arc::clone(&self.datamart)
+    }
+
+    fn pipeline(&self) -> Arc<dyn PipelinePort + Send + Sync> {
+        Arc::clone(&self.pipeline)
     }
 }
 
@@ -352,12 +293,23 @@ async fn analytics_ncit_summary(State(state): State<ApiState>) -> Result<Respons
         let mut metrics = metrics_handle.lock().await;
         metrics.analytics_requests += 1;
     }
-    let response = state
-        .plane
-        .analytics
-        .query_ncit_summary()
-        .await
-        .unwrap_or_else(|| AnalyticsSummaryResponse { rows: Vec::new() });
+    let response = match state.plane.datamart().ncit_summary().await {
+        Ok(response) => response,
+        Err(DatamartError::Disabled) => {
+            warn!(
+                target: "dfps_api",
+                "request_id={request_id} analytics summary skipped (datamart disabled)"
+            );
+            AnalyticsSummaryResponse { rows: Vec::new() }
+        }
+        Err(err) => {
+            warn!(
+                target: "dfps_api",
+                "request_id={request_id} analytics summary query failed: {err}"
+            );
+            AnalyticsSummaryResponse { rows: Vec::new() }
+        }
+    };
     Ok(Json(response).into_response())
 }
 
@@ -375,15 +327,29 @@ async fn analytics_cohort(
         query.date_to
     );
     let filters = CohortFilters::from(&query);
-    let response = state
-        .plane
-        .analytics
-        .query_cohort(&filters)
-        .await
-        .unwrap_or_else(|| CohortResponse {
-            total: 0,
-            rows: Vec::new(),
-        });
+    let response = match state.plane.datamart().cohort(&filters).await {
+        Ok(response) => response,
+        Err(DatamartError::Disabled) => {
+            warn!(
+                target: "dfps_api",
+                "request_id={request_id} cohort query skipped (datamart disabled)"
+            );
+            CohortResponse {
+                total: 0,
+                rows: Vec::new(),
+            }
+        }
+        Err(err) => {
+            warn!(
+                target: "dfps_api",
+                "request_id={request_id} cohort query failed: {err}"
+            );
+            CohortResponse {
+                total: 0,
+                rows: Vec::new(),
+            }
+        }
+    };
     {
         let metrics_handle = state.plane.metrics();
         let mut metrics = metrics_handle.lock().await;
@@ -541,15 +507,20 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         compliance_mode: Some(state.plane.policy.mode.as_str().to_string()),
         ..PipelineMetrics::default()
     };
+    let pipeline = state.plane.pipeline();
+    let datamart = state.plane.datamart();
 
     for bundle in bundles {
-        let output =
-            bundle_to_mapped_sr_with_vector_context(&bundle, state.plane.vector_context.as_ref())
+        let output = {
+            let config = PipelineRunConfig::default();
+            pipeline
+                .map_bundle(&bundle, &config, state.plane.vector_context.as_ref())
                 .map_err(|err| match err {
-                PipelineError::Ingestion(source) => {
-                    ApiError::ingestion(source.to_string(), request_id)
-                }
-            })?;
+                    PipelineError::Ingestion(source) => {
+                        ApiError::ingestion(source.to_string(), request_id)
+                    }
+                })?
+        };
 
         enforce_export_policy(&output, &state.plane.policy, request_id)?;
 
@@ -561,11 +532,22 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             output.vector_usage.clone(),
             None,
         );
-        state
-            .plane
-            .analytics
-            .persist(&output, &state.plane.policy)
-            .await;
+        if let Err(err) = datamart.persist(&output, &state.plane.policy).await {
+            match err {
+                DatamartError::Disabled => {
+                    warn!(
+                        target: "dfps_api",
+                        "request_id={request_id} datamart persist skipped (disabled)"
+                    );
+                }
+                other => {
+                    warn!(
+                        target: "dfps_api",
+                        "request_id={request_id} datamart persist failed: {other}"
+                    );
+                }
+            }
+        }
 
         for mapping in &output.mapping_results {
             if matches!(mapping.state, MappingState::NoMatch) {
