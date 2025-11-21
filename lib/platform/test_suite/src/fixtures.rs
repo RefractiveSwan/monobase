@@ -67,5 +67,5 @@ pub fn mapping_ncit_obo_code() -> StgSrCodeExploded {
 
 pub fn eval_pet_ct_small_cases() -> Vec<EvalCase> {
     dfps_eval::load_dataset("pet_ct_small")
-        .expect("pet_ct_small dataset should load from lib/domain/eval/data/eval")
+        .expect("pet_ct_small dataset should load from lib/domain/meta/eval/data/eval")
 }

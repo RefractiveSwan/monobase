@@ -39,7 +39,9 @@ pub fn ensure_eval_data_root() -> Result<PathBuf, dfps_configuration::EnvLoadErr
         return Ok(PathBuf::from(raw));
     }
 
-    Ok(dfps_configuration::workspace_root()?.join("lib/domain/eval/data/eval"))
+    Ok(
+        dfps_configuration::workspace_root()?.join("lib/domain/meta/eval/data/eval"),
+    )
 }
 
 /// RAII guard for temporarily overriding environment variables in tests.
