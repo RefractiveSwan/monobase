@@ -16,7 +16,7 @@ jobs:
         run: |
           cargo run -p dfps_cli --bin eval_mapping -- \
             --dataset pet_ct_small \
-            --thresholds lib/domain/fake_data/data/meta/eval_thresholds.json \
+            --thresholds lib/domain/meta/evaluation/data/meta/eval_thresholds.json \
             --out-dir target/eval/pet_ct_small
       - name: Upload eval artifacts
         uses: actions/upload-artifact@v4

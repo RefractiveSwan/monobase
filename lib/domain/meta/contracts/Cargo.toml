@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 dfps_core = { path = "../../core" }
-dfps_eval = { path = "../eval" }
+dfps_eval = { path = "../evaluation" }
 dfps_pipeline = { path = "../pipeline" }
 dfps_observability = { path = "../../../platform/meta/observability" }
 serde = { workspace = true }

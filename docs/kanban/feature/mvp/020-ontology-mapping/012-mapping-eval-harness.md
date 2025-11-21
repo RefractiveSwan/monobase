@@ -37,7 +37,7 @@
 ## REVIEW
 
 ### EVAL-01 - Gold standard format
-- [x] Define a simple gold dataset schema (e.g., NDJSON or JSONL) under `lib/domain/fake_data/data/eval/`:
+- [x] Define a simple gold dataset schema (e.g., NDJSON or JSONL) under `lib/domain/fake_data/eval/`:
   - [x] `{"system": "...", "code": "...", "display": "...", "expected_ncit_id": "NCIT:Cxxxx"}`
 - [x] Include a small PET/CT-focused sample:
   - [x] Codes for CPT, SNOMED, LOINC used in existing regression fixtures.
@@ -53,7 +53,7 @@
   - [x] `run_eval(cases: &[EvalCase]) -> EvalSummary` that:
     - [x] runs each case through `map_staging_codes` (or equivalent),
     - [x] compares `expected_ncit_id` to the top `MappingResult`.
-- [x] Implementation lives at `lib/domain/eval` (`dfps_eval::run_eval_with_mapper`), with a deprecated shim exposed through `dfps_mapping::eval`.
+- [x] Implementation lives at `lib/domain/meta/evaluation` (`dfps_eval::run_eval_with_mapper`), with a deprecated shim exposed through `dfps_mapping::eval`.
 
 ### EVAL-03 - Test harness integration
 - [x] Add evaluation tests in `dfps_test_suite`:

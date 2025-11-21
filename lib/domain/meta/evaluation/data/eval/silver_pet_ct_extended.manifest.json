@@ -1,0 +1,9 @@
+{
+  "name": "silver_pet_ct_extended",
+  "version": "20250119",
+  "license": "internal_demo",
+  "source": "dfps_eval::fake_data",
+  "n_cases": 4,
+  "sha256": "2b69b96369682670c3ab25d5c418edd098a4ca9f637a51e3f4f2f7b9e58e66a8",
+  "notes": "Silver tier extended with additional NCIt and LOINC coverage"
+}

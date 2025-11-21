@@ -139,11 +139,11 @@ This table shows where each **current** crate will live in the **target** layout
 | Current Location | Current Crate | Future Location | Future Crate | Notes |
 |------------------|---------------|-----------------|--------------|-------|
 | `lib/domain/core` | `dfps_core` | `lib/domain/core` | `dfps_core` | **Stays** |
-| `lib/domain/contracts` | `dfps_contracts` | `lib/domain/contracts` | `dfps_contracts` | **Stays** – extended with `mesh` module |
-| `lib/domain/eval` | `dfps_eval` | `lib/domain/eval` | `dfps_eval` | **Stays** |
-| `lib/domain/pipeline` | `dfps_pipeline` | `lib/domain/pipeline` | `dfps_pipeline` | **Stays** |
-| `lib/domain/vector_port` | `dfps_vector_port` | `lib/domain/vector_port` | `dfps_vector_port` | **Stays** – domain abstraction for vector stores |
-| `lib/domain/ontologies/ingestion` | `dfps_ingestion` | `lib/domain/ontologies/ingestion` | `dfps_ingestion` | **Stays** |
+| `lib/domain/contracts` | `dfps_contracts` | `lib/domain/meta/contracts` | `dfps_contracts` | **Stays** conceptually; crate now lives under `domain/meta/contracts`. |
+| `lib/domain/meta/evaluation` | `dfps_eval` | `lib/domain/meta/evaluation` | `dfps_eval` | **Stays** |
+| `lib/domain/meta/pipeline` | `dfps_pipeline` | `lib/domain/meta/pipeline` | `dfps_pipeline` | **Stays** |
+| `lib/domain/ports/data/data-store/vector` | `dfps_vector_port` | `lib/domain/ports/data/data-store/vector` | `dfps_vector_port` | **Stays** – domain abstraction for vector stores |
+| `lib/domain/meta/ingestion` | `dfps_ingestion` | `lib/domain/meta/ingestion` | `dfps_ingestion` | **Stays** |
 | `lib/domain/ontologies/mapping` | `dfps_mapping` | `lib/domain/ontologies/mapping` | `dfps_mapping` | **Stays** |
 | `lib/domain/ontologies/terminology` | `dfps_terminology` | `lib/domain/ontologies/terminology` | `dfps_terminology` | **Stays** |
 

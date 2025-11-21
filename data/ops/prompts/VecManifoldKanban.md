@@ -330,7 +330,7 @@ A. Under each VEC-XX item (e.g., `### VEC-01 – VectorStore abstraction & wirin
      - A small, concrete sub-checklist (Markdown checkboxes) to clarify:
        - theory/metrics work (what to measure; e.g., R_M, D_M, centroid correlations),
        - algorithmic work (e.g., embedding pipeline, indexing strategy, complexity notes),
-       - implementation work (crate paths such as `lib/app/servers/vector_store`, `lib/domain/mapping`, `lib/app/frontend/cli`, `lib/domain/eval`, etc.),
+       - implementation work (crate paths such as `lib/app/servers/vector_store`, `lib/domain/mapping`, `lib/app/frontend/cli`, `lib/domain/meta/evaluation`, etc.),
        - tests + metrics for this VEC item.
 
 B. In kanban columns like `## INPROGRESS`, `## REVIEW`, `## DONE`

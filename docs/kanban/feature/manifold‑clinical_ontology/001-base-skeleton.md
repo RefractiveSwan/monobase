@@ -19,7 +19,7 @@
 
 ### Doing
 
-* [ ] **GEO‑01‑A | DFPS capacity evaluator** — add `geometry_probe()` producing `(R_M, D_M, ρ_CC, α_mf, α_sim)`; integrate with `EvalSummary` and pipeline reports. (Wire to `lib/domain/eval` and `lib/domain/mapping`.)
+* [ ] **GEO‑01‑A | DFPS capacity evaluator** — add `geometry_probe()` producing `(R_M, D_M, ρ_CC, α_mf, α_sim)`; integrate with `EvalSummary` and pipeline reports. (Wire to `lib/domain/meta/evaluation` and `lib/domain/mapping`.)
 * [ ] **GRAPH‑01‑A | Leiden in pipeline** — CLI to run γ‑grid, fail build on disconnected/badly connected communities ≠ 0.
 
 ### Review
@@ -234,8 +234,8 @@ def capacity_metrics(X: np.ndarray, y: np.ndarray, m_list=[32,128,512], B=1000):
 **Crate touch‑points.**
 
 * `lib/domain/mapping` — add `geometry_probe()` & flags; flattening pre‑ranker hook.
-* `lib/domain/eval` — metrics structs + bootstrap; counterexample generators.
-* `lib/domain/pipeline` — surface metrics to observability.
+* `lib/domain/meta/evaluation` — metrics structs + bootstrap; counterexample generators.
+* `lib/domain/meta/pipeline` — surface metrics to observability.
 * `lib/domain/ontologies/terminology` — synonym gate + provenance; Leiden outputs for graph health.
 
 **CI checks (defaults).**

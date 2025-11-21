@@ -1,0 +1,42 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "PAT-UNK"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "ENC-UNK"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-UNK",
+        "status": "active",
+        "intent": "order",
+        "subject": {
+          "reference": "Patient/PAT-UNK"
+        },
+        "encounter": {
+          "reference": "Encounter/ENC-UNK"
+        },
+        "code": {
+          "coding": [
+            {
+              "display": "Unknown PET/CT order"
+            }
+          ],
+          "text": "Unknown PET/CT order"
+        },
+        "description": "Bundle that should surface a NoMatch state",
+        "authoredOn": "2024-05-01T12:00:00Z"
+      }
+    }
+  ]
+}

@@ -182,7 +182,7 @@ Crate: `dfps_core`.
 
 Crates: `dfps_mapping` (mapping engine, rankers), analytics helpers (summary calculators, mapping state logic).
 
-* Responsibilities: lexical/vector rankers, rule rerankers, semantic helpers reused by pipeline/app layers.
+* Responsibilities: lexical/vector rankers, rule rerankers, semantic helpers reused by pipeline/app layers. See `lib/domain/semantics/README.md` for the evolving directory structure; the actual crate still lives under `lib/domain/ontologies/mapping` until the migration is complete.
 
 #### `pipeline/`
 
@@ -192,9 +192,9 @@ Crate: `dfps_pipeline`.
 
 #### `meta/ingestion`
 
-Crate: `dfps_ingestion` (currently under `domain/ontologies/ingestion`, moving here).
+Crate: `dfps_ingestion`.
 
-* Responsibilities: transforms from FHIR bundles → staging rows, validation semantics, profile metadata.
+* Responsibilities: transforms from FHIR bundles → staging rows, validation semantics, profile metadata. Houses profile snapshots (feature-gated) and consumes the validation port.
 
 #### `meta/evaluation`
 

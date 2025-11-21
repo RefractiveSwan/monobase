@@ -190,9 +190,9 @@ use P_leiden to define neighborhood sampling for graph encoder
 - Full evaluation harness across ontology snapshots; pre‑registered criteria; CI checks that gate deployments on capacity drift/correlation spikes/community disconnectedness.
 
 **Touch points**
-- `lib/domain/eval`: extend `EvalSummary` to log geometry stats and α values.
+- `lib/domain/meta/evaluation`: extend `EvalSummary` to log geometry stats and α values.
 - `lib/domain/mapping`: plug capacity metrics into error analysis; add reasons like `low_capacity_region`.
-- `lib/domain/pipeline`: pass geometry telemetry through pipeline output.
+- `lib/domain/meta/pipeline`: pass geometry telemetry through pipeline output.
 - `lib/platform/observability`: dashboard panels for \(R_M\), \(D_M\), \(\rho_{CC}\), α, and alerts.
 
 **CI checks (fail conditions)**

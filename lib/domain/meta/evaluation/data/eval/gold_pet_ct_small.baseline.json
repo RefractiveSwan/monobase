@@ -1,0 +1,113 @@
+{
+  "dataset": "gold_pet_ct_small",
+  "recorded_at": "2025-01-19T00:00:00Z",
+  "summary": {
+    "total_cases": 5,
+    "predicted_cases": 4,
+    "correct": 3,
+    "incorrect": 2,
+    "precision": 0.75,
+    "recall": 0.6,
+    "f1": 0.6666667,
+    "accuracy": 0.6,
+    "auto_mapped_total": 3,
+    "auto_mapped_correct": 3,
+    "auto_mapped_precision": 1.0,
+    "state_counts": {
+      "auto_mapped": 3,
+      "needs_review": 1,
+      "no_match": 1
+    },
+    "by_system": {
+      "http://www.ama-assn.org/go/cpt": {
+        "total_cases": 1,
+        "predicted_cases": 1,
+        "correct": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "http://loinc.org": {
+        "total_cases": 1,
+        "predicted_cases": 1,
+        "correct": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "http://snomed.info/sct": {
+        "total_cases": 1,
+        "predicted_cases": 1,
+        "correct": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "http://purl.obolibrary.org/obo/NCIT": {
+        "total_cases": 2,
+        "predicted_cases": 1,
+        "correct": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      }
+    },
+    "by_license_tier": {
+      "licensed": {
+        "total_cases": 2,
+        "predicted_cases": 2,
+        "correct": 2,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "open": {
+        "total_cases": 3,
+        "predicted_cases": 2,
+        "correct": 1,
+        "precision": 0.5,
+        "recall": 0.33333334,
+        "f1": 0.4
+      }
+    },
+    "score_buckets": [
+      {
+        "bucket": "0.7–0.8",
+        "lower_bound": 0.7,
+        "upper_bound": 0.8,
+        "total": 1,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "bucket": "0.9–1.0",
+        "lower_bound": 0.9,
+        "upper_bound": 1.0,
+        "total": 3,
+        "correct": 3,
+        "accuracy": 1.0
+      }
+    ],
+    "reason_counts": {
+      "umls_direct_xref": 3,
+      "score_below_threshold": 1,
+      "none": 1
+    },
+    "advanced": {
+      "precision_ci": [
+        0.33333334,
+        1.0
+      ],
+      "recall_ci": [
+        0.20000002,
+        1.0
+      ],
+      "f1_ci": [
+        0.25,
+        1.0
+      ],
+      "bootstrap_iterations": 100
+    },
+    "results": []
+  }
+}

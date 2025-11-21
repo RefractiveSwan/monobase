@@ -1,0 +1,31 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-MISSING-SUBJECT",
+        "status": "active",
+        "intent": "order",
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "441567006",
+              "display": "PET-CT for neoplasm staging"
+            }
+          ],
+          "text": "ServiceRequest without subject"
+        },
+        "authoredOn": "2024-05-01T12:00:00Z"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "PAT-UNKNOWN"
+      }
+    }
+  ]
+}

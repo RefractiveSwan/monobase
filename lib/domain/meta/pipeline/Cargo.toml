@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_ingestion = { path = "../../ontologies/ingestion" }
+dfps_ingestion = { path = "../../meta/ingestion" }
 dfps_mapping = { path = "../../ontologies/mapping" }
 dfps_core = { path = "../../core" }
 dfps_observability = { path = "../../../platform/meta/observability" }

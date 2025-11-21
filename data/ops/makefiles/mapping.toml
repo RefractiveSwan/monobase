@@ -48,7 +48,7 @@ args = [
     "--bin", "eval_mapping",
     "--",
     "--dataset", "pet_ct_small",
-    "--thresholds", "lib/domain/evaluation/fake_data/data/meta/eval_thresholds.json",
+    "--thresholds", "lib/domain/meta/evaluation/data/meta/eval_thresholds.json",
     "--deterministic", "target/eval/pet_ct_small.fingerprint"
 ]
 

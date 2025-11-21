@@ -96,8 +96,8 @@ Prerequisites: Docker + Docker Compose, Rust toolchain, `psql` for pgvector or a
 - Run vector-enabled vs mock to compare recall/precision (example: gold_pet_ct_small):
   ```bash
   DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=pgvector DFPS_VECTOR_URL=postgres://vector:vector@localhost:5433/vector \
-    cargo run -p dfps_cli --features backend-pgvector -- map-codes -- ./lib/domain/evaluation/fake_data/data/eval/gold_pet_ct_small.ndjson
-  DFPS_VECTOR_ENABLED=false cargo run -p dfps_cli -- map-codes -- ./lib/domain/evaluation/fake_data/data/eval/gold_pet_ct_small.ndjson
+    cargo run -p dfps_cli --features backend-pgvector -- map-codes -- ./lib/domain/meta/evaluation/data/eval/gold_pet_ct_small.ndjson
+  DFPS_VECTOR_ENABLED=false cargo run -p dfps_cli -- map-codes -- ./lib/domain/meta/evaluation/data/eval/gold_pet_ct_small.ndjson
   ```
 - Use `dfps_test_suite/tests/integration/vector_mapping.rs` parity/recall guard as a CI signal; gate if vector-enabled recall drops >X% vs baseline or latency exceeds the recorded budget.
 - For latency drift, watch `vector_latency_ms_p95` in logs; alert if it exceeds your budget.

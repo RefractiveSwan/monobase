@@ -16,7 +16,7 @@ actix-multipart.workspace = true
 actix-web.workspace = true
 bytes.workspace = true
 dfps_core = { path = "../../../domain/core" }
-dfps_eval = { path = "../../../domain/meta/eval" }
+dfps_eval = { path = "../../../domain/meta/evaluation" }
 dfps_contracts = { path = "../../../domain/meta/contracts" }
 dfps_web_dto = { path = "../../../dto/web" }
 dfps_observability = { path = "../../../platform/meta/observability" }

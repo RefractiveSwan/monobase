@@ -40,7 +40,7 @@ pub fn ensure_eval_data_root() -> Result<PathBuf, dfps_configuration::EnvLoadErr
     }
 
     Ok(
-        dfps_configuration::workspace_root()?.join("lib/domain/meta/eval/data/eval"),
+        dfps_configuration::workspace_root()?.join("lib/domain/meta/evaluation/data/eval"),
     )
 }
 

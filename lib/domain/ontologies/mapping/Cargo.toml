@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 dfps_terminology = { path = "../terminology" }
 dfps_core = { path = "../../core" }
-dfps_eval = { path = "../../meta/eval", features = ["eval-advanced"] }
+dfps_eval = { path = "../../meta/evaluation", features = ["eval-advanced"] }
 dfps_vector_port = { path = "../../ports/data/data-store/vector" }
 dfps_observability = { path = "../../../platform/meta/observability" }
 dfps_compliance = { path = "../../../platform/meta/compliance" }

@@ -31,14 +31,14 @@
 
 ### EVAL-PLAT-01 – Eval crate & dataset handling
 
-- [x] Introduce a dedicated eval crate `lib/domain/eval` (`dfps_eval`):
+- [x] Introduce a dedicated eval crate `lib/domain/meta/evaluation` (`dfps_eval`):
   - [x] Move or wrap the core types from epic 012:
     - `EvalCase { system, code, display, expected_ncit_id }`
     - `EvalResult`, `EvalSummary`.
   - [x] Add support for multiple datasets:
     - Named splits (e.g., `pet_ct_small`, `pet_ct_extended`, `mixed_modalities`).
     - Config-driven dataset root (`DFPS_EVAL_DATA_ROOT`).
-- [x] Store gold-standard files under `lib/domain/fake_data/data/eval/*.ndjson`.
+- [x] Store gold-standard files under `lib/domain/fake_data/eval/*.ndjson`.
 
 ### EVAL-PLAT-02 – Advanced metrics
 
@@ -55,7 +55,7 @@
 ### EVAL-PLAT-03 – CI & regression gates
 
 - [x] Add a CLI entrypoint:
-- `dfps_cli eval-mapping --dataset pet_ct_small --thresholds lib/domain/fake_data/data/meta/eval_thresholds.json`:
+- `dfps_cli eval-mapping --dataset pet_ct_small --thresholds lib/domain/fake_data/meta/eval_thresholds.json`:
     - [x] Runs `run_eval` and writes a JSON summary.
     - [x] Exit with non-zero code if metrics drop below configured thresholds.
 - [x] Wire CI job:
@@ -77,14 +77,14 @@
   - Bronze: `bronze_pet_ct_small`, `bronze_pet_ct_unknowns`, `bronze_pet_ct_mixed`.
   - Silver: `silver_pet_ct_small`, `silver_pet_ct_extended`, `silver_pet_ct_obo`.
   - Gold: `gold_pet_ct_small`, `gold_pet_ct_extended`, `gold_pet_ct_comprehensive`.
-  - Updated `lib/domain/fake_data/data/eval/README.md` with tier descriptions; datasets consume shared schema under `DFPS_EVAL_DATA_ROOT`.
+  - Updated `lib/domain/fake_data/eval/README.md` with tier descriptions; datasets consume shared schema under `DFPS_EVAL_DATA_ROOT`.
 - [x] Tests in `dfps_test_suite`:
   - [x] Verify that the eval harness correctly classifies matches/mismatches (`mapping_eval.rs` still exercises precision/recall + state counts).
   - [x] Add tiered dataset load test to ensure bronze/silver/gold splits stay readable.
 
 ### EVAL-PLAT-06 – Migrate/unwrap 012 harness into `dfps_eval`
 
-* [x] Create new crate `lib/domain/eval` (`dfps_eval`).
+* [x] Create new crate `lib/domain/meta/evaluation` (`dfps_eval`).
   * [x] Move `EvalCase`, `EvalResult`, `EvalSummary`, `run_eval` out of `dfps_mapping::eval` into `dfps_eval`.
   * [x] Re-export from `dfps_mapping` temporarily to avoid churn (`pub use dfps_eval::*`), then remove once downstream crates are updated.
 * [x] Update imports across `dfps_test_suite` to use `dfps_eval`.
@@ -95,11 +95,11 @@
 
 ### EVAL-PLAT-07 – Dataset manifests, versioning & licensing
 
-* [x] New directory: `lib/domain/fake_data/data/eval/` with datasets next to a manifest file `<dataset>.manifest.json`.
+* [x] New directory: `lib/domain/fake_data/eval/` with datasets next to a manifest file `<dataset>.manifest.json`.
 * [x] Manifest schema:
   * [x] `{ "name": "...", "version": "YYYYMMDD", "license": "…", "source": "…", "n_cases": N, "sha256": "<file hash>", "notes": "…" }`
 * [x] Add a loader in `dfps_eval::datasets` that:
-  * [x] Resolves data root via `DFPS_EVAL_DATA_ROOT` (falls back to `lib/domain/fake_data/data/eval`).
+  * [x] Resolves data root via `DFPS_EVAL_DATA_ROOT` (falls back to `lib/domain/fake_data/eval`).
   * [x] Validates `sha256` on load; surfaces warnings on mismatches.
   * [x] Warns if `license` is missing/unknown.
 * [x] Provide manifests for:
@@ -134,7 +134,7 @@
 ### EVAL-PLAT-10 – CLI thresholds & CI gate (first cut)
 
 * [x] Crate: `lib/app/frontend/cli` (`dfps_cli`) with subcommand:
-  * [x] `dfps_cli eval-mapping --input lib/domain/fake_data/data/eval/pet_ct_small.ndjson --thresholds lib/domain/fake_data/data/meta/eval_thresholds.json --out target/eval/pet_ct_small.json`
+  * [x] `dfps_cli eval-mapping --input lib/domain/fake_data/eval/pet_ct_small.ndjson --thresholds lib/domain/fake_data/meta/eval_thresholds.json --out target/eval/pet_ct_small.json`
 * [x] Thresholds schema (JSON):
   ```json
   {
@@ -177,7 +177,7 @@
 
 ### EVAL-PLAT-13 – Performance & scale
 
-* [x] Add Criterion benchmarks under `lib/domain/eval/benches/`:
+* [x] Add Criterion benchmarks under `lib/domain/meta/evaluation/benches/`:
   * [x] `bench_eval_pet_ct_small`
   * [x] `bench_eval_pet_ct_extended`
 * [x] Stream NDJSON in chunks to keep RSS < 256MB for 100k lines (document guideline).

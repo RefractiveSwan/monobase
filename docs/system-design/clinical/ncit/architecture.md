@@ -61,8 +61,8 @@ architecture-beta
 - **Domain crates**
   - `lib/domain/ingestion` (`dfps_ingestion`) : emits `stg_sr_code_exploded` rows.
   - `lib/domain/mapping` (`dfps_mapping`) : lexical/vector rankers, rule rerankers, `MappingEngine`, plus the license-aware `map_staging_codes_with_summary` helper that produces `MappingSummary` (now also tracks external terminology lookup counts). Evaluation is now owned by `dfps_eval::run_eval_with_mapper`, with `dfps_mapping` providing a deprecated shim for backwards compatibility.
-  - `lib/domain/eval` (`dfps_eval`) : owns `EvalCase`/`EvalSummary`, dataset manifests/baselines via `FileDatasetStore`, and streaming runners. Apps/API/CLI read `DFPS_EVAL_DATA_ROOT` (via `dfps_configuration`) and build a store instead of letting the domain crate touch env.
-  - `lib/domain/pipeline` (`dfps_pipeline`) : composes ingestion + mapping via `bundle_to_mapped_sr`.
+  - `lib/domain/meta/evaluation` (`dfps_eval`) : owns `EvalCase`/`EvalSummary`, dataset manifests/baselines via `FileDatasetStore`, and streaming runners. Apps/API/CLI read `DFPS_EVAL_DATA_ROOT` (via `dfps_configuration`) and build a store instead of letting the domain crate touch env.
+  - `lib/domain/meta/pipeline` (`dfps_pipeline`) : composes ingestion + mapping via `bundle_to_mapped_sr`.
   - `lib/domain/ontologies/terminology` (`dfps_terminology`) -?" license-aware CodeSystem/ValueSet registries plus staging-code enrichment.
 - **Platform crates**
   - `lib/platform/observability` : metrics/log helpers used by the CLI and tests.

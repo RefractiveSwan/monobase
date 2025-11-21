@@ -74,15 +74,15 @@ _All paths relative to `code/`._
 4) **Implement**
    - Respect bounded contexts:
      - Domain invariants ? `lib/domain/core`
-    - Generators ? `lib/domain/evaluation/fake_data`
+    - Generators ? `lib/domain/meta/evaluation/data`
      - FHIR transforms ? `lib/domain/ingestion`
      - Mapping engine ? `lib/domain/mapping`
-     - Orchestration ? `lib/domain/pipeline`
+     - Orchestration ? `lib/domain/meta/pipeline`
 
 5) **Update tests**
    - Unit tests (per crate)
    - Integration & e2e in `lib/platform/test_suite/tests/**`
-   - Regression fixtures under `lib/domain/evaluation/fake_data/data/regression/`
+   - Regression fixtures under `lib/domain/meta/evaluation/data/regression/`
 
 6) **Run standard checks**
    - `cargo make fmt` � `cargo make clippy` � `cargo make test`
@@ -171,7 +171,7 @@ Every time you change a checklist line from `- [ ]` to `- [x]` in `docs/kanban/*
 ### FP-07 � Validatio& & error surface
 - [ ] Add `IngestionError` in `lib/domain/ingestion/src/transforms.rs`
 - [ ] Update FHIR semantics in `docs/system-design/fhir/behavior/sequence-servicerequest.md`
-- [ ] Add regression fixtures under `lib/domain/evaluation/fake_data/data/regression/`
+- [ ] Add regression fixtures under `lib/domain/meta/evaluation/data/regression/`
 - [ ] Document error codes in `docs/reference-terminology/semantic-relationships.yaml`
 ```
 
@@ -287,7 +287,7 @@ IMPORTANT RULES:
    * `` `lib/app/servers/vector_store` (`dfps_vector_store`) ``
    * `` `lib/domain/mapping` (`dfps_mapping`) ``
    * `` `lib/app/frontend/cli` (`dfps_cli`) ``
-   * `` `lib/domain/eval` (`dfps_eval`) ``
+   * `` `lib/domain/meta/evaluation` (`dfps_eval`) ``
      etc.
 
 6. For **Docs & Kanbans Touched**, include the most relevant docs/kanban files this card interacts with. Use relative paths like:
@@ -514,7 +514,7 @@ Small CLIs for local ingestion + mapping workflows.
     cargo run -p dfps_cli --bin eval_mapping -- --dataset pet_ct_small --dump-details
     ```
   - Runbook: `docs/runbook/mapping-eval-quickstart.md`; requirements trace: `MAP_ACCURACY` in `docs/system-design/clinical/ncit/requirements/ingestion-requirements.md`.
-  - Dataset tiers: bronze/silver/gold splits (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) are documented in `lib/domain/evaluation/fake_data/data/eval/README.md`.
+  - Dataset tiers: bronze/silver/gold splits (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) are documented in `lib/domain/meta/evaluation/data/eval/README.md`.
 
 
 # Crate: lib/app/servers/api — `dfps_api`
@@ -648,14 +648,14 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Prefer deterministic seeds when using `#[cfg(feature = "dummy")]` generators.
 
 
-# Module: lib/domain/evaluation/eval/src/fake_data — `dfps_eval::fake_data`
+# Module: lib/domain/meta/evaluation/src/fake_data — `dfps_eval::fake_data`
 
-**Path:** `code/lib/domain/evaluation/eval/src/fake_data`  
+**Path:** `code/lib/domain/meta/evaluation/src/fake_data`  
 **Depends on:** `dfps_core` (with `dummy`), `rand`, `fake`, `serde(_json)`, `once_cell`.
 
 ## Responsibilities
 - Deterministic, **seeded** generators for domain + minimal FHIR aligned with evaluation data.
-- Checked-in fixtures + registries under `lib/domain/evaluation/eval/data/**` for regression/eval datasets.
+- Checked-in fixtures + registries under `lib/domain/meta/evaluation/data/**` for regression/eval datasets.
 - CLI tools (now built from the `dfps_eval` crate) for emitting scenario/FHIR NDJSON for demos.
 
 ## Modules & bins
@@ -740,9 +740,9 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Terminology/registry semantics: `docs/reference-terminology/semantic-relationships.yaml`
 
 
-# Crate: lib/domain/pipeline — `dfps_pipeline`
+# Crate: lib/domain/meta/pipeline — `dfps_pipeline`
 
-**Path:** `code/lib/domain/pipeline`  
+**Path:** `code/lib/domain/meta/pipeline`  
 **Depends on:** `dfps_ingestion`, `dfps_mapping`, `dfps_core`, `dfps_observability` (logging), `serde(_json)`, `thiserror`, `log`, `env_logger`.
 
 ## Responsibilities
@@ -947,12 +947,12 @@ cd code
 cargo test -p dfps_test_suite
 ```
 
-# Crate: lib/domain/eval — `dfps_eval`
+# Crate: lib/domain/meta/evaluation — `dfps_eval`
 
 **Purpose**  
 Owns the reusable evaluation types (`EvalCase`, `EvalSummary`, etc.) and dataset loaders.
 
 **Responsibilities**
-- Load NDJSON gold datasets from `DFPS_EVAL_DATA_ROOT` (default `lib/domain/evaluation/fake_data/data/eval`).
+- Load NDJSON gold datasets from `DFPS_EVAL_DATA_ROOT` (default `lib/domain/meta/evaluation/data/eval`).
 - Provide stratified metric helpers (`StratifiedMetrics`) used by `dfps_eval::run_eval_with_mapper`.
 - Surface `compute_metrics` for CLI/test consumers.

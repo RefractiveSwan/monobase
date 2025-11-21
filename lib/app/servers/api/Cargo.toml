@@ -23,7 +23,7 @@ dfps_pipeline = { path = "../../../domain/meta/pipeline" }
 dfps_observability = { path = "../../../platform/meta/observability" }
 dfps_configuration = { path = "../../../platform/meta/configuration" }
 dfps_mapping = { path = "../../../domain/ontologies/mapping" }
-dfps_eval = { path = "../../../domain/meta/eval" }
+dfps_eval = { path = "../../../domain/meta/evaluation" }
 dfps_datamart = { path = "../datamart" }
 dfps_compliance = { path = "../../../platform/meta/compliance" }
 dfps_terminology = { path = "../../../domain/ontologies/terminology" }

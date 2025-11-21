@@ -1,0 +1,37 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-EXTRA-CODINGS",
+        "status": "active",
+        "intent": "order",
+        "subject": { "reference": "Patient/PAT-CODES" },
+        "code": {
+          "coding": [
+            {
+              "system": "http://www.ama-assn.org/go/cpt",
+              "code": "78815",
+              "display": "PET with concurrently acquired CT"
+            },
+            {
+              "system": "http://example.org/custom",
+              "code": "CUSTOM-1",
+              "display": "Custom local code"
+            },
+            {
+              "system": "HTTP://SNOMED.INFO/SCT",
+              "code": "2460006",
+              "display": "Positron emission tomography of whole body"
+            }
+          ],
+          "text": "Extra coding regression"
+        },
+        "authoredOn": "2024-05-01T12:00:00Z"
+      }
+    },
+    { "resource": { "resourceType": "Patient", "id": "PAT-CODES" } }
+  ]
+}

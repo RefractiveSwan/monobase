@@ -1,9 +1,0 @@
-{
-  "name": "silver_pet_ct_small",
-  "version": "20250119",
-  "license": "internal_demo",
-  "source": "dfps_eval::fake_data",
-  "n_cases": 4,
-  "sha256": "06d9ba0955f5dccf49164ab39653fe04cd4c2fe1c7b0ffc3103393540863b394",
-  "notes": "Silver tier sample expanding coverage beyond the bronze trio"
-}

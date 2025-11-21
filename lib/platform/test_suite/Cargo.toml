@@ -18,7 +18,7 @@ tower = "0.5"
 dfps_api = { path = "../../app/servers/api" }
 dfps_datamart = { path = "../../app/servers/datamart" }
 dfps_core = { path = "../../domain/core" }
-dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
+dfps_ingestion = { path = "../../domain/meta/ingestion" }
 dfps_mapping = { path = "../../domain/ontologies/mapping" }
 dfps_terminology= { path = "../../domain/ontologies/terminology" }
 dfps_contracts = { path = "../../domain/meta/contracts" }
@@ -28,7 +28,7 @@ dfps_configuration = { path = "../meta/configuration" }
 dfps_vector_store = { path = "../../app/servers/vector_store" }
 dfps_compliance = { path = "../meta/compliance" }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
-dfps_eval = { path = "../../domain/meta/eval" }
+dfps_eval = { path = "../../domain/meta/evaluation" }
 tempfile = "3.10"
 
 [features]

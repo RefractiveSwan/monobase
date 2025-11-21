@@ -1,0 +1,4 @@
+{"system":"http://www.ama-assn.org/go/cpt","code":"78815","display":"Silver extended PET tumor imaging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://snomed.info/sct","code":"441567006","display":"Silver extended neoplasm staging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://loinc.org","code":"24606-6","display":"Silver extended FDG uptake","expected_ncit_id":"NCIT:C17747"}
+{"system":"http://purl.obolibrary.org/obo/NCIT","code":"C17747","display":"Silver extended NCIt FDG concept","expected_ncit_id":"NCIT:C17747"}

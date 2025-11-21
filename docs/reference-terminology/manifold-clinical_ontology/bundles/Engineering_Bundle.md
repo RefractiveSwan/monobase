@@ -11,9 +11,9 @@
 
 ## DFPS Integration Points
 - `lib/domain/mapping/src/lib.rs`: hook a `geometry_probe()` after candidates are ranked; attach `reason` tags e.g., `capacity_low`, `centroid_corr_high`.
-- `lib/domain/eval/src/lib.rs` & `report.rs`: extend `EvalSummary` with `geometry: Option<GeometryStats>`.
+- `lib/domain/meta/evaluation/src/lib.rs` & `report.rs`: extend `EvalSummary` with `geometry: Option<GeometryStats>`.
 - `lib/domain/ontologies/terminology`: add Leiden pass and connectivity audit before embedding updates.
-- `lib/domain/pipeline`: surface metrics to observability.
+- `lib/domain/meta/pipeline`: surface metrics to observability.
 
 ## API sketch (Rust)
 ```rust

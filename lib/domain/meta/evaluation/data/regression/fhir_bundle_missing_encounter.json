@@ -1,0 +1,23 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "PAT-MISS-ENC"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "ServiceRequest",
+        "id": "SR-MISS-ENC",
+        "status": "active",
+        "intent": "order",
+        "subject": { "reference": "Patient/PAT-MISS-ENC" },
+        "encounter": { "reference": "Encounter/ENC-404" }
+      }
+    }
+  ]
+}
+

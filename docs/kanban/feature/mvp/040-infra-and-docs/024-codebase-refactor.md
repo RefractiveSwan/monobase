@@ -55,11 +55,11 @@
       - [x] Add a `MappingResult` builder/constructor to standardize reason/state handling instead of duplicating logic in downstream crates. (Documented in `README.md`; builders already in `result.rs`.)
       - [x] Expose a helper for constructing stable `CodeElement` IDs so ingestion/mapping/datamart share the same format. (`CodeElement::id_for` documented + referenced by README.)
       - [x] Add a crate README tying modules to system-design docs and clarifying staging vs mapping vs order invariants.
-    - [ ] `lib/domain/evaluation/eval` (`dfps_eval`)
+    - [ ] `lib/domain/meta/evaluation` (`dfps_eval`)
       - [x] Replace raw `std::env` dataset root resolution with a config struct built via `dfps_configuration` (still honoring DFPS_EVAL_DATA_ROOT).
       - [x] Split IO/parsing from scoring so eval functions accept injected readers/writers instead of reading files directly. (`run_eval_streaming[_metrics]_with_mapper` accept `BufRead`; summary/metrics aggregation separated.)
       - [x] Add determinism/benchmark tests for fingerprint computation across chunk sizes and `top_k` settings. (New fingerprint bench + streaming tests verifying chunk-size parity.)
-    - [ ] `lib/domain/evaluation/eval::fake_data` (`dfps_eval::fake_data`)
+    - [ ] `lib/domain/meta/evaluation::fake_data` (`dfps_eval::fake_data`)
       - [x] Add module docs describing generator outputs/seed controls and link them from `data/eval/README.md`.
       - [x] Centralize RNG seeding helpers to keep fixtures deterministic across modules and CLI bins.
       - [x] Provide a thin config wrapper over `dfps_configuration` for the generators instead of ad-hoc env access. (`FakeDataConfig` now wraps `DFPS_FAKE_DATA_*`.)
@@ -76,7 +76,7 @@
     - [ ] Terminology `obo_graph` module (`lib/domain/ontologies/terminology`)
       - [x] Document supported graph inputs and add a runtime loader for `.obo` paths (not just embedded minis). (`load_ontology_graph_from_path` + docs spell out runtime sources.)
       - [x] Add an integration test exercising `CachedOntologyGraph` caching/eviction with larger sample graphs. (Synthetic graph test drives the bounded caches; runtime loader fixture covered.)
-    - [ ] `lib/domain/pipeline` (`dfps_pipeline`)
+    - [ ] `lib/domain/meta/pipeline` (`dfps_pipeline`)
       - [x] Stop reading `VectorStoreConfig` from env inside `bundle_to_mapped_sr`; require injected config/store and surface errors instead of silent fallback. (Vector context is injected; `PipelineExecution` now drives reuse + validated bundles.)
       - [x] Emit dfps_observability metrics/logging for ingestion + vector paths so downstream apps don’t re-count manually. (`PipelineExecution.metrics` + `log_pipeline_output_with_summary` expose per-run metrics without re-counting; CLI/API switched to the new flow.)
       - [x] Add tests for vector-enabled vs offline paths to keep `vector_usage` semantics stable. (Pipeline tests cover lexical/vector/no-context flows + validated bundle parity.)
@@ -128,8 +128,8 @@
     - [x] `lib/domain/core` — mark entities/value objects as core; add constructors/invariants; ensure zero IO/env. (ID newtypes now validate non-empty strings + expose helpers; ServiceRequest construction uses the typed IDs everywhere.)
     - [x] `lib/domain/ingestion` — define trait ports for validation/profile lookup; keep transforms pure; move external validator adapter to app layer. (`ExternalValidator` is an explicit `Send + Sync` port and transforms rely solely on injected IDs/traits, no env access.)
     - [x] `lib/domain/mapping` — expose Mapper/Ranker/Terminology ports; remove env/policy loading; make vector store a port (trait) with adapters in platform. (`dfps_vector_port` now hosts the vector traits; mapping/pipeline crates depend only on that port.)
-    - [x] `lib/domain/pipeline` — act as orchestrator port wiring ingestion/mapping; accept injected services/config; prohibit env/logger initialization. (Already using `PipelinePort` + injected vector contexts, no env/log init.)
-    - [x] `lib/domain/eval`/`fake_data`/`fhir_profiles`/`obo_graph`/`terminology` — classify as core data/providers; ensure any file IO/env is behind port traits (dataset provider, profile provider, ontology loader). (`dfps_eval::DatasetStore` trait introduced; API/web/CLI now accept `Arc<dyn DatasetStore>` instead of concrete file IO.)
+    - [x] `lib/domain/meta/pipeline` — act as orchestrator port wiring ingestion/mapping; accept injected services/config; prohibit env/logger initialization. (Already using `PipelinePort` + injected vector contexts, no env/log init.)
+    - [x] `lib/domain/meta/evaluation`/`fake_data`/`fhir_profiles`/`obo_graph`/`terminology` — classify as core data/providers; ensure any file IO/env is behind port traits (dataset provider, profile provider, ontology loader). (`dfps_eval::DatasetStore` trait introduced; API/web/CLI now accept `Arc<dyn DatasetStore>` instead of concrete file IO.)
   - [ ] Hex-port flow – lib/platform (adapters & infra)
     - [ ] `lib/platform/configuration` — provide config-loading adapters; no domain coupling.
     - [x] `lib/platform/observability` — treat logging/metrics as outbound adapter; expose trait(s) consumable by app/domain. (Metrics/logging now consume `dfps_vector_port` snapshots instead of defining their own schema.)
@@ -146,8 +146,8 @@
 * Domain:
 
   * `lib/domain/core` (`dfps_core`) – `MappingResult`, `DimNCITConcept`, `Stg*` types.
-  * `lib/domain/pipeline` (`dfps_pipeline`) – `PipelineOutput`.
-  * `lib/domain/eval` (`dfps_eval`) – `EvalCase`, `EvalSummary`, `DatasetManifest`, `FileDatasetStore`.
+  * `lib/domain/meta/pipeline` (`dfps_pipeline`) – `PipelineOutput`.
+  * `lib/domain/meta/evaluation` (`dfps_eval`) – `EvalCase`, `EvalSummary`, `DatasetManifest`, `FileDatasetStore`.
 * App:
 
   * `lib/app/servers/api/src/dto.rs` – `AnalyticsSummaryResponse`, `CohortResponse`, `EvalRunResponse`.
@@ -409,8 +409,8 @@ This gives:
 **Theme**: end-to-end Bundle → PipelineOutput orchestration, env-free and backend-agnostic
 **Touches**:
 
-* `lib/domain/pipeline` (`dfps_pipeline`) – `PipelineOutput`, `bundle_to_mapped_sr[_with_vector_context]`.
-* `lib/domain/ontologies/ingestion` (`dfps_ingestion`) – `bundle_to_staging`.
+* `lib/domain/meta/pipeline` (`dfps_pipeline`) – `PipelineOutput`, `bundle_to_mapped_sr[_with_vector_context]`.
+* `lib/domain/meta/ingestion` (`dfps_ingestion`) – `bundle_to_staging`.
 * `lib/domain/ontologies/mapping` (`dfps_mapping`) – mapping pipelines (lexical & vector).
 * `lib/app/servers/api` (`dfps_api`) – uses pipeline for HTTP mapping.
 * `lib/app/servers/datamart` (`dfps_datamart`) – consumes `PipelineOutput`.
@@ -630,7 +630,7 @@ Add invariants:
 
 * `lib/app/servers/vector_store` (`dfps_vector_store`) – entire crate.
 * `lib/domain/ontologies/mapping` (`dfps_mapping`) – uses `VectorStore`, `EmbeddingProvider`.
-* `lib/domain/pipeline` (`dfps_pipeline`) – uses `VectorStore`, `VectorStoreConfig`.
+* `lib/domain/meta/pipeline` (`dfps_pipeline`) – uses `VectorStore`, `VectorStoreConfig`.
 * `lib/app/servers/api` (`dfps_api`) – builds `VectorPipelineContext` from `config_from_env`.
 * `lib/platform/configuration` (`dfps_configuration`) – env parsing helpers.
 * `lib/platform/observability` (`dfps_observability`) – consumes `VectorUsageSnapshot`.
@@ -811,7 +811,7 @@ Add doc examples:
   - [x] Avoid `unsafe` `set_var` by providing explicit setup helpers (e.g., `init_eval_data_root(workspace_root)`).
   - [x] Use `dfps_configuration` to discover workspace root and env files for test namespaces instead of hard-coded ancestor traversal.
 - [x] Clarify fixture ownership:
-  - [x] Ensure all regression/eval fixtures live under `lib/domain/evaluation/eval/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
+  - [x] Ensure all regression/eval fixtures live under `lib/domain/meta/evaluation/data/**` and are accessed via `dfps_eval::fake_data::fixtures::Registry` helpers.
   - [x] Document how new datasets/fixtures should be added (naming, manifests, baseline summaries) so tests remain stable.
 - [x] Harden test surfaces:
   - [x] Ensure that e2e/integration/unit test modules do not depend on internal APIs that are likely to change; prefer public ports (CLI/app services, pipeline, datamart, API endpoints).

@@ -4,7 +4,7 @@ Utilities, fixtures, and integration/e2e tests that keep the DFPS workspace hone
 
 - `src/assertions.rs` – custom `assert_*` helpers surfaced as public functions so other crates can reuse them without copy/paste.
 - `src/fixtures.rs` – deterministic fake-data builders (`service_request_*`, `eval_*`) backed by `dfps_eval::fake_data`.
-- `src/regression.rs` – helpers that load JSON/NDJSON fixtures from `lib/domain/evaluation/eval/data/**` via the shared `Registry`.
+- `src/regression.rs` – helpers that load JSON/NDJSON fixtures from `lib/domain/meta/evaluation/data/**` via the shared `Registry`.
 - `tests/` – three entry points wired from `cargo test -p dfps_test_suite`:
   - `tests/unit` – property/unit coverage for shared helpers.
   - `tests/integration` – exercises pipeline/eval/datamart surfaces via public APIs (no internal modules).
@@ -13,15 +13,15 @@ Utilities, fixtures, and integration/e2e tests that keep the DFPS workspace hone
 ## Environment helpers
 
 - Call `dfps_test_suite::init_environment()` at the start of each test (or use `ping()`) to load the `platform.test_suite` namespace via `dfps_configuration`. The function now returns a `Result` so CI/tests can bubble meaningful errors.
-- Use `dfps_test_suite::ensure_eval_data_root()` to resolve the dataset root on disk (defaults to `lib/domain/evaluation/eval/data/eval`). Pass the returned path to CLIs/tests via `Command::env` or `scoped_env_var` when you need to set `DFPS_EVAL_DATA_ROOT`.
+- Use `dfps_test_suite::ensure_eval_data_root()` to resolve the dataset root on disk (defaults to `lib/domain/meta/evaluation/data/eval`). Pass the returned path to CLIs/tests via `Command::env` or `scoped_env_var` when you need to set `DFPS_EVAL_DATA_ROOT`.
 - Use `dfps_test_suite::scoped_env_var(key, value)` instead of `unsafe { set_var }` inside tests. The guard restores the previous value on drop and keeps env mutations localized.
 
 ## Fixture ownership
 
-- Regression and eval datasets live under `lib/domain/evaluation/eval/data/**`. When adding a new dataset:
+- Regression and eval datasets live under `lib/domain/meta/evaluation/data/**`. When adding a new dataset:
   1. Check in the NDJSON under `data/eval/`.
   2. Create `<dataset>.manifest.json` with version/id/row-count plus SHA-256 checksum (see existing manifests).
-  3. Update `lib/domain/evaluation/eval/data/README.md` with a short description and license note.
+  3. Update `lib/domain/meta/evaluation/data/README.md` with a short description and license note.
   4. Add a helper in `dfps_test_suite::fixtures` if the dataset is used widely.
 - Keep regression JSON fixtures focused (one scenario per file) so pipeline/eval tests remain deterministic.
 
