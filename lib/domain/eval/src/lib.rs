@@ -17,13 +17,13 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use thiserror::Error;
 use std::{
     collections::BTreeMap,
     fs::File,
     io::{BufRead, BufReader},
     path::{Path, PathBuf},
 };
+use thiserror::Error;
 
 pub const DEFAULT_DATA_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/eval");
 

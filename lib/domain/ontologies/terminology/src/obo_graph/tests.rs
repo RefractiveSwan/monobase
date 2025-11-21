@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use super::reasoner::DEFAULT_CACHE_CAPACITY;
 use super::{
     CachedOntologyGraph, OntologyGraph, Relation, load_ontology_graph,
     load_ontology_graph_from_path,
+    DEFAULT_CACHE_CAPACITY,
 };
 
 #[test]

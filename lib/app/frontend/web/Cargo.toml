@@ -11,6 +11,7 @@ name = "dfps_web_frontend"
 path = "src/main.rs"
 
 [dependencies]
+actix-files.workspace = true
 actix-multipart.workspace = true
 actix-web.workspace = true
 bytes.workspace = true

@@ -19,7 +19,7 @@ pub fn logo_icon(classes: &str) -> Markup {
              viewBox="0 0 100 100"
              fill="none"
              xmlns="http://www.w3.org/2000/svg" {
-            (PreEscaped(r#"
+            (PreEscaped(r##"
                 <defs>
                     <linearGradient id="swanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" style="stop-color:#00ffcc;stop-opacity:1" />
@@ -52,7 +52,7 @@ pub fn logo_icon(classes: &str) -> Markup {
                     <!-- Additional glow accent -->
                     <circle cx="36" cy="26" r="18" fill="#00ffcc" opacity="0.08"/>
                 </g>
-            "#))
+            "##))
         }
     }
 }

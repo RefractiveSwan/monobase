@@ -17,18 +17,12 @@ pub fn grid_section(content: Markup) -> Markup {
 }
 pub fn navbar() -> Markup {
     html! {
-        nav class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-gray-100" {
+        nav class="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 hover:border-fluor-cyan/20 transition-colors duration-300" {
             div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" {
                 div class="flex h-16 items-center justify-between" {
                     // Brand
                     div class="flex-shrink-0 flex items-center gap-3" {
-                        a href="/" class="flex items-center gap-2 group" {
-                            // Swan Icon (Abstract)
-                            svg class="h-8 w-8 text-navy-900 group-hover:text-gold-600 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" {
-                                path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" {}
-                            }
-                            span class="font-serif text-xl font-bold text-navy-900 tracking-tight group-hover:text-navy-700 transition-colors" { "Refractive Swan" }
-                        }
+                        (crate::components::logo::logo_full())
                     }
 
                     // Navigation
@@ -77,23 +71,12 @@ pub fn base_layout(content: Markup) -> Markup {
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 title { "Refractive Swan" }
 
+                // Favicon
+                link rel="icon" type="image/svg+xml" href="/static/favicon.svg";
+
                 link rel="preconnect" href="https://fonts.googleapis.com";
                 link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="";
                 link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet";
-
-                script src="https://cdn.tailwindcss.com" {}
-                script src="https://unpkg.com/htmx.org@1.9.12" {}
-
-                // HTMX Loading Indicator Styles
-                style {
-                    (maud::PreEscaped(r#"
-                        .htmx-indicator { display: none; }
-                        .htmx-request .htmx-indicator { display: inline-block; }
-                        .htmx-request.htmx-indicator { display: inline-block; }
-                        @keyframes spin { to { transform: rotate(360deg); } }
-                        .animate-spin { animation: spin 1s linear infinite; }
-                    "#))
-                }
 
                 // Theme Configuration
                 script {
@@ -122,6 +105,12 @@ pub fn base_layout(content: Markup) -> Markup {
                                             600: '#8b7239',
                                         },
                                         paper: '#fafafa',
+                                        fluor: {
+                                            cyan: '#00ffcc',
+                                            magenta: '#ff00ff',
+                                            lime: '#ccff00',
+                                            orange: '#ff6600',
+                                        },
                                     },
                                     boxShadow: {
                                         'academic': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
@@ -130,6 +119,20 @@ pub fn base_layout(content: Markup) -> Markup {
                                 }
                             }
                         }
+                    "#))
+                }
+
+                script src="https://cdn.tailwindcss.com" {}
+                script src="https://unpkg.com/htmx.org@1.9.12" {}
+
+                // HTMX Loading Indicator Styles
+                style {
+                    (maud::PreEscaped(r#"
+                        .htmx-indicator { display: none; }
+                        .htmx-request .htmx-indicator { display: inline-block; }
+                        .htmx-request.htmx-indicator { display: inline-block; }
+                        @keyframes spin { to { transform: rotate(360deg); } }
+                        .animate-spin { animation: spin 1s linear infinite; }
                     "#))
                 }
             }

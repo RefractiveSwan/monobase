@@ -223,9 +223,9 @@ pub fn render_workbench_page(ctx: &PageContext) -> String {
 
                 div class="flex flex-col items-end gap-2" {
                     @if let Some(health) = &ctx.health {
-                        (status_badge(health.ok, &health.status))
+                        (status_badge(&health.status))
                     } @else {
-                        (status_badge(false, "Unknown"))
+                        (status_badge("Unknown"))
                     }
 
                     @if let Some(metrics) = &ctx.metrics {
@@ -363,9 +363,9 @@ fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
                 (card_body(html! {
                     div class="space-y-6" {
                         div class="grid gap-4 md:grid-cols-3" {
-                            (metric_card("Bundles Processed", metrics.bundle_count, "Total runs", "text-navy-900"))
-                            (metric_card("Flattened Rows", metrics.flats_count, "SR flats emitted", "text-navy-900"))
-                            (metric_card("Mapping Attempts", metrics.mapping_count, "Total results", "text-navy-900"))
+                            (metric_card("Bundles Processed", &metrics.bundle_count.to_string(), None))
+                            (metric_card("Flattened Rows", &metrics.flats_count.to_string(), None))
+                            (metric_card("Mapping Attempts", &metrics.mapping_count.to_string(), None))
                         }
 
                         div class="grid gap-4 md:grid-cols-3" {
@@ -693,14 +693,14 @@ fn render_eval_summary(summary: &EvalSummary, dataset: &str) -> Markup {
                 span class="text-sm text-gray-500" { (format!("Total cases: {}", summary.total_cases)) }
             }
             div class="grid gap-4 md:grid-cols-3" {
-                (metric_card("Precision", (summary.precision * 100.0) as usize, "%", "text-emerald-700"))
-                (metric_card("Recall", (summary.recall * 100.0) as usize, "%", "text-emerald-700"))
-                (metric_card("Coverage", (summary.coverage * 100.0) as usize, "%", "text-emerald-700"))
+                (metric_card("Precision", &format!("{:.1}%", summary.precision * 100.0), None))
+                (metric_card("Recall", &format!("{:.1}%", summary.recall * 100.0), None))
+                (metric_card("Coverage", &format!("{:.1}%", summary.coverage * 100.0), None))
             }
             div class="grid gap-4 md:grid-cols-3" {
-                (metric_card("Top1 accuracy", (summary.top1_accuracy * 100.0) as usize, "%", "text-navy-700"))
-                (metric_card("Top3 accuracy", (summary.top3_accuracy * 100.0) as usize, "%", "text-navy-700"))
-                (metric_card("AutoMapped precision", (summary.auto_mapped_precision * 100.0) as usize, "%", "text-navy-700"))
+                (metric_card("Top1 accuracy", &format!("{:.1}%", summary.top1_accuracy * 100.0), None))
+                (metric_card("Top3 accuracy", &format!("{:.1}%", summary.top3_accuracy * 100.0), None))
+                (metric_card("AutoMapped precision", &format!("{:.1}%", summary.auto_mapped_precision * 100.0), None))
             }
             div class="bg-gray-50 rounded-md border border-gray-200 p-4" {
                 h4 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2" { "State counts" }

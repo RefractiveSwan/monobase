@@ -3,7 +3,7 @@ use maud::{Markup, html};
 
 pub fn card(content: Markup) -> Markup {
     html! {
-        div class="bg-white shadow-academic rounded-md border border-gray-200" {
+        div class="bg-white shadow-academic rounded-md border border-gray-200 hover:shadow-academic-lg hover:border-fluor-cyan/20 transition-all duration-300" {
             (content)
         }
     }
@@ -28,17 +28,40 @@ pub fn card_body(content: Markup) -> Markup {
     }
 }
 
-pub fn metric_card(
-    label: &str,
-    value: impl std::fmt::Display,
-    subtext: &str,
-    text_color: &str,
-) -> Markup {
+pub fn metric_card(label: &str, value: &str, trend: Option<(&str, &str)>) -> Markup {
+    let (border_color, shadow_effect) = match trend {
+        Some((_, "up")) => (
+            "border-fluor-cyan",
+            "hover:shadow-[0_0_20px_rgba(0,255,204,0.3)]",
+        ),
+        Some((_, "down")) => (
+            "border-fluor-magenta",
+            "hover:shadow-[0_0_20px_rgba(255,0,255,0.3)]",
+        ),
+        _ => ("border-transparent", "hover:shadow-academic-lg"),
+    };
+
     html! {
-        div class="rounded-md border border-gray-200 p-4 bg-white shadow-sm" {
-            p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" { (label) }
-            p class=(format!("text-2xl font-serif font-bold mt-1 {}", text_color)) { (value) }
-            p class="text-xs text-gray-400 mt-1" { (subtext) }
+        div class=(format!("overflow-hidden rounded-lg bg-white px-4 py-5 shadow-academic sm:p-6 border-t-4 {} {} transition-all duration-300 hover:scale-[1.02]", border_color, shadow_effect)) {
+            dt class="truncate text-sm font-medium text-gray-500" { (label) }
+            dd class="mt-1 text-3xl font-semibold tracking-tight text-navy-900" { (value) }
+            @if let Some((trend_val, direction)) = trend {
+                div class="mt-2 flex items-center text-sm" {
+                    @if direction == "up" {
+                        span class="text-fluor-cyan font-medium flex items-center gap-1" {
+                            "↑ "
+                            (trend_val)
+                        }
+                        span class="ml-2 text-gray-400" { "vs last week" }
+                    } @else {
+                        span class="text-fluor-magenta font-medium flex items-center gap-1" {
+                            "↓ "
+                            (trend_val)
+                        }
+                        span class="ml-2 text-gray-400" { "vs last week" }
+                    }
+                }
+            }
         }
     }
 }

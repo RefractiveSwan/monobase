@@ -20,7 +20,7 @@ impl<'a> Default for ButtonProps<'a> {
 
 pub fn primary_button(props: ButtonProps) -> Markup {
     let hx_attrs = props.hx_attrs.unwrap_or(html! {}).0;
-    let class = "inline-flex items-center gap-2 rounded-md bg-navy-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-navy-800 hover:scale-[1.02] active:scale-[0.98] focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all duration-200";
+    let class = "inline-flex items-center gap-2 rounded-md bg-navy-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-navy-800 hover:shadow-[0_0_15px_rgba(0,255,204,0.5)] hover:border hover:border-fluor-cyan hover:scale-[1.02] active:scale-[0.98] focus:ring-2 focus:ring-navy-900 focus:ring-offset-2 transition-all duration-200";
     html! {
         (PreEscaped(format!("<button type=\"{}\" {} class=\"{}\">", props.type_, hx_attrs, class)))
             @if let Some(icon) = props.icon {
@@ -36,11 +36,10 @@ pub fn primary_button(props: ButtonProps) -> Markup {
     }
 }
 
-pub fn nav_link(href: &str, text: &str, icon: Markup) -> Markup {
+pub fn nav_link(href: &str, text: &str, _icon: Markup) -> Markup {
     html! {
-        a href=(href) class="flex items-center gap-1.5 text-gray-300 hover:text-white hover:underline underline-offset-4 transition-all duration-200" {
-            (icon)
-            span { (text) }
+        a href=(href) class="text-sm font-medium text-gray-500 hover:text-fluor-cyan transition-colors duration-300" {
+            (text)
         }
     }
 }

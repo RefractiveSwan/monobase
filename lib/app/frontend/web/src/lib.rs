@@ -10,7 +10,6 @@ pub mod views;
 use actix_web::{App, HttpServer, web};
 use client::BackendClient;
 use config::AppConfig;
-use log::warn;
 use state::AppState;
 use std::sync::Arc;
 

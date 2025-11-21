@@ -1,27 +1,17 @@
 use crate::view_model::{AlertKind, AlertMessage};
 use maud::{Markup, html};
 
-pub fn status_badge(ok: bool, status: &str) -> Markup {
-    let (bg, text, border, dot) = if ok {
-        (
-            "bg-emerald-50",
-            "text-emerald-800",
-            "border-emerald-200",
-            "bg-emerald-600",
-        )
-    } else {
-        (
-            "bg-amber-50",
-            "text-amber-800",
-            "border-amber-200",
-            "bg-amber-600",
-        )
+pub fn status_badge(status: &str) -> Markup {
+    let (bg, text) = match status {
+        "active" | "ok" | "auto_mapped" => ("bg-fluor-cyan/10", "text-fluor-cyan"),
+        "error" | "no_match" | "license_blocked" => ("bg-fluor-magenta/10", "text-fluor-magenta"),
+        "warning" | "needs_review" | "processing" => ("bg-fluor-orange/10", "text-fluor-orange"),
+        "new" | "info" => ("bg-fluor-lime/10", "text-fluor-lime"),
+        _ => ("bg-gray-50", "text-gray-600"),
     };
-
     html! {
-        div class=(format!("inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border {} {} {}", bg, text, border)) {
-            span class=(format!("h-1.5 w-1.5 rounded-full {}", dot)) {}
-            span { (format!("System Status: {}", status)) }
+        span class=(format!("inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ring-current {} {}", bg, text)) {
+            (status)
         }
     }
 }

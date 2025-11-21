@@ -14,6 +14,8 @@ mod types;
 pub use error::OboError;
 pub use loader::{SUPPORTED_GRAPHS, load_ontology_graph, load_ontology_graph_from_path};
 pub use reasoner::CachedOntologyGraph;
+#[cfg(test)]
+pub(crate) use reasoner::DEFAULT_CACHE_CAPACITY;
 pub use types::{Edge, Node, OntologyGraph, Relation};
 
 #[cfg(test)]

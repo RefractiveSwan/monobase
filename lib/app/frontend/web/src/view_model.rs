@@ -401,6 +401,7 @@ mod tests {
         DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
         MappingThresholds, StgServiceRequestFlat, StgSrCodeExploded,
     };
+    use dfps_core::order::{ServiceRequestIntent, ServiceRequestStatus};
 
     fn sample_response() -> MapBundlesResponse {
         let flats = vec![
@@ -409,7 +410,9 @@ mod tests {
                 patient_id: "P1".into(),
                 encounter_id: None,
                 status: "active".into(),
+                status_enum: ServiceRequestStatus::Active,
                 intent: "order".into(),
+                intent_enum: ServiceRequestIntent::Order,
                 description: "PET-CT".into(),
                 ordered_at: Some("2024-05-01T12:00:00Z".into()),
             },
@@ -418,7 +421,9 @@ mod tests {
                 patient_id: "P1".into(),
                 encounter_id: None,
                 status: "completed".into(),
+                status_enum: ServiceRequestStatus::Completed,
                 intent: "order".into(),
+                intent_enum: ServiceRequestIntent::Order,
                 description: "Unknown".into(),
                 ordered_at: None,
             },
