@@ -1,7 +1,7 @@
-# Kanban – feature/mesh-data-plane (05x)
+# Kanban – feature/mesh-data-plane (25)
 
 **Theme:** Post-refactor data/mesh architecture – node runtime, mesh governance, platform data & store layers  
-**Branch:** `feature/meta/MESH-05x-mesh-data-plane`  
+**Branch:** `feature/meta/MESH-25-mesh-data-plane`  
 **Goal:** Design (and then iteratively implement) a **mesh-first** data system where each deployment is a sovereign **node runtime** with a clear separation of **domain**, **platform data**, **platform stores**, and **mesh orchestration**, evolving the codebase toward:
 
 ```text
