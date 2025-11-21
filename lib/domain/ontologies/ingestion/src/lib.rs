@@ -27,10 +27,10 @@ pub use transforms::{
     service_request::sr_to_staging,
 };
 
-pub use validation::external::{
-    ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
-    OperationOutcomeIssue,
+pub use dfps_validation_port::{
+    ExternalValidationError, ExternalValidator, OperationOutcome, OperationOutcomeIssue,
 };
+pub use validation::external::ExternalValidationReport;
 #[cfg(feature = "profile_validation")]
 pub use validation::profile::{profile_requirement_links, validate_sr_profile};
 pub use validation::types::{

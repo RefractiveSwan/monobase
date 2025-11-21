@@ -1099,6 +1099,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "uuid",
 ]
 
 [[package]]
@@ -1120,12 +1121,24 @@ dependencies = [
  "dfps_configuration",
  "dfps_contracts",
  "dfps_core",
+ "dfps_datamart_port",
  "dfps_pipeline",
  "dfps_terminology",
  "serde",
  "sqlx",
  "thiserror 2.0.17",
  "tokio",
+]
+
+[[package]]
+name = "dfps_datamart_port"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dfps_compliance",
+ "dfps_contracts",
+ "serde",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1151,6 +1164,7 @@ name = "dfps_ingestion"
 version = "0.1.0"
 dependencies = [
  "dfps_core",
+ "dfps_validation_port",
  "once_cell",
  "reqwest",
  "serde",
@@ -1207,10 +1221,19 @@ name = "dfps_terminology"
 version = "0.1.0"
 dependencies = [
  "dfps_core",
+ "dfps_terminology_port",
  "once_cell",
  "reqwest",
  "serde",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "dfps_terminology_port"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1242,6 +1265,16 @@ dependencies = [
  "tempfile",
  "tokio",
  "tower",
+]
+
+[[package]]
+name = "dfps_validation_port"
+version = "0.1.0"
+dependencies = [
+ "dfps_core",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
 ]
 
 [[package]]

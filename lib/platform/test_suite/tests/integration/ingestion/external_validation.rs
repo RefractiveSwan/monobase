@@ -7,7 +7,8 @@ use dfps_ingestion::{
     validation::{
         ExternalValidationContext, ValidationMode, ValidationReport,
         external::{
-            ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
+            ExternalValidationError, ExternalValidationOutcome, ExternalValidator,
+            OperationOutcome,
         },
     },
 };
@@ -169,7 +170,7 @@ impl ExternalValidator for BlockingValidator {
         &self,
         bundle: &Bundle,
         profile_url: Option<&str>,
-    ) -> Result<ExternalValidationReport, ExternalValidationError> {
+    ) -> Result<ExternalValidationOutcome, ExternalValidationError> {
         let mut url = self.base_url.clone();
         if !url.ends_with("/$validate") {
             if url.ends_with('/') {
@@ -188,8 +189,6 @@ impl ExternalValidator for BlockingValidator {
         let outcome: OperationOutcome = response
             .json()
             .map_err(|err| ExternalValidationError::Parse(err.to_string()))?;
-        Ok(ExternalValidationReport::from_operation_outcome(Some(
-            outcome,
-        )))
+        Ok(Some(outcome))
     }
 }

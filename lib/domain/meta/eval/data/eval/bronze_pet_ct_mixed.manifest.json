@@ -1,0 +1,9 @@
+{
+  "name": "bronze_pet_ct_mixed",
+  "version": "20250119",
+  "license": "internal_demo",
+  "source": "dfps_eval::fake_data",
+  "n_cases": 3,
+  "sha256": "ed8c1f00cbb81823da5c2b9ab457404fdcf140dcb1673ae625a48ef21795a88e",
+  "notes": "Bronze dataset evenly mixing modalities for smoke tests"
+}

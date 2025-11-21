@@ -1,0 +1,3 @@
+{"system":"http://www.ama-assn.org/go/cpt","code":"78815","display":"Bronze tier PET/CT tumor imaging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://snomed.info/sct","code":"441567006","display":"Bronze tier PET-CT staging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://loinc.org","code":"24606-6","display":"Bronze tier FDG uptake PET","expected_ncit_id":"NCIT:C17747"}

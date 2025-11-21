@@ -1,0 +1,9 @@
+{
+  "name": "bronze_pet_ct_small",
+  "version": "20250119",
+  "license": "internal_demo",
+  "source": "dfps_eval::fake_data",
+  "n_cases": 3,
+  "sha256": "c9e7410d5cb8ad9fc8db3812922d9aeeb13901b008d3dd932b8e3f3e289c5872",
+  "notes": "Bronze tier trio covering CPT, SNOMED, and LOINC"
+}

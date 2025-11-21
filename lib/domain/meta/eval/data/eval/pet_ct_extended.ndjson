@@ -1,0 +1,5 @@
+{"system":"http://www.ama-assn.org/go/cpt","code":"78815","display":"PET with concurrently acquired CT for tumor imaging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://snomed.info/sct","code":"430193006","display":"Positron emission tomography of head and neck","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://loinc.org","code":"24606-6","display":"FDG uptake PET","expected_ncit_id":"NCIT:C17747"}
+{"system":"http://purl.obolibrary.org/obo/NCIT","code":"C20496","display":"Primary Tumor Diagnostic Evaluation","expected_ncit_id":"NCIT:C20496"}
+{"system":"http://loinc.org","code":"89469-7","display":"PET whole body metabolic imaging","expected_ncit_id":"NCIT:C19951"}

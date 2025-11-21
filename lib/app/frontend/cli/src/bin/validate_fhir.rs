@@ -9,7 +9,7 @@ use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::{
     ExternalValidationContext, ValidationMode, ValidationSeverity,
     external::{
-        ExternalValidationError, ExternalValidationReport, ExternalValidator, OperationOutcome,
+        ExternalValidationError, ExternalValidator, OperationOutcome,
     },
 };
 use serde::Serialize;
@@ -196,7 +196,7 @@ impl ExternalValidator for BlockingHttpValidator {
         &self,
         bundle: &Bundle,
         profile_url: Option<&str>,
-    ) -> Result<ExternalValidationReport, ExternalValidationError> {
+    ) -> Result<Option<OperationOutcome>, ExternalValidationError> {
         let mut req = self
             .client
             .post(format!("{}/$validate", self.base_url))
@@ -207,18 +207,16 @@ impl ExternalValidator for BlockingHttpValidator {
         let response = req
             .send()
             .map_err(|err| ExternalValidationError::Failed(err.to_string()))?;
-        let outcome = if response.status().is_success() {
-            Some(
-                response
-                    .json::<OperationOutcome>()
-                    .map_err(|err| ExternalValidationError::Failed(err.to_string()))?,
-            )
+        if response.status().is_success() {
+            let outcome = response
+                .json::<OperationOutcome>()
+                .map_err(|err| ExternalValidationError::Failed(err.to_string()))?;
+            Ok(Some(outcome))
         } else {
-            return Err(ExternalValidationError::Failed(format!(
+            Err(ExternalValidationError::Failed(format!(
                 "validator returned status {}",
                 response.status()
-            )));
-        };
-        Ok(ExternalValidationReport::from_operation_outcome(outcome))
+            )))
+        }
     }
 }

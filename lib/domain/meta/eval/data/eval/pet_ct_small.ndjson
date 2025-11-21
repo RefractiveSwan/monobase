@@ -1,0 +1,3 @@
+{"system":"http://www.ama-assn.org/go/cpt","code":"78815","display":"PET with concurrently acquired CT for tumor imaging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://snomed.info/sct","code":"441567006","display":"PET-CT for neoplasm staging","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://loinc.org","code":"24606-6","display":"FDG uptake PET","expected_ncit_id":"NCIT:C17747"}

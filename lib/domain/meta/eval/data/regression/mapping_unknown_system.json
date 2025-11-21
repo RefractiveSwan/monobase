@@ -1,0 +1,6 @@
+{
+  "sr_id": "SR-UNKNOWN-SYSTEM",
+  "system": "http://example.org/custom-system",
+  "code": "CUSTOM-999",
+  "display": "Custom imaging code"
+}

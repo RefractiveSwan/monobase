@@ -1,0 +1,3 @@
+{"system":"http://purl.obolibrary.org/obo/NCIT","code":"C19951","display":"Silver OBO PET concept","expected_ncit_id":"NCIT:C19951"}
+{"system":"http://purl.obolibrary.org/obo/NCIT","code":"C17747","display":"Silver OBO FDG concept","expected_ncit_id":"NCIT:C17747"}
+{"system":"http://www.ama-assn.org/go/cpt","code":"78815","display":"Silver OBO reference CPT","expected_ncit_id":"NCIT:C19951"}
