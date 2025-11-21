@@ -1,4 +1,4 @@
-use crate::components::typography::card_heading;
+use crate::views::components::typography::card_heading;
 use maud::{Markup, html};
 
 pub fn card(content: Markup) -> Markup {

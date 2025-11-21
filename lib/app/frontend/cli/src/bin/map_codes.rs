@@ -264,7 +264,10 @@ impl VectorStore for ErasedVectorStore {
         self.0.backend()
     }
 
-    fn health(&self, namespace: &str) -> Result<(), refractive_swan_vector_store::VectorStoreError> {
+    fn health(
+        &self,
+        namespace: &str,
+    ) -> Result<(), refractive_swan_vector_store::VectorStoreError> {
         self.0.health(namespace)
     }
 
@@ -281,7 +284,10 @@ impl VectorStore for ErasedVectorStore {
         namespace: &str,
         query_vec: &[f32],
         top_k: usize,
-    ) -> Result<refractive_swan_vector_store::VectorSearchResult, refractive_swan_vector_store::VectorStoreError> {
+    ) -> Result<
+        refractive_swan_vector_store::VectorSearchResult,
+        refractive_swan_vector_store::VectorStoreError,
+    > {
         self.0.search(namespace, query_vec, top_k)
     }
 }

@@ -41,7 +41,9 @@ fn dataset_store_from_env() -> Arc<dyn refractive_swan_eval::DatasetStore + Send
     match refractive_swan_eval::config::EvalDatasetConfig::from_env() {
         Ok(cfg) => Arc::new(cfg.dataset_store()),
         Err(err) => {
-            log::warn!("refractive_swan_web_frontend dataset config error ({err}); using bundled fixtures");
+            log::warn!(
+                "refractive_swan_web_frontend dataset config error ({err}); using bundled fixtures"
+            );
             Arc::new(refractive_swan_eval::FileDatasetStore::default())
         }
     }

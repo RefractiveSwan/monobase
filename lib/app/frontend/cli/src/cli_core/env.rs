@@ -1,12 +1,13 @@
-use refractive_swan_configuration::load_env;
-use refractive_swan_eval::{FileDatasetStore, config::EvalDatasetConfig};
 use env_logger::Builder;
 use log::{LevelFilter, warn};
+use refractive_swan_configuration::load_env;
+use refractive_swan_eval::{FileDatasetStore, config::EvalDatasetConfig};
 
 use super::{CliError, CliResult};
 
 pub fn init_cli_env() -> CliResult<()> {
-    load_env("app.cli").map_err(|err| CliError::config(format!("refractive_swan_cli env error: {err}")))?;
+    load_env("app.cli")
+        .map_err(|err| CliError::config(format!("refractive_swan_cli env error: {err}")))?;
     Ok(())
 }
 

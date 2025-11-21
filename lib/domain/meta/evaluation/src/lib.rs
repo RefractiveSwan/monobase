@@ -8,12 +8,12 @@
 pub mod config;
 pub mod fake_data;
 
+#[cfg(feature = "eval-advanced")]
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use refractive_swan_core::{
     mapping::{MappingResult, MappingState},
     staging::StgSrCodeExploded,
 };
-#[cfg(feature = "eval-advanced")]
-use rand::{Rng, SeedableRng, rngs::StdRng};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

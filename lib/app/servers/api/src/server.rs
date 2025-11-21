@@ -12,6 +12,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
+use log::{error, info, warn};
 use refractive_swan_compliance::assert_export_allowed;
 use refractive_swan_contracts::{
     DimNCITConcept, ErrorCode, ErrorKind, MappingResult, MappingState, PipelineMetrics,
@@ -24,7 +25,6 @@ use refractive_swan_mesh_node::{NodeDataPlane, NodePlaneConfig};
 use refractive_swan_observability::{log_no_match, log_pipeline_output_with_summary};
 use refractive_swan_pipeline::{PipelineError, PipelineRunConfig};
 use refractive_swan_terminology::codesystem::LicenseTier;
-use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use thiserror::Error;
@@ -389,9 +389,13 @@ async fn latest_eval(State(state): State<ApiState>) -> Result<Response, ApiError
     }
 }
 
-fn run_eval_internal(cases: &[refractive_swan_eval::EvalCase], top_k: usize) -> refractive_swan_eval::EvalSummary {
-    let summary =
-        refractive_swan_eval::run_eval_with_mapper(cases, |rows| refractive_swan_mapping::map_staging_codes(rows).0);
+fn run_eval_internal(
+    cases: &[refractive_swan_eval::EvalCase],
+    top_k: usize,
+) -> refractive_swan_eval::EvalSummary {
+    let summary = refractive_swan_eval::run_eval_with_mapper(cases, |rows| {
+        refractive_swan_mapping::map_staging_codes(rows).0
+    });
     if top_k > 1 {
         // Placeholder until engine exposes true top-k.
         return summary;

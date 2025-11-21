@@ -163,8 +163,8 @@ fn run() -> CliResult<()> {
 
     if let Some(path) = &args.compare_to {
         let baseline_str = read_to_string(path.as_path())?;
-        let baseline: refractive_swan_eval::report::BaselineSnapshot = serde_json::from_str(&baseline_str)
-            .map_err(|err| {
+        let baseline: refractive_swan_eval::report::BaselineSnapshot =
+            serde_json::from_str(&baseline_str).map_err(|err| {
                 CliError::invalid(format!(
                     "failed to parse baseline {}: {err}",
                     path.display()
@@ -242,7 +242,10 @@ fn write_report(
     let baseline = dataset.and_then(|name| {
         refractive_swan_eval::report::load_baseline_snapshot_from(store.data_root(), name).ok()
     });
-    let html = refractive_swan_eval::report::render_html(summary, baseline.as_ref().map(|snap| &snap.summary));
+    let html = refractive_swan_eval::report::render_html(
+        summary,
+        baseline.as_ref().map(|snap| &snap.summary),
+    );
     let mut file = File::create(report_path).map_err(|err| {
         CliError::io(format!("failed to create {}: {err}", report_path.display()))
     })?;

@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use refractive_swan_core::{order::ServiceRequest, staging::StgSrCodeExploded};
 use refractive_swan_eval::EvalCase;
 use refractive_swan_eval::fake_data::{
@@ -5,7 +6,6 @@ use refractive_swan_eval::fake_data::{
     fixtures::{self, Registry},
     scenarios::{fake_service_request_scenario, fake_service_request_scenario_with_seed},
 };
-use once_cell::sync::Lazy;
 
 static MAPPING_REGISTRY: Lazy<Registry> = Lazy::new(Registry::default);
 

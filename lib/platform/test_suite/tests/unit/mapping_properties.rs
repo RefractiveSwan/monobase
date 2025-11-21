@@ -1,9 +1,9 @@
 //! REFR-06 – Mapping engine properties (lexical/vector/rule parity).
 //! Ensures ranked candidates remain sorted and synonym augmentation never regresses.
 
+use proptest::prelude::*;
 use refractive_swan_core::{mapping::CodeElement, staging::StgSrCodeExploded};
 use refractive_swan_mapping::{default_engine, map_staging_codes};
-use proptest::prelude::*;
 
 fn staging_with_display(display: String) -> StgSrCodeExploded {
     StgSrCodeExploded {

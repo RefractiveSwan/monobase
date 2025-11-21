@@ -5,7 +5,9 @@ use refractive_swan_contracts::{
     DimNCITConcept, EvalRunResponse, LoadSummary, MappingResult, PipelineMetrics,
 };
 use refractive_swan_core::mapping::MappingState;
-use refractive_swan_test_suite::{TempSqliteWarehouse, ensure_eval_data_root, init_environment, regression};
+use refractive_swan_test_suite::{
+    TempSqliteWarehouse, ensure_eval_data_root, init_environment, regression,
+};
 use serde_json::Value;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -22,7 +24,15 @@ fn parse_record(line: &str) -> (String, Value) {
 
 fn cli_command(bin: &str) -> Command {
     let mut cmd = Command::new("cargo");
-    cmd.args(["run", "--quiet", "-p", "refractive_swan_cli", "--bin", bin, "--"]);
+    cmd.args([
+        "run",
+        "--quiet",
+        "-p",
+        "refractive_swan_cli",
+        "--bin",
+        bin,
+        "--",
+    ]);
     cmd
 }
 

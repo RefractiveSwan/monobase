@@ -14,12 +14,12 @@ use refractive_swan_core::{
     value::{EncounterId, PatientId},
 };
 
-pub use refractive_swan_contracts::LoadSummary;
-pub use refractive_swan_datamart_port::{CohortFilters, DatamartError, DatamartSink};
 pub use dim::*;
 pub use fact::*;
 pub use keys::*;
 pub use port::SqliteDatamart;
+pub use refractive_swan_contracts::LoadSummary;
+pub use refractive_swan_datamart_port::{CohortFilters, DatamartError, DatamartSink};
 pub use sql::{
     LoadError, WarehouseConfig, cohort, connect_sqlite, ddl_statements, load_from_pipeline_output,
     load_streaming_iter, migrate, ncit_summary,
@@ -153,7 +153,9 @@ fn mapping_state_label(state: MappingState) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use refractive_swan_contracts::{DimNCITConcept, MappingResult, MappingState, StgSrCodeExploded};
+    use refractive_swan_contracts::{
+        DimNCITConcept, MappingResult, MappingState, StgSrCodeExploded,
+    };
     use refractive_swan_core::{
         clinical::order::{ServiceRequestIntent, ServiceRequestStatus},
         mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},

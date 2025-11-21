@@ -2,7 +2,9 @@
 
 use async_trait::async_trait;
 use refractive_swan_compliance::Policy;
-use refractive_swan_contracts::{AnalyticsSummaryResponse, CohortResponse, LoadSummary, PipelineOutput};
+use refractive_swan_contracts::{
+    AnalyticsSummaryResponse, CohortResponse, LoadSummary, PipelineOutput,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

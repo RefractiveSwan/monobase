@@ -4,6 +4,7 @@ use crate::{
     env::ensure_env,
     metrics::{PipelineMetrics, apply_vector_usage},
 };
+use log::{info, warn};
 #[cfg(test)]
 use refractive_swan_core::mapping::MappingState;
 use refractive_swan_core::{
@@ -13,7 +14,6 @@ use refractive_swan_core::{
 #[cfg(test)]
 use refractive_swan_vector_port::VectorCapacitySnapshot;
 use refractive_swan_vector_port::VectorUsageSnapshot;
-use log::{info, warn};
 
 pub fn log_pipeline_output(
     flats: &[StgServiceRequestFlat],

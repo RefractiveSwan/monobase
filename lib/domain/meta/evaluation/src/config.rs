@@ -45,7 +45,8 @@ fn resolve_path(raw: &str) -> Result<PathBuf, EvalConfigError> {
     if candidate.is_absolute() {
         return Ok(candidate);
     }
-    let workspace = refractive_swan_configuration::workspace_root().map_err(EvalConfigError::Env)?;
+    let workspace =
+        refractive_swan_configuration::workspace_root().map_err(EvalConfigError::Env)?;
     Ok(workspace.join(candidate))
 }
 

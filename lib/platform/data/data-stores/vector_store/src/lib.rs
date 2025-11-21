@@ -23,13 +23,15 @@ pub fn config_from_env() -> Result<VectorStoreConfig, VectorStoreConfigError> {
     let url = refractive_swan_configuration::string_var("refractive_swan_VECTOR_URL")
         .map_err(env_err)?
         .filter(|value| !value.is_empty());
-    let namespace = env::var("refractive_swan_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
+    let namespace =
+        env::var("refractive_swan_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
     let pool_max = refractive_swan_configuration::u32_var("refractive_swan_VECTOR_POOL_MAX")
         .map_err(env_err)?
         .unwrap_or(DEFAULT_POOL_MAX);
-    let health_timeout_ms = refractive_swan_configuration::u64_var("refractive_swan_VECTOR_HEALTH_TIMEOUT_MS")
-        .map_err(env_err)?
-        .unwrap_or(DEFAULT_HEALTH_TIMEOUT_MS);
+    let health_timeout_ms =
+        refractive_swan_configuration::u64_var("refractive_swan_VECTOR_HEALTH_TIMEOUT_MS")
+            .map_err(env_err)?
+            .unwrap_or(DEFAULT_HEALTH_TIMEOUT_MS);
 
     let config = VectorStoreConfig {
         backend,

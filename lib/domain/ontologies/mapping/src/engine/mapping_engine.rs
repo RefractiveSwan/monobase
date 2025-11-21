@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use refractive_swan_core::mapping::{CodeElement, MappingCandidate, MappingResult, MappingStrategy};
+use refractive_swan_core::mapping::{
+    CodeElement, MappingCandidate, MappingResult, MappingStrategy,
+};
 use refractive_swan_core::staging::StgSrCodeExploded;
 use refractive_swan_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
 

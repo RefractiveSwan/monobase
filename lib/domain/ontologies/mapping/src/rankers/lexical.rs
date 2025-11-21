@@ -1,6 +1,6 @@
-use refractive_swan_core::mapping::{CodeElement, MappingCandidate};
 #[cfg(feature = "obo-graph")]
 use once_cell::sync::Lazy;
+use refractive_swan_core::mapping::{CodeElement, MappingCandidate};
 
 use crate::traits::CandidateRanker;
 
@@ -17,8 +17,9 @@ fn contains_any(haystack: &str, needles: &[String]) -> bool {
 
 #[cfg(feature = "obo-graph")]
 fn pet_synonyms() -> &'static Vec<String> {
-    static SYNONYMS: Lazy<Vec<String>> =
-        Lazy::new(|| refractive_swan_terminology::synonym_set(PET_PRIMARY_NCIT_ID).unwrap_or_default());
+    static SYNONYMS: Lazy<Vec<String>> = Lazy::new(|| {
+        refractive_swan_terminology::synonym_set(PET_PRIMARY_NCIT_ID).unwrap_or_default()
+    });
     &SYNONYMS
 }
 

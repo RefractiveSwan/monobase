@@ -1,10 +1,10 @@
 use crate::fake_data::rng;
+use fake::{Fake, Faker};
+use rand::{Rng, prelude::IndexedRandom};
 use refractive_swan_core::{
     order::{ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId, ServiceRequestId},
 };
-use fake::{Fake, Faker};
-use rand::{Rng, prelude::IndexedRandom};
 
 const ORDER_DESCRIPTIONS: &[&str] = &[
     "PET/CT for staging",

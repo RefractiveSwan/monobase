@@ -28,7 +28,6 @@ pub use config::MappingConfig;
 pub use data::{
     NCIT_DATA_VERSION, UMLS_DATA_VERSION, UmlsXref, load_ncit_concepts, load_umls_xrefs,
 };
-pub use refractive_swan_eval::{EvalCase, EvalResult, EvalSummary};
 pub use engine::{
     MappingEngine, MappingExplanation, RuleReranker, default_engine, explain_staging_code,
     vector_engine, vector_engine_from_config,
@@ -44,5 +43,6 @@ pub use rankers::{
     DeterministicEmbeddingProvider, LexicalRanker, VectorRankerBackend, VectorRankerError,
     VectorRankerMock,
 };
+pub use refractive_swan_eval::{EvalCase, EvalResult, EvalSummary};
 pub use traits::{CandidateRanker, Mapper};
 pub use types::{FusionWeights, MappingSummary};

@@ -1,6 +1,6 @@
 use crate::fake_data::{rng, value::fake_patient_id_with_rng};
-use refractive_swan_core::patient::Patient;
 use rand::Rng;
+use refractive_swan_core::patient::Patient;
 
 pub fn fake_patient() -> Patient {
     rng::with_global_rng(fake_patient_with_rng)

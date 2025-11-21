@@ -21,7 +21,10 @@ fn metrics_snapshot_matches_expected_counts() {
         None,
     );
     for result in &output.mapping_results {
-        if matches!(result.state, refractive_swan_core::mapping::MappingState::NoMatch) {
+        if matches!(
+            result.state,
+            refractive_swan_core::mapping::MappingState::NoMatch
+        ) {
             log_no_match(result);
         }
     }

@@ -1,9 +1,9 @@
 //! FHIR ingestion property tests (REFR-05 / FHIR-CONF-015).
 
+use proptest::prelude::*;
 use refractive_swan_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
 use refractive_swan_ingestion::{IngestionError, bundle_to_staging};
 use refractive_swan_test_suite::regression;
-use proptest::prelude::*;
 
 proptest! {
     #[test]

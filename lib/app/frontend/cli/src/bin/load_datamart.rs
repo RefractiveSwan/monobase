@@ -5,7 +5,9 @@ use refractive_swan_cli::cli_core::{
 };
 use refractive_swan_cli_dto::LoadSummary;
 use refractive_swan_core::fhir::Bundle;
-use refractive_swan_datamart::{LoadError, WarehouseConfig, connect_sqlite, load_streaming_iter, migrate};
+use refractive_swan_datamart::{
+    LoadError, WarehouseConfig, connect_sqlite, load_streaming_iter, migrate,
+};
 use refractive_swan_pipeline::{
     DefaultPipeline, PipelineOutput, PipelinePort, PipelineRunConfig, VectorPipelineContext,
 };

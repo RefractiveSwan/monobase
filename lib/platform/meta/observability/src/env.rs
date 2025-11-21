@@ -19,12 +19,17 @@ pub(crate) fn ensure_env() -> Result<(), refractive_swan_configuration::EnvLoadE
     let explicit_env_file = env::var("refractive_swan_ENV_FILE").ok();
     match refractive_swan_configuration::load_env("platform.observability") {
         Ok(outcome) => {
-            if outcome.files.is_empty() {
-                if let Some(file) = explicit_env_file {
+            if let Some(file) = explicit_env_file {
+                let configured_path = PathBuf::from(&file);
+                let loaded_match = outcome
+                    .files
+                    .iter()
+                    .any(|loaded| loaded.ends_with(&configured_path));
+                if !loaded_match {
                     return Err(refractive_swan_configuration::EnvLoadError::FileMissing {
                         namespace: outcome.namespace,
                         profile: outcome.profile,
-                        attempted: vec![PathBuf::from(file)],
+                        attempted: vec![configured_path],
                     });
                 }
             }
@@ -82,7 +87,10 @@ mod tests {
             env::set_var("refractive_swan_ENV_FILE", "missing.observability.env");
         }
         let err = ensure_env().expect_err("invalid env file should error");
-        matches!(err, refractive_swan_configuration::EnvLoadError::DotEnv { .. });
+        matches!(
+            err,
+            refractive_swan_configuration::EnvLoadError::DotEnv { .. }
+        );
         unsafe {
             env::remove_var("refractive_swan_ENV_FILE");
         }

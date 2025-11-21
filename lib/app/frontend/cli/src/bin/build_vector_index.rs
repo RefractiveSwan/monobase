@@ -1,5 +1,7 @@
 use clap::Parser;
-use refractive_swan_cli::cli_core::{CliError, CliResult, init_cli_env, load_vector_config, run_bin};
+use refractive_swan_cli::cli_core::{
+    CliError, CliResult, init_cli_env, load_vector_config, run_bin,
+};
 use refractive_swan_core::mapping::CodeElement;
 use refractive_swan_mapping::{DeterministicEmbeddingProvider, load_ncit_concepts};
 use refractive_swan_vector_store::EmbeddingProvider;

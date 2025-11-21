@@ -15,9 +15,10 @@ impl FakeDataConfig {
             Err(EnvLoadError::FileMissing { .. }) => {}
             Err(err) => return Err(FakeDataConfigError::Env(err)),
         }
-        let default_count = refractive_swan_configuration::u64_var("refractive_swan_FAKE_DATA_DEFAULT_COUNT")
-            .map_err(FakeDataConfigError::EnvValue)?
-            .map(|value| value as usize);
+        let default_count =
+            refractive_swan_configuration::u64_var("refractive_swan_FAKE_DATA_DEFAULT_COUNT")
+                .map_err(FakeDataConfigError::EnvValue)?
+                .map(|value| value as usize);
         let default_seed = refractive_swan_configuration::u64_var("refractive_swan_FAKE_DATA_SEED")
             .map_err(FakeDataConfigError::EnvValue)?;
         Ok(Self {

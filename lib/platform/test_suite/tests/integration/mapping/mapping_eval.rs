@@ -82,8 +82,8 @@ fn tiered_datasets_load() {
         "silver_pet_ct_small",
         "gold_pet_ct_small",
     ] {
-        let cases =
-            refractive_swan_eval::load_dataset(dataset).unwrap_or_else(|_| panic!("{dataset} should load"));
+        let cases = refractive_swan_eval::load_dataset(dataset)
+            .unwrap_or_else(|_| panic!("{dataset} should load"));
         assert!(!cases.is_empty(), "{dataset} should contain rows");
     }
 }

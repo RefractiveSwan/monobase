@@ -1,6 +1,6 @@
 use crate::{client::BackendClient, config::AppConfig};
-use refractive_swan_observability::PipelineMetrics;
 use log::info;
+use refractive_swan_observability::PipelineMetrics;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]

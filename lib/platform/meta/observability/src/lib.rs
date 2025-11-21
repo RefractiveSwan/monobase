@@ -12,8 +12,8 @@ mod logging;
 mod metrics;
 mod snapshot;
 
-pub use refractive_swan_vector_port::{VectorCapacitySnapshot, VectorUsageSnapshot};
 pub use env::init_environment;
 pub use logging::{log_no_match, log_pipeline_output, log_pipeline_output_with_summary};
 pub use metrics::{PipelineMetrics, apply_vector_usage};
+pub use refractive_swan_vector_port::{VectorCapacitySnapshot, VectorUsageSnapshot};
 pub use snapshot::{MetricsRatios, MetricsSnapshot, metrics_snapshot, metrics_snapshot_json};

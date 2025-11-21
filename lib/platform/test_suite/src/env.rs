@@ -39,9 +39,8 @@ pub fn ensure_eval_data_root() -> Result<PathBuf, refractive_swan_configuration:
         return Ok(PathBuf::from(raw));
     }
 
-    Ok(
-        refractive_swan_configuration::workspace_root()?.join("lib/domain/meta/evaluation/data/eval"),
-    )
+    Ok(refractive_swan_configuration::workspace_root()?
+        .join("lib/domain/meta/evaluation/data/eval"))
 }
 
 /// RAII guard for temporarily overriding environment variables in tests.

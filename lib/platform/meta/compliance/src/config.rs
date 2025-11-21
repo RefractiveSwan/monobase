@@ -19,18 +19,21 @@ impl ComplianceConfig {
             Err(err) => return Err(ComplianceError::Env(err)),
         }
 
-        let workspace_root = refractive_swan_configuration::workspace_root().map_err(ComplianceError::Env)?;
+        let workspace_root =
+            refractive_swan_configuration::workspace_root().map_err(ComplianceError::Env)?;
 
-        let mode = match refractive_swan_configuration::string_var("refractive_swan_COMPLIANCE_MODE")
-            .map_err(ComplianceError::EnvValue)?
-        {
-            Some(value) => ComplianceMode::from_env_value(&value)?,
-            None => ComplianceMode::Internal,
-        };
+        let mode =
+            match refractive_swan_configuration::string_var("refractive_swan_COMPLIANCE_MODE")
+                .map_err(ComplianceError::EnvValue)?
+            {
+                Some(value) => ComplianceMode::from_env_value(&value)?,
+                None => ComplianceMode::Internal,
+            };
 
-        let policy_path = refractive_swan_configuration::string_var("refractive_swan_COMPLIANCE_POLICY_PATH")
-            .map_err(ComplianceError::EnvValue)?
-            .map(|value| resolve_path(&workspace_root, &value));
+        let policy_path =
+            refractive_swan_configuration::string_var("refractive_swan_COMPLIANCE_POLICY_PATH")
+                .map_err(ComplianceError::EnvValue)?
+                .map(|value| resolve_path(&workspace_root, &value));
 
         Ok(Self {
             mode,

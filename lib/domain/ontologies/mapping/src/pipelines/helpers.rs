@@ -41,7 +41,10 @@ pub fn build_result_with_score(
     }
 }
 
-pub fn classify(score: f32, thresholds: &refractive_swan_core::mapping::MappingThresholds) -> MappingState {
+pub fn classify(
+    score: f32,
+    thresholds: &refractive_swan_core::mapping::MappingThresholds,
+) -> MappingState {
     if score >= thresholds.auto_map_min {
         MappingState::AutoMapped
     } else if score >= thresholds.needs_review_min {

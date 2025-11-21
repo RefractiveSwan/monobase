@@ -267,7 +267,10 @@ allowed_tiers:
     #[test]
     fn load_policy_reports_missing_override_file() {
         let _lock = env_guard().lock().unwrap();
-        let dir = env::temp_dir().join(format!("refractive_swan-compliance-missing-{}", uuid::Uuid::new_v4()));
+        let dir = env::temp_dir().join(format!(
+            "refractive_swan-compliance-missing-{}",
+            uuid::Uuid::new_v4()
+        ));
         fs::create_dir_all(&dir).unwrap();
         unsafe { env::set_var("refractive_swan_WORKSPACE_ROOT", &dir) };
         set_env_var("refractive_swan_COMPLIANCE_POLICY_PATH", "not_there.json");
@@ -289,7 +292,10 @@ allowed_tiers:
     #[test]
     fn load_policy_uses_workspace_root_for_relative_path() {
         let _lock = env_guard().lock().unwrap();
-        let dir = env::temp_dir().join(format!("refractive_swan-compliance-root-{}", uuid::Uuid::new_v4()));
+        let dir = env::temp_dir().join(format!(
+            "refractive_swan-compliance-root-{}",
+            uuid::Uuid::new_v4()
+        ));
         fs::create_dir_all(&dir).unwrap();
         let policy_path = dir.join("relative_policy.json");
         fs::write(
@@ -298,8 +304,14 @@ allowed_tiers:
         )
         .unwrap();
 
-        set_env_var("refractive_swan_WORKSPACE_ROOT", dir.to_string_lossy().as_ref());
-        set_env_var("refractive_swan_COMPLIANCE_POLICY_PATH", "relative_policy.json");
+        set_env_var(
+            "refractive_swan_WORKSPACE_ROOT",
+            dir.to_string_lossy().as_ref(),
+        );
+        set_env_var(
+            "refractive_swan_COMPLIANCE_POLICY_PATH",
+            "relative_policy.json",
+        );
 
         let policy = load_policy_from_env().expect("relative policy loads");
         assert_eq!(policy.mode, ComplianceMode::Partner);

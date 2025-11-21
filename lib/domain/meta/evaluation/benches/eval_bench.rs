@@ -1,5 +1,7 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use refractive_swan_core::mapping::{MappingResult, MappingState, MappingStrategy, MappingThresholds};
+use refractive_swan_core::mapping::{
+    MappingResult, MappingState, MappingStrategy, MappingThresholds,
+};
 use refractive_swan_eval::{self, DEFAULT_CHUNK_SIZE, FileDatasetStore};
 use std::io::BufReader;
 
@@ -28,7 +30,9 @@ fn map_stub(rows: Vec<refractive_swan_core::staging::StgSrCodeExploded>) -> Vec<
             strategy: MappingStrategy::Lexical,
             state: MappingState::AutoMapped,
             thresholds: MappingThresholds::default(),
-            source_version: refractive_swan_core::mapping::MappingSourceVersion::new("bench", "bench"),
+            source_version: refractive_swan_core::mapping::MappingSourceVersion::new(
+                "bench", "bench",
+            ),
             reason: None,
             license_tier: Some("bench".into()),
             source_kind: Some("bench".into()),

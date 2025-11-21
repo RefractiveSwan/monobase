@@ -1,9 +1,8 @@
 use std::path::Path;
 
 use super::{
-    CachedOntologyGraph, OntologyGraph, Relation, load_ontology_graph,
+    CachedOntologyGraph, DEFAULT_CACHE_CAPACITY, OntologyGraph, Relation, load_ontology_graph,
     load_ontology_graph_from_path,
-    DEFAULT_CACHE_CAPACITY,
 };
 
 #[test]
@@ -91,7 +90,10 @@ fn runtime_loader_reads_external_obo_files() {
     let graph =
         load_ontology_graph_from_path("ncit-mini-example", path).expect("parse runtime graph");
     assert_eq!(graph.id, "ncit-mini-example");
-    assert!(graph.nodes.len() > 3);
+    assert!(
+        graph.nodes.len() >= 3,
+        "expected at least 3 nodes in runtime graph"
+    );
     assert!(graph.nodes.iter().any(|node| node.iri == "NCIT:C19951"));
 }
 

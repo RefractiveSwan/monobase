@@ -8,9 +8,7 @@ use refractive_swan_cli::cli_core::{
 use refractive_swan_core::fhir::Bundle;
 use refractive_swan_ingestion::validation::{
     ExternalValidationContext, ValidationMode, ValidationSeverity,
-    external::{
-        ExternalValidationError, ExternalValidator, OperationOutcome,
-    },
+    external::{ExternalValidationError, ExternalValidator, OperationOutcome},
 };
 use serde::Serialize;
 
@@ -105,8 +103,9 @@ fn run() -> CliResult<()> {
             validator: validator.as_ref().map(|v| v as &dyn ExternalValidator),
             profile_url: args.profile.as_deref(),
         };
-        let report =
-            refractive_swan_ingestion::validation::validate_bundle_with_external_profile(&bundle, mode, ctx);
+        let report = refractive_swan_ingestion::validation::validate_bundle_with_external_profile(
+            &bundle, mode, ctx,
+        );
         for issue in &report.issues {
             total_issues += 1;
             match issue.severity {
@@ -156,25 +155,31 @@ struct BlockingHttpValidator {
 impl BlockingHttpValidator {
     fn try_new() -> CliResult<Self> {
         let _ = refractive_swan_configuration::load_env("app.cli");
-        let base_url = refractive_swan_configuration::string_var("refractive_swan_FHIR_VALIDATOR_BASE_URL")
-            .map_err(|err| CliError::config(format!("validator config error: {err}")))?
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty())
-            .ok_or_else(|| {
-                CliError::config("refractive_swan_FHIR_VALIDATOR_BASE_URL must be set for external validation")
-            })?;
-        let timeout_secs = refractive_swan_configuration::u64_var("refractive_swan_FHIR_VALIDATOR_TIMEOUT_SECS")
-            .map_err(|err| CliError::config(format!("validator config error: {err}")))?
-            .unwrap_or(10);
+        let base_url = refractive_swan_configuration::string_var(
+            "refractive_swan_FHIR_VALIDATOR_BASE_URL",
+        )
+        .map_err(|err| CliError::config(format!("validator config error: {err}")))?
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            CliError::config(
+                "refractive_swan_FHIR_VALIDATOR_BASE_URL must be set for external validation",
+            )
+        })?;
+        let timeout_secs =
+            refractive_swan_configuration::u64_var("refractive_swan_FHIR_VALIDATOR_TIMEOUT_SECS")
+                .map_err(|err| CliError::config(format!("validator config error: {err}")))?
+                .unwrap_or(10);
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(timeout_secs))
             .build()
             .map_err(|err| CliError::external(err.to_string()))?;
-        let default_profile = refractive_swan_configuration::string_var("refractive_swan_FHIR_VALIDATOR_PROFILE")
-            .ok()
-            .flatten()
-            .map(|value| value.trim().to_string())
-            .filter(|value| !value.is_empty());
+        let default_profile =
+            refractive_swan_configuration::string_var("refractive_swan_FHIR_VALIDATOR_PROFILE")
+                .ok()
+                .flatten()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty());
         Ok(Self {
             client,
             base_url,

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use refractive_swan_validation_port::ExternalValidator;
+use serde::{Deserialize, Serialize};
 
 /// Requirement identifiers mirrored from the ingestion requirements doc.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

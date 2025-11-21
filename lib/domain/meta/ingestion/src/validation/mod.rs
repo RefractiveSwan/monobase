@@ -126,7 +126,9 @@ pub(crate) fn merge_external_report(
 ) -> ValidationReport {
     match external {
         Ok(outcome) => {
-            let ext = crate::validation::external::ExternalValidationReport::from_operation_outcome(outcome);
+            let ext = crate::validation::external::ExternalValidationReport::from_operation_outcome(
+                outcome,
+            );
             if ext.issues.is_empty() && matches!(mode, ValidationMode::ExternalStrict) {
                 report.issues.push(ValidationIssue::new(
                     "VAL_EXTERNAL_EMPTY",

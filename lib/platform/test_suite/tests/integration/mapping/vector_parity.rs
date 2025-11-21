@@ -10,7 +10,9 @@ use refractive_swan_mapping::{
 use refractive_swan_test_suite::fixtures;
 use refractive_swan_vector_store::{MockVectorStore, VectorBackend, VectorStoreConfig};
 
-fn build_codes_from_cases(cases: &[EvalCase]) -> Vec<refractive_swan_core::staging::StgSrCodeExploded> {
+fn build_codes_from_cases(
+    cases: &[EvalCase],
+) -> Vec<refractive_swan_core::staging::StgSrCodeExploded> {
     cases
         .iter()
         .map(|case| refractive_swan_core::staging::StgSrCodeExploded {

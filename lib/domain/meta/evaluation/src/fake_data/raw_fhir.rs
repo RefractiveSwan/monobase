@@ -5,11 +5,11 @@ use crate::fake_data::{
         fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
     },
 };
+use rand::{Rng, seq::IndexedRandom};
 use refractive_swan_core::{
     fhir,
     order::{ServiceRequestIntent, ServiceRequestStatus},
 };
-use rand::{Rng, seq::IndexedRandom};
 use serde_json::to_value;
 
 #[derive(Debug, Clone)]

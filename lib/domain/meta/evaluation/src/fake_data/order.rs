@@ -5,11 +5,11 @@ use crate::fake_data::{
         fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
     },
 };
+use rand::Rng;
 use refractive_swan_core::{
     order::{ServiceRequest, ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId},
 };
-use rand::Rng;
 
 pub fn fake_service_request_for(
     patient_id: &PatientId,

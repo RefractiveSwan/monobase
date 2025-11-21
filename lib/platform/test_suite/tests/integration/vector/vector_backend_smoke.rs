@@ -2,7 +2,9 @@
 
 use std::sync::Arc;
 
-use refractive_swan_vector_store::{MockVectorStore, VectorBackend, VectorStore, VectorStoreConfig};
+use refractive_swan_vector_store::{
+    MockVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
+};
 
 #[test]
 fn backend_feature_flag_skips_network_when_disabled() {

@@ -87,9 +87,10 @@ impl WarehouseConfig {
             .map_err(WarehouseConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
-        let max_connections = refractive_swan_configuration::u32_var("refractive_swan_WAREHOUSE_MAX_CONNECTIONS")
-            .map_err(WarehouseConfigError::Env)?
-            .unwrap_or(5);
+        let max_connections =
+            refractive_swan_configuration::u32_var("refractive_swan_WAREHOUSE_MAX_CONNECTIONS")
+                .map_err(WarehouseConfigError::Env)?
+                .unwrap_or(5);
         Ok(Self {
             url,
             schema,

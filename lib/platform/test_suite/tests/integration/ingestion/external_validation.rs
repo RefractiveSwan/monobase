@@ -7,8 +7,7 @@ use refractive_swan_ingestion::{
     validation::{
         ExternalValidationContext, ValidationMode, ValidationReport,
         external::{
-            ExternalValidationError, ExternalValidationOutcome, ExternalValidator,
-            OperationOutcome,
+            ExternalValidationError, ExternalValidationOutcome, ExternalValidator, OperationOutcome,
         },
     },
 };

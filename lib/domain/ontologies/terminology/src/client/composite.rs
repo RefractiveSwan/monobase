@@ -1,5 +1,7 @@
 use super::mock::MockTerminologyClient;
-use refractive_swan_terminology_port::{CuiRecord, NcitRecord, TerminologyClient, TerminologyResult};
+use refractive_swan_terminology_port::{
+    CuiRecord, NcitRecord, TerminologyClient, TerminologyResult,
+};
 
 /// Composite client that prefers local/mock data and falls back to a remote client when present.
 pub struct CompositeTerminologyClient {
@@ -58,8 +60,10 @@ impl TerminologyClient for CompositeTerminologyClient {
 #[cfg(test)]
 mod tests {
     use super::super::mock::MockTerminologyClient;
-    use refractive_swan_terminology_port::{CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError};
     use super::*;
+    use refractive_swan_terminology_port::{
+        CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError,
+    };
 
     #[test]
     fn composite_prefers_mock_then_remote() {

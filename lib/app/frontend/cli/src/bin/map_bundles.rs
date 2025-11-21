@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use clap::Parser;
+use log::{info, warn};
 use refractive_swan_cli::cli_core::{
     CliError, CliResult, enforce_metrics_gate, init_cli_env, init_logging, input_reader,
     json_stream, load_policy, pipeline_vector_context_from_env, run_bin, tag_metrics, write_record,
@@ -11,7 +12,6 @@ use refractive_swan_core::fhir::Bundle;
 use refractive_swan_ingestion::validation::ValidationSeverity;
 use refractive_swan_observability::{log_no_match, log_pipeline_output_with_summary};
 use refractive_swan_pipeline::{DefaultPipeline, PipelinePort, PipelineRunConfig};
-use log::{info, warn};
 
 #[derive(Parser)]
 #[command(

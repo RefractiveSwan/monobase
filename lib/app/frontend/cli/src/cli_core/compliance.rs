@@ -1,5 +1,5 @@
-use refractive_swan_compliance::{ComplianceConfig, Policy};
 use refractive_swan_cli_dto::PipelineMetrics;
+use refractive_swan_compliance::{ComplianceConfig, Policy};
 
 use super::{CliError, CliResult};
 

@@ -8,6 +8,7 @@
 //!   by exposing a single entrypoint from Bundle -> staging -> NCIt concepts,
 //!   with optional vector-store contexts injected by callers.
 
+use log::warn;
 use refractive_swan_core::{
     fhir::Bundle,
     mapping::{DimNCITConcept, MappingResult},
@@ -24,7 +25,6 @@ use refractive_swan_observability::{PipelineMetrics, VectorUsageSnapshot};
 use refractive_swan_vector_port::{
     VectorBackend, VectorItem, VectorSearchResult, VectorStore, VectorStoreConfig, VectorStoreError,
 };
-use log::warn;
 use std::sync::Arc;
 use thiserror::Error;
 
