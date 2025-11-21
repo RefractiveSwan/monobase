@@ -6,7 +6,8 @@
 This document describes how the Rust workspace is organized into clear, discoverable buckets. The goal is to make it obvious:
 
 - where **user-facing** surfaces live,
-- where **domain logic** lives, and
+- where **domain logic** lives,
+- where **ports/DTOs** are defined, and
 - where **cross-cutting platform** concerns live.
 
 ---
@@ -19,52 +20,77 @@ code/
     runbook/
     kanban/
     book/           # mdBook sources + build output (via cargo make docs)
-    
+
   data/
-    makefiles/      # cargo-make task shards (core/docs/apps)
+    makefiles/
 
   lib/
     app/
+      frontends/
         cli/
-        desktop/
         web/
-          backend/
-            api/
-          frontend/
+        desktop/
+      servers/
+        api/
+        datamart_api/
+
+    dto/
+      web/
+      cli/
+      mesh/
 
     domain/
-        core/
+      core/
+      semantics/
+      pipeline/
+      meta/
         ingestion/
-        mapping/
-        pipeline/
-        fake_data/
+        evaluation/
+      ports/
+        data/
+          dto/
+          data-store/
+            vector/
+          data-plane/
+            datamart/
+        terminology/
+        validation/
 
     platform/
+      meta/
+        configuration/
+        compliance/
         observability/
-        test_suite/
-````
+      test_suite/
+      data/
+        data-plane/
+          mart/
+          warehouse/
+          lake/
+        data-store/
+          vector_store/
+          relational_store/
+          cache_store/
+      mesh/
+        node/
+        hub/
+        governance/
+```
 
 At a glance:
 
-* `app/` – entrypoints and interfaces facing humans or external callers.
-* `domain/` – the problem-space logic and data flow.
-* `platform/` – cross-cutting support: observability, testing, infra-style helpers.
-* `docs/system-design/base/dependency-seams.md` – DTO ownership & adapter seams (keep it updated when adding contracts).
+* `app/` – entrypoints and interfaces facing humans or external callers (CLI/web/desktop frontends + HTTP servers).
+* `dto/` – surface-specific DTO veneers re-exporting canonical contracts (web today, CLI/mesh upcoming).
+* `domain/` – problem-space logic, semantics, and outbound ports.
+* `platform/` – runtime adapters: configuration, compliance, observability, data planes/stores, mesh orchestration.
+* `docs/system-design/base/dependency-seams.md` – DTO & port ownership map.
 
 ### Layer boundaries & dependency hygiene
 
-- **App → Domain → Platform (one way).** App crates may depend on domain/platform,
-  domain crates may consume platform helpers, and platform crates must never
-  depend on domain/app crates.
-- **No env/config in domain.** All configuration/env reads live in app/platform
-  adapters. Domain crates accept typed configs/traits. Enforced via
-  `cargo make layers-check` (see `tools/layer_lint`).
-- **Package graph check.** `cargo make layers-check` uses `guppy` metadata to verify
-  dependencies obey the layer ordering and that `lib/domain/**` sources do not
-  reference `std::env`. The task runs as part of `cargo make ci`.
-- **Ports & adapters.** Domain crates expose traits/DTOs; app crates implement
-  inbound/outbound adapters (HTTP, CLI, NDJSON), and platform crates host
-  reusable adapters (configuration, observability, vector stores, compliance).
+- **App → Domain → Platform (one way).** App crates may depend on domain/platform, domain crates may consume platform helpers, and platform crates never depend on app/domain.
+- **No env/config in domain.** Configuration/env reads live in app or platform adapters. Domain crates accept typed configs/traits. Enforced via `cargo make layers-check`.
+- **Package graph check.** `cargo make layers-check` uses `guppy` metadata to ensure `lib/domain/**` never references `std::env` and obeys dependency ordering.
+- **Ports & adapters.** Domain crates expose traits/DTOs (under `domain/ports`). App crates implement inbound adapters; platform crates implement outbound adapters (vector store, datamart sink, external validators, mesh runtimes).
 
 ---
 
@@ -74,306 +100,165 @@ At a glance:
 
 **Path:** `code/lib/app`
 
-This is where anything “at the edge” of the system lives. These crates should be thin and mostly delegate into `domain/` crates.
+This is where anything “at the edge” of the system lives. Crates stay thin and delegate into `domain/` via ports + DTOs.
 
 Current structure:
 
 ```text
 code/lib/app/
-  cli/
-  desktop/
-  web/
-    backend/
-      api/
-    frontend/
+  frontends/
+    cli/
+    web/
+    desktop/
+  servers/
+    api/
+    datamart_api/
 ```
 
-* `app/cli/`
+* `frontends/cli` – `dfps_cli` binaries. Parse args/config, stream NDJSON, call pipeline/mapping ports, surface compliance/logging, exit with codes.
+* `frontends/web` – `dfps_web_frontend` Actix UI. Renders HTMX/Tailwind, calls backend via DTO veneers, handles paste/upload workflows, metrics dashboard, docs redirect.
+* `frontends/desktop` – reserved for future desktop shells (Tauri/Wry/etc.).
+* `servers/api` – `dfps_api` Axum gateway. Thin HTTP ingress wiring domain pipeline + platform adapters (vector store, datamart sink, compliance). Loads `.env.app.web.api.<profile>`.
+* `servers/datamart_api` – placeholder for future node/datamart APIs in the mesh rollout.
 
-  * Command-line tools and utilities.
-  * Typical responsibilities:
-
-    * parse args / config,
-    * call domain services (e.g. mapping pipeline),
-    * handle basic IO and exit codes.
-
-* `app/desktop/`
-
-  * Future desktop UI shells, if any (e.g., Tauri/Wry/Electron-bridged UIs).
-
-* `app/web/`
-
-  * Web-facing UI or HTTP-gateway shells (e.g., web dashboards, admin panels).
-  * Path: `code/lib/app/frontend/web`.
-  * Crate: `dfps_web_frontend`.
-  * Actix-web UI that renders a Tailwind/HTMX dashboard for bundle uploads and mapping review.
-  * Reads `DFPS_API_BASE_URL` to reach the backend API, `DFPS_FRONTEND_LISTEN_ADDR` for its bind address, and `DFPS_API_CLIENT_TIMEOUT_SECS` for the reqwest client timeout.
-  * Exposes an HTML form for paste/upload workflows and calls `/api/map-bundles`, `/metrics/summary`, and `/health` via an internal API client.
-  * Provides real-time mapping summaries, a metrics dashboard fed by `/metrics/summary`, and a NoMatch explorer so reviewers can triage unmapped codes.
-  * When `DFPS_DOCS_URL` is set (see `.env.app.web.frontend.<profile>`), `/docs` issues a redirect to the mdBook server so documentation is visible alongside the UI.
-  * `src/views.rs` holds the Maud templates, `src/routes.rs` hosts the paste/upload endpoints, and `src/client.rs` houses the reqwest wrapper that talks to the backend. For a full end-to-end runbook, see `docs/runbook/web-quickstart.md`.
-
-* `servers/api/`
-
-  * Crate: `dfps_api`.
-  * HTTP API gateway that exposes the DFPS pipeline over `/api/map-bundles`, `/health`, and `/metrics/summary`.
-  * Delegates ingestion/mapping work to `dfps_pipeline` and emits metrics via `dfps_observability`.
-  * Loads `.env.app.web.api.<profile>` via `dfps_configuration` so dev/test/prod profiles share the same config story as the frontend UI.
-
-**Principle:**
-No heavy business logic should live here. If you find complex logic in `app/`, move it into a `domain/` crate and import it.
+**Principle:** No heavy business logic lives in `app/`. Frontends & servers orchestrate domain ports + platform adapters only.
 
 ---
 
-### 2. `domain/` – Core domain logic and flows
+### 2. `dto/` – Surface-specific contract adapters
+
+**Path:** `code/lib/dto`
+
+Crates under `dto/` provide interface-specific DTO veneers over the canonical domain contracts (`lib/domain/contracts`). Each subdirectory maps to a surface and prevents drift.
+
+Current structure:
+
+```text
+code/lib/dto/
+  web/
+  cli/    # planned
+  mesh/   # planned
+```
+
+* `dto/web` (`dfps_web_dto`) – re-exports analytics/eval/pipeline payloads for the HTTP surfaces (Axum API + Actix frontend). Contains **no** env/config logic.
+* `dto/cli` – planned veneer for CLI NDJSON payloads so binaries stop importing `dfps_contracts` directly.
+* `dto/mesh` – planned veneer for mesh/node control-plane DTOs used by future `dfps_mesh_node` APIs.
+
+---
+
+### 3. `domain/` – Core domain logic & ports
 
 **Path:** `code/lib/domain`
 
-These crates represent what the system **does**, independent of UI or specific deployment details.
-They share two invariants:
+These crates represent what the system **does**, independent of delivery details. Data flows `core → semantics → pipeline`, with supporting meta crates (ingestion/evaluation) and outbound ports.
 
-- **Layer ordering:** data flows `core → ingestion → mapping → pipeline → eval/terminology`. Higher
-  layers can depend on lower layers but never the other way around.
-- **Env-free domain:** no crate under `lib/domain/**` performs `std::env` reads or IO. Configuration
-  lives in app/platform crates via `dfps_configuration`, and domain crates accept typed configs
-  (`MappingConfig`, `EvalDatasetConfig`, `FakeDataConfig`, etc.) so pipelines remain deterministic.
-
-Current structure:
+Current (transitioning) structure:
 
 ```text
 code/lib/domain/
   core/
+  semantics/
   pipeline/
-  evaluation/
-    eval/
-    fake_data/
-  ontologies/
+  meta/
     ingestion/
-    mapping/
-    obo_graph/
+    evaluation/
+  ports/
+    data/
+      dto/
+      data-store/vector/
+      data-plane/datamart/
     terminology/
+    validation/
 ```
 
-#### `core/` – Core models and kernel
+#### `core/` – Core models & kernel
 
-* Crate: `dfps_core` (intended)
-* Responsibilities:
+Crate: `dfps_core`.
 
-  * Fundamental domain models (graphs, partitions, mappings, etc.).
-  * Kernel / algorithm interfaces (ports, traits).
-  * Shared value objects and types used across other domain crates.
-* Examples:
+* Responsibilities: ID/primitives, clinical aggregates, staging/mapping value objects, serde + bridge helpers.
+* Notes: module README ties back to system-design docs; `lib.rs` exposes stable paths (`dfps_core::{patient, order, staging, mapping, value, fhir}`).
 
-  * `Graph`, `Partition`, `CodeElement`, `MappingResult`, etc.
-  * Port traits for algorithms or IO (e.g. `MappingEnginePort`, `GraphBuilderPort`).
-* Internal layout (REFR-04):
+#### `semantics/`
 
-  * `primitives/` (IDs), `clinical/` (patient/encounter/order), `interop/` (FHIR + staging landing rows), `semantics/` (mapping concepts/results).
-  * Bridges that consume another super-domain live under the **consumer** module’s `bridge/` folder (e.g., `semantics/mapping/bridge/from_staging.rs`).
-  * `lib.rs` keeps back-compat re-exports so callers can still use `dfps_core::{patient, order, staging, mapping, value, fhir}` module paths.
+Crates: `dfps_mapping` (mapping engine, rankers), analytics helpers (summary calculators, mapping state logic).
 
-#### `ontologies/ingestion/` – Getting data in
+* Responsibilities: lexical/vector rankers, rule rerankers, semantic helpers reused by pipeline/app layers.
 
-* Crate: `dfps_ingestion` (intended; embedded profiles live in `profiles/`)
-* Responsibilities:
+#### `pipeline/`
 
-  * Adapters that ingest data from external formats into `core` models.
-  * FHIR / raw data ingestion, parsers, connectors.
-  * Schema/validation for incoming payloads.
-* Examples:
+Crate: `dfps_pipeline`.
 
-  * FHIR ServiceRequest -> internal “procedure request” models.
-  * NCIt / UMLS loaders that emit `CodeElement` sets.
+* Responsibilities: orchestrate ingestion + mapping via injected ports, emit `PipelineOutput`, expose `PipelinePort` for CLI/API/web.
 
-#### `ontologies/mapping/` – Semantic mapping engine
+#### `meta/ingestion`
 
-* Crate: `dfps_mapping`
-* Responsibilities:
+Crate: `dfps_ingestion` (currently under `domain/ontologies/ingestion`, moving here).
 
-  * Mapping logic between code systems (CPT, HCPCS, SNOMED, NCIt, etc.).
-  * Lexical and vector rankers, rule-based re-rankers.
-  * Mapping pipelines that operate on already ingested domain objects.
-* Examples:
+* Responsibilities: transforms from FHIR bundles → staging rows, validation semantics, profile metadata.
 
-  * `map_staging_codes` pipeline.
-  * Rankers combining FAISS/TF-IDF, Jaro-Winkler, and clinical rules.
-  * Default mapping engine built from NCIt/UMLS loaders.
+#### `meta/evaluation`
 
-#### `pipeline/` – Orchestration and workflows
+Crate: `dfps_eval` (+ `fake_data`).
 
-* Crate: `dfps_pipeline`
-* Responsibilities:
+* Responsibilities: evaluation harness, dataset store traits, deterministic fake data generators.
 
-  * Compose ingestion + mapping + downstream steps into end-to-end jobs.
-  * Define and orchestrate discrete pipeline stages.
-  * Provide reusable “flows” that `app/` crates can invoke.
-* Examples:
+#### `ports/`
 
-  * “Ingest FHIR ServiceRequests -> normalize -> map to NCIt -> emit structured results.”
-  * Job definitions that can be scheduled / invoked from CLI or web.
+Namespace for outbound ports. Contains traits + DTO veneers consumed by domain crates and implemented by platform adapters.
 
-#### `evaluation/eval/` – Eval harness
+* `data/dto` – e.g., `dfps_web_dto` (existing), `dfps_cli_dto` + `dfps_mesh_dto` (planned).
+* `data/data-store/vector` – home for `dfps_vector_port` traits + helpers.
+* `data/data-plane/datamart` – datamart sink port consumed by pipeline + analytics.
+* `terminology` – terminology client/config traits re-exported from `dfps_terminology`.
+* `validation` – `ExternalValidator` & related contexts used by ingestion.
 
-* Crate: `dfps_eval`
-* Responsibilities:
-
-  * Compute mapping eval metrics and calibration buckets from NDJSON datasets.
-  * Provide reusable runners that accept injected readers/writers.
-  * Surface a `FileDatasetStore` seam so file/HTTP/DB sources can back `EvalCase`
-    streams without leaking env/IO concerns into domain code.
-* Examples:
-
-  * `run_eval_with_mapper` used by CLI/API/web.
-  * Dataset manifests and baseline snapshots for regression gating, loaded via
-    `FileDatasetStore` and `report::load_baseline_snapshot_from(root, name)`.
-
-#### `evaluation/eval::fake_data` – Domain-aware generators
-
-* Module: `dfps_eval::fake_data`
-* Responsibilities:
-
-  * Generate realistic fake data that mirrors domain models with deterministic RNGs.
-  * Provide fixtures for FHIR-like payloads, NCIt-like vocab sets, graphs, etc.
-* Examples:
-
-  * Random FHIR ServiceRequests with plausible combinations of fields.
-  * Fake NCIt concept hierarchies for development and tests.
-  * Graph generators to test community detection / mapping flows.
-  * `fixtures::Registry` + `rng::SeedSequence` ensure CLIs/tests share seeds and
-    data roots supplied by the app/platform config layer.
-
-**Principle:**
-If it encodes business rules, semantics, or domain invariants, it goes under `domain/`.
+During migration we keep compatibility re-exports (e.g., `dfps_mapping::vector` modules) so downstream crates compile.
 
 ---
 
-### 3. `platform/` – Cross-cutting support
+### 4. `platform/` – Cross-cutting runtime adapters
 
 **Path:** `code/lib/platform`
 
-These are capabilities used across the app and domain, but not specific to the business problem.
+Platform crates sit between domain ports and operating-system concerns (env/config, storage, observability). They implement outbound adapters and shared helpers.
 
-Current structure:
+Structure:
 
 ```text
 code/lib/platform/
-  observability/
+  meta/
+    configuration/
+    compliance/
+    observability/
   test_suite/
+  data/
+    data-plane/
+      mart/
+      warehouse/
+      lake/
+    data-store/
+      vector_store/
+      relational_store/
+      cache_store/
+  mesh/
+    node/
+    hub/
+    governance/
 ```
 
-#### `observability/` – Logging and metrics
+* `meta/*` – env/config (`dfps_configuration`), compliance policies (`dfps_compliance`), observability (`dfps_observability`). Shared helpers for all apps.
+* `test_suite` – integration/regression helpers (`dfps_test_suite`).
+* `data/data-plane` – adapters that persist/query analytics data (`dfps_datamart`, warehouse/lake crates). Today some live under `app/servers/*`; MESH-025 + REFR-027 migrate them here.
+* `data/data-store` – physical stores (vector, relational, cache). `dfps_vector_store` moves here.
+* `mesh/*` – node runtime orchestration (`dfps_mesh_node`), research/orchestrator (`dfps_mesh_hub`), governance/policy services.
 
-* Crate: `dfps_observability`
-* Responsibilities:
-
-  * Logging configuration and helpers.
-  * Metrics/tracing span helpers.
-  * Potential integration with external observability stacks.
-* Examples:
-
-  * `init_logging()` / `init_tracing()` functions.
-  * Common macros/wrappers for structured logs and metrics.
-
-#### `test_suite/` – Shared test harness
-
-* Crate: `dfps_test_suite`
-* Responsibilities:
-
-  * Shared test utilities and assertions.
-  * Reusable fixtures and golden data loaders.
-  * Property-based test primitives and harness utilities.
-* Examples:
-
-  * Golden fixture loaders for regression tests.
-  * Helpers to construct fake graphs / mappings in tests.
-  * Property-testing combinators reused across crates.
-  * `.env.platform.observability.<profile>` drives workspace-wide logging defaults (e.g., `RUST_LOG`) so all binaries/tests emit consistent telemetry.
-
-**Principle:**
-If it’s used by many crates and not fundamentally a domain concept, it likely belongs under `platform/`.
+**Guardrails:** The `platform/{data,store,mesh}` directory names and depth are stable—do not rename them without updating the architecture docs + MESH-025 kanban. Runtime adapters should never drift back into `app/` once migrated.
 
 ---
 
-## Cargo workspace example
+## Using this document
 
-Root `code/Cargo.toml` (illustrative):
-
-```toml
-[workspace]
-members = [
-  # app
-  "lib/app/frontend/cli",
-  "lib/app/frontend/desktop",
-  "lib/app/frontend/web",
-
-  # domain
-  "lib/domain/core",
-  "lib/domain/ingestion",
-  "lib/domain/mapping",
-  "lib/domain/pipeline",
-  "lib/domain/fake_data",
-
-  # platform
-  "lib/platform/observability",
-  "lib/platform/test_suite",
-]
-```
-
-Keep crate names stable (e.g. `dfps_core`, `dfps_mapping`); only the paths change.
-
----
-
-## Old -> new path mapping
-
-For historical reference:
-
-```text
-# Before
-code/lib/core           -> code/lib/domain/core
-code/lib/fake_data      -> code/lib/domain/fake_data
-code/lib/ingestion      -> code/lib/domain/ingestion
-code/lib/mapping        -> code/lib/domain/mapping
-code/lib/pipeline       -> code/lib/domain/pipeline
-code/lib/frontend       -> code/lib/app/frontend
-code/lib/observability  -> code/lib/platform/observability
-code/lib/test_suite     -> code/lib/platform/test_suite
-```
-
----
-
-## Guidelines for adding new crates
-
-When introducing a new crate, choose its home based on intent:
-
-* Put it in **`app/`** if:
-
-  * It exposes a UI, CLI, HTTP API, or other external interface.
-  * It mostly delegates to domain services.
-
-* Put it in **`domain/`** if:
-
-  * It expresses domain concepts, rules, or workflows.
-  * It would still make sense if you replaced the UI/infra.
-
-* Put it in **`platform/`** if:
-
-  * It provides a reusable capability (metrics, config, IO helpers, etc.).
-  * It’s not specific to the clinical/mapping domain and could be reused in another project.
-
-Naming pattern (recommended):
-
-* `code/lib/domain/<bounded_context>/`
-* `code/lib/app/<surface>/`
-* `code/lib/platform/<capability>/`
-
-This keeps the workspace readable even as the number of crates grows.
-
----
-
-## Developer tooling and docs
-
-* **Task runner:** `cargo make` (defined in `Makefile.toml` + `data/makefiles/` shards) standardizes `build`, `test`, `docs`, `web`, etc. Install via `cargo install cargo-make`. From the workspace root, run `cargo make help` to list available tasks.
-* **Documentation book:** `docs/book/` hosts the mdBook sources. Use `cargo make docs-sync` to sync runbooks/kanban into the book and `cargo make docs` to build HTML under `docs/book/book/`. `cargo make docs-serve` runs `mdbook serve`.
-* **Environment files:** All `.env.*` files live under `data/environment/` (ignored by git). Copy the `.example` templates when setting up new profiles. The loader (`dfps_configuration`) reads `.env.<namespace>.<profile>` based on `DFPS_ENV`.
-
-For operational guidance and run instructions, refer to the runbooks under `docs/runbook/` (and their mdBook mirror).
+1. When adding a new crate, decide its bucket here before writing code.
+2. If creating a new port or DTO, update this file **and** `docs/system-design/base/dependency-seams.md`.
+3. When migrating crates (e.g., moving `dfps_vector_store` into `platform/data-store/vector_store`), reference both REFR-027 and MESH-025 kanbans to keep status aligned.
+4. Run `cargo make layers-check` after structural changes to ensure dependencies obey the architectural boundaries.

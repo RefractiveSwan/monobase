@@ -11,7 +11,7 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 | **FHIR / staging DTOs** | `dfps_core` (`interop::fhir`, `interop::staging`), `dfps_ingestion` (validation/report types) | App crates (CLI/API) treat these as *read-only* contracts. All env/config decisions stay outside the domain crates. |
 | **Mapping DTOs** | `dfps_core::semantics::mapping`, `dfps_mapping` (ranker summaries) | Domain exposes pure mapping results; app/platform crates inject compliance policies, vector adapters, and terminology clients. |
 | **Pipeline output** | `dfps_pipeline` (re-exported via `dfps_contracts`) | Primary cross-surface payload feeding CLI/API/warehouse. Remains env-free so platform/app layers can reuse it wholesale. |
-| **Analytics / datamart DTOs** | `dfps_datamart` (dim/fact models), `dfps_api` (HTTP wrappers), `dfps_contracts` (shared analytics responses) | Warehouse loaders persist `PipelineOutput` via `dfps_datamart`; API/CLI surfaces re-use the contracts without introducing bespoke DTOs. |
+| **Analytics / datamart DTOs** | `dfps_datamart` (dim/fact models), `dfps_contracts` (shared analytics responses), `dfps_web_dto` (web veneer), future `dfps_cli_dto` | Warehouse loaders persist `PipelineOutput` via `dfps_datamart`; app surfaces re-use the contracts via DTO veneers. |
 | **Eval DTOs** | `dfps_eval` (`EvalSummary`, `DatasetManifest`), `dfps_contracts` (re-exports + `EvalRunResponse`) | CLI/API surfaces deserialize directly into these types for reporting and CI gating. |
 | **UI view models** | `dfps_web_frontend` (Maud view models + reqwest DTO wrappers) | Frontend consumes `dfps_contracts` payloads via `client.rs`; HTMX views remain adapter-only (no domain imports). |
 | **Config / env seams** | `dfps_configuration` (app/platform adapters) | Domain crates accept typed configs (e.g., `TerminologyClientConfig`) constructed in the app/platform layer (see Terminology + external validator seams below). |
@@ -20,24 +20,20 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 
 ### Terminology clients (domain ↔ platform)
 
-* Domain: `dfps_terminology::client::{TerminologyClient, TerminologyClientConfig}`
-  exposes trait + config struct only.
+* Domain: `lib/domain/ports/terminology` (re-exporting `dfps_terminology::client::{TerminologyClient, TerminologyClientConfig}`) exposes trait + config struct only.
 * Platform/App: load env via `dfps_configuration` (or CLI flags), build a config,
   and pass it into `HttpTerminologyClient::from_config`. Domain code never reads
   env variables directly.
 
 ### External FHIR validator
 
-* Domain: `dfps_ingestion::validation::{ExternalValidator, ExternalValidationContext}`
-  – trait + context only.
+* Domain: `lib/domain/ports/validation` (source: `dfps_ingestion::validation::{ExternalValidator, ExternalValidationContext}`) – trait + context only.
 * Platform/App: implement `ExternalValidator` (HTTP, mock, noop) and supply it
   through the context so ingestion stays deterministic and env-free.
 
 ### Vector store
 
-* Domain: `dfps_mapping` and `dfps_pipeline` consume the `dfps_vector_port` traits
-  (`VectorStore`, `VectorStoreConfig`, `VectorUsageSnapshot`) and
-  `VectorPipelineContext` (constructed in app/platform layers).
+* Domain: `lib/domain/ports/data/data-store/vector` (`dfps_vector_port`) exposes `VectorStore`, `VectorStoreConfig`, `VectorUsageSnapshot`, and `VectorPipelineContext`.
 * Platform: `dfps_vector_store` implements adapters for Qdrant/PGVector/Mock and
   exposes `config_from_env` so CLI/API crates can inject a concrete store without
   leaking env parsing into domain code.
@@ -50,18 +46,14 @@ ports that cross the application ↔ domain ↔ platform layers. See also
 
 ### Datamart sink (analytics adapter)
 
-* Domain: `dfps_pipeline::PipelinePort` emits `PipelineOutput`/mapping rows without
-  caring about storage.
-* App: `dfps_datamart::DatamartSink` is the outbound port that persists/query
-  analytics. `SqliteDatamart` lives in the `dfps_datamart` crate and is injected
-  into `dfps_api` and CLI loaders, keeping HTTP/CLI code free of SQL details.
+* Domain: `lib/domain/ports/data/data-plane/datamart` defines the sink trait consumed by `dfps_pipeline` when emitting analytics rows.
+* Platform/App: `dfps_datamart` implements the sink (SQLite today) and is injected into `dfps_api`, CLI loaders, and future mesh nodes.
 
-### Web DTOs
+### DTO veneers
 
-* Domain contracts live in `dfps_contracts`, but the web layer re-exports the
-  subset used by HTTP responses via `dfps_web_dto`. Both the Axum API and the
-  Actix frontend depend on that crate so analytics/cohort/eval payloads stay in
-  sync without bespoke structs.
+* Domain contracts live in `dfps_contracts`, but surfaces consume them via `lib/dto/*` veneers.
+* `lib/dto/web` (`dfps_web_dto`) serves the Axum API + Actix frontend.
+* `lib/dto/cli` and `lib/dto/mesh` will provide NDJSON + node control-plane veneers (track via REFR-027).
 
 ### Eval dataset store
 

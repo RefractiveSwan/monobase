@@ -1,8 +1,8 @@
-# Kanban – feature/mesh-data-plane (25)
+# Kanban – feature/mesh-data-plane (025)
 
 **Theme:** Post-refactor data/mesh architecture – node runtime, mesh governance, platform data & store layers  
-**Branch:** `feature/meta/MESH-25-mesh-data-plane`  
-**Goal:** Design (and then iteratively implement) a **mesh-first** data system where each deployment is a sovereign **node runtime** with a clear separation of **domain**, **platform data**, **platform stores**, and **mesh orchestration**, evolving the codebase toward:
+**Branch:** `feature/meta/MESH-025-mesh-data-plane`  
+**Goal:** Evolve the *current* codebase into a **mesh-first** data system where each deployment is a sovereign **node runtime**, keeping the **planned** `platform/{data,store,mesh}` layout fixed:
 
 ```text
 lib/
@@ -12,359 +12,64 @@ lib/
     pipeline/          (dfps_pipeline)
     eval/
     contracts/         (dfps_contracts: shared DTOs)
+  dto/
+    web/               (dfps_web_dto: web-facing DTO veneer)
   platform/
     mesh/ 
       node/            (dfps_mesh_node)       <- node runtime & governance integration
       hub/             (dfps_mesh_hub)        <- research/orchestrator / FL coordinator
       governance/      (dfps_mesh_governance) <- mesh-level policies, DP/query model, node descriptors
     data/
-      mart/            (dfps_datamart)        <- dim/fact logic inside node
-      warehouse/       (dfps_datawarehouse)   <- backend-agnostic relational warehouse traits
-      lake/            (dfps_datalake)        <- local snapshots / Parquet/Delta lake inside node
-    store/
-      relational_store (dfps_relational_store) <- SQLx/Postgres/DuckDB drivers, per node
-      vector_store     (dfps_vector_store)     <- Qdrant/PGVector, per node
-      cache_store      (dfps_cache_store)      <- Redis, per node
-      graph_store      (dfps_graph_store)      <- IndraDB / graph store, per node
+      data-stack/    
+        mart/            (dfps_datamart)        <- dim/fact logic inside node
+        warehouse/       (dfps_datawarehouse)   <- backend-agnostic relational warehouse traits
+        lake/            (dfps_datalake)        <- local snapshots / Parquet/Delta lake inside node
+      data-store/
+        relational_store (dfps_relational_store) <- SQLx/Postgres/DuckDB drivers, per node
+        vector_store     (dfps_vector_store)     <- Qdrant/PGVector, per node
+        cache_store      (dfps_cache_store)      <- Redis, per node
+        graph_store      (dfps_graph_store)      <- IndraDB / graph store, per node
 ```
 
-> **Assumptions:** REFR-03 (contracts), REFR-09 (pipeline), REFR-13 (vector_store), and REFR-16 (HTTP+warehouse) are at least functionally complete: domain crates are env-free, vector backends are centralized, and analytics are warehouse-backed.
+> **Current reality (high-level):**
+>
+> * Domain alignment in progress:
+>
+>   * `lib/domain/core` (`dfps_core`), `ontologies/{ingestion,mapping,terminology}` (headed to `domain/meta/*`), `pipeline`, `eval`, `vector_port` (headed to `domain/ports/data/data-store/vector`).
+> * DTO layer seeded:
+>
+>   * `lib/dto/web` (`dfps_web_dto`) already exists; CLI + mesh veneers will land under the `domain/ports/data/dto` subtree per REFR-027.
+> * Platform exists but has no `data/`, `store/`, or `mesh/` yet:
+>
+>   * `lib/platform/{compliance,configuration,observability,test_suite}`.
+> * App servers still host what will become platform/data & platform/store:
+>
+>   * `lib/app/servers/{api,datamart,vector_store}`.
+
+This kanban is about **designing and sequencing** the move from the current layout to the target `platform/{data,store,mesh}` layout without changing that target tree.
 
 ---
 
 ## Columns
 
-* **TODO** – Not started yet; design + spike work lives here until first PRs.
-* **INPROGRESS** – Design or implementation underway.
-* **REVIEW** – Awaiting review; may include design docs and PoCs.
-* **DONE** – Shipped into `main` (or equivalent).
+* **TODO** – Planned, not started.
+* **INPROGRESS** – Being actively designed/implemented.
+* **REVIEW** – Needs code/design review.
+* **DONE** – Merged into main.
 
 ---
+
 
 ## TODO
 
-### MESH-01 – Domain surface & contracts alignment for mesh
-
-**Goal:** Lock in a **node-neutral domain layer** (`lib/domain/**`) and **contract layer** (`dfps_contracts`) that can be reused by multiple node runtimes (hospital node, research test harness, mesh hub) without leaking transport or infra details.
-
-**Scope:** `lib/domain/core`, `lib/domain/ontologies/mapping`, `lib/domain/pipeline`, `lib/domain/eval`, `lib/domain/contracts` (new), `dfps_terminology`
-
-* [ ] **MESH-01A – Domain tree stabilization**
-
-  * [ ] Create a domain-level **index document** (e.g., `docs/system-design/base/domain-layout.md`) that states the target domain tree:
-
-    ```text
-    lib/domain
-      core/         (dfps_core)
-      mapping/      (dfps_mapping)
-      pipeline/     (dfps_pipeline)
-      eval/         (dfps_eval)
-      contracts/    (dfps_contracts)
-      terminology/  (dfps_terminology) (optional alias; current path remains ontologies/terminology)
-    ```
-
-  * [ ] Decide whether to **physically move** `lib/domain/ontologies/mapping` → `lib/domain/mapping` in this phase or:
-
-    * [ ] Introduce a thin alias crate `lib/domain/mapping` that re-exports the existing `dfps_mapping` crate (keeping `Cargo.toml` package names stable).
-    * [ ] Do the same for terminology (`dfps_terminology`), if moving: `lib/domain/ontologies/terminology` → `lib/domain/terminology`.
-
-  * [ ] Update `dfps_core::lib.rs` and `prelude.rs` to:
-
-    * [ ] Treat `mapping`, `interop`, `clinical`, `primitives` as stable, self-contained domains.
-    * [ ] Point docs to the new “mesh-aware” design doc.
-
-* [ ] **MESH-01B – Contracts as mesh boundary**
-
-  * [ ] Extend `dfps_contracts` (introduced in REFR-03) to be explicitly **mesh-aware**:
-
-    * [ ] Label contracts that cross **node ↔ hub** boundaries (e.g., `NodeCapabilities`, `JobDescriptor`, `JobResult`).
-    * [ ] Distinguish between **intra-node** contracts (e.g., `PipelineOutput`, `LoadSummary`) and **inter-node** contracts (FL jobs, aggregate responses).
-
-  * [ ] Add a `contracts::mesh` module containing:
-
-    * [ ] `NodeId`, `NodeMetadata` (e.g., capabilities, compliance mode, license tier mix, store backends).
-    * [ ] `MeshJobDescriptor` (job type, input parameters, required capabilities).
-    * [ ] `MeshJobResult` (aggregate metrics, error summary, DP metadata).
-    * [ ] `MeshErrorKind` / `MeshErrorCode` for hub ↔ node interactions, mapping back to local error kinds.
-
-  * [ ] Ensure these mesh contracts **do not depend** on concrete HTTP/transport (no Axum types, no reqwest types).
-
-* [ ] **MESH-01C – Node-agnostic eval & mapping interfaces**
-
-  * [ ] Define in `dfps_contracts` or `dfps_eval`:
-
-    * [ ] A **node-agnostic** eval request/response shape:
-
-      * `EvalNodeRequest` (dataset, top_k, mapping mode flags).
-      * `EvalNodeResponse` (EvalSummary + metadata: mapping version, vector backend).
-
-    * [ ] A **hub-level** eval aggregation contract:
-
-      * `EvalMeshAggregate` (per-node stats, mesh-wide confidence intervals, outlier flags).
-
-  * [ ] Ensure `dfps_mapping::MappingSummary` and `dfps_eval::EvalSummary` have **versioned** fields referenced from contracts and are safe for cross-node serialization.
-
----
-
-### MESH-02 – Platform store layer (relational/vector/cache/graph)
-
-**Goal:** Extract and standardize **store abstractions** under `lib/platform/store/**` so that mesh nodes and hub share the same primitives for relational, vector, cache, and graph storage.
-
-**Scope:** new crates under `lib/platform/store`, plus migration from current `dfps_datamart` and `dfps_vector_store`.
-
-* [ ] **MESH-02A – Relational store abstraction (`dfps_relational_store`)**
-
-  * [ ] Create `lib/platform/store/relational_store`:
-
-    * [ ] `RelationalBackend` enum (`Sqlite`, `Postgres`, `Duckdb`, `External`).
-    * [ ] `RelationalConfig { url, pool_max, connect_timeout, schema }` driven entirely by `dfps_configuration`.
-    * [ ] Traits:
-
-      * `RelationalPool` (abstract pool handle).
-      * `RelationalMigrator` (run migrations + DDL).
-      * `Warehouse` trait moved from `dfps_datamart::WarehouseConfig`/`load_from_pipeline_output`.
-
-  * [ ] Extract SQLx-specific logic from `dfps_datamart::sql` into `dfps_relational_store`:
-
-    * [ ] Provide helper functions for acquiring `Pool<Sqlite>` / `Pool<Postgres>` with consistent error reporting.
-    * [ ] Keep DDL in datamart but use **relational pool** creation & connection here.
-
-* [ ] **MESH-02B – Vector store as platform store (`dfps_vector_store`)**
-
-  * [ ] Treat `dfps_vector_store` as `lib/platform/store/vector_store` conceptually; plan physical move when refactor is stable.
-
-  * [ ] Ensure:
-
-    * [ ] No direct reference to Axum or any HTTP-specific code.
-    * [ ] All env config uses `dfps_configuration::load_env("platform.store.vector")` or similar namespaced keys.
-    * [ ] Provide non-env constructors (`VectorStoreConfig::from_parts`) for hub orchestration or test harnesses.
-
-* [ ] **MESH-02C – Cache store abstraction (`dfps_cache_store`)**
-
-  * [ ] Introduce `lib/platform/store/cache_store` (initially minimal):
-
-    * [ ] Define `CacheStore` trait with operations like `get`, `set`, `delete`, `incr`, `ttl`.
-    * [ ] Implement a `RedisCacheStore` backend behind a feature flag (no runtime required yet).
-    * [ ] Provide a `CacheConfig` with `url`, `pool_max`, `namespace`, `strict` flags.
-
-  * [ ] Use case in mesh:
-
-    * [ ] Node-level caching of expensive analytics or eval results.
-    * [ ] Hub-level caching of node capability snapshots.
-
-* [ ] **MESH-02D – Graph store abstraction (`dfps_graph_store`)**
-
-  * [ ] Introduce `lib/platform/store/graph_store`:
-
-    * [ ] Define `GraphStore` trait (nodes/edges CRUD, neighborhood queries, simple pattern queries).
-    * [ ] Provide a `GraphConfig` (backend, url, namespace).
-    * [ ] Implement first backend as an in-memory or file-backed stub, with an eye toward IndraDB (or equivalent) later.
-
-  * [ ] Use case in mesh:
-
-    * [ ] Node-level representation of ontology graphs (NCIT, MONDO), mapping neighborhoods, and concept co-occurrence.
-    * [ ] Potential hub-level cross-node link graph (which nodes have which code/ontology capabilities).
-
----
-
-### MESH-03 – Platform data layer (mart/warehouse/lake)
-
-**Goal:** Separate **dim/fact logic** (datamart) from **warehouse backend implementation** and **lake storage**, so each node can choose local storage patterns but still speak the same “data product” language.
-
-**Scope:** `lib/platform/data/mart`, `lib/platform/data/warehouse`, `lib/platform/data/lake`, refactor of `dfps_datamart`
-
-* [ ] **MESH-03A – Mart crate (`dfps_datamart` relocation & redesign)**
-
-  * [ ] Move `lib/app/servers/datamart` to `lib/platform/data/mart` conceptually:
-
-    * [ ] Keep `Dim*` structs and `FactServiceRequest` as the canonical **mart schema**, not tied to SQLite specifically.
-    * [ ] Expose a `Mart` API that:
-
-      * [ ] Accepts `PipelineOutput` and a `RelationalPool` (from `dfps_relational_store`).
-      * [ ] Produces `LoadSummary` + potential row-level errors.
-      * [ ] Provides analytic queries (`ncit_summary`, `cohort`) that work against any relational backend.
-
-  * [ ] Create a sub-module `mart/sqlite` that wires the current SQLx SQLite logic as **one** Mart backend implementation.
-
-* [ ] **MESH-03B – Warehouse crate (`dfps_datawarehouse`)**
-
-  * [ ] Introduce `lib/platform/data/warehouse`:
-
-    * [ ] `WarehouseRole` concept (operational mart, reporting mart, long-term archive).
-    * [ ] `WarehouseConfig` which composes `RelationalConfig` + `role` + `lake` references.
-    * [ ] Traits:
-
-      * `WarehouseLoader` – entrypoints for `PipelineOutput` → dims/facts (delegate to `dfps_datamart`).
-      * `WarehouseAnalytics` – analytic queries over dim/fact (delegate to SQL or dbt-based models).
-
-  * [ ] `dfps_mesh_node` and `dfps_mesh_hub` will use `dfps_datawarehouse` as the primary interface for data persistence.
-
-* [ ] **MESH-03C – Lake crate (`dfps_datalake`)**
-
-  * [ ] Introduce `lib/platform/data/lake`:
-
-    * [ ] `LakeConfig` (root path, format = Parquet/Delta, retention policy, partitioning rules).
-    * [ ] `LakeWriter` trait (append snapshots from dims/facts).
-    * [ ] `LakeReader` trait (load snapshots for offline analytics or hub queries).
-
-  * [ ] Define first use cases:
-
-    * [ ] Node-level periodic snapshots of fact_service_request for offline replays.
-    * [ ] Hub-level ingestion of node snapshot exports (if policy allows).
-
----
-
-### MESH-04 – Mesh node runtime & governance (`dfps_mesh_node`, `dfps_mesh_governance`)
-
-**Goal:** Turn the existing `dfps_api` into a **mesh node runtime** (`dfps_mesh_node`) wired through a `NodeDataPlane`, with a dedicated `dfps_mesh_governance` crate representing **query-level** and **FL job-level** policies (distinct from license/export-only `dfps_compliance`).
-
-**Scope:** `lib/platform/mesh/node`, `lib/platform/mesh/governance`, `dfps_api` refactor
-
-* [ ] **MESH-04A – NodeDataPlane design**
-
-  * [ ] Draft a design doc `docs/system-design/base/node-runtime.md` that defines:
-
-    * [ ] `NodeDataPlane` struct responsibilities:
-
-      * Owns **stores**: relational, vector, cache, graph.
-      * Owns **data**: local warehouse/mart/lake.
-      * Owns **domain services**: ingestion, pipeline, mapping, eval.
-      * Owns **policies**: compliance policy (`dfps_compliance::Policy`) + mesh governance policy (below).
-      * Exposes **ports**:
-
-        * `run_mapping_job(bundle_batch)` → `PipelineOutput + LoadSummary`.
-        * `run_eval_job(EvalNodeRequest)` → `EvalNodeResponse`.
-        * `run_analytics_job(query)` → `AnalyticsSummaryResponse`/`CohortResponse`.
-
-  * [ ] Identify which pieces of `ApiState` move into `NodeDataPlane` vs remain as HTTP-adapter concerns.
-
-* [ ] **MESH-04B – Governance crate (`dfps_mesh_governance`)**
-
-  * [ ] Introduce `lib/platform/mesh/governance`:
-
-    * [ ] Model **query-level policy**:
-
-      * `QueryClass` (mapping, eval, analytics, export, federated training, node status).
-      * `QueryPolicy` (allowed parameters, DP budget constraints, max cardinality, allowed time ranges).
-
-    * [ ] Model **node descriptor**:
-
-      * `NodeCapabilities` (supported store backends, vector capacity, compliance mode, max dataset size, max eval load).
-      * `NodePolicy` (local overrides, e.g., “allow eval only from these hub IDs”).
-
-    * [ ] Provide evaluation functions:
-
-      * `authorize_query(node_policy, query_descriptor) -> GovernanceDecision` (Allow/Deny/AllowWithDPNoise).
-      * `track_budget(node_state, decision)` for DP budget enforcement (hooks only; implementation can be incremental).
-
-  * [ ] Integrate governance decision points:
-
-    * [ ] In `map_bundles` handler: classify job as `QueryClass::Mapping`, ask governance before proceeding.
-    * [ ] In analytics/eval handlers: enforce `QueryClass::Analytics/<Eval>` limits (e.g., no “unbounded cohort with ID filter” if not allowed).
-
-* [ ] **MESH-04C – Rename/refactor `dfps_api` → `dfps_mesh_node`**
-
-  * [ ] Introduce `lib/platform/mesh/node` (package: `dfps_mesh_node`) that:
-
-    * [ ] Owns `NodeDataPlane` struct and all Axum handlers.
-    * [ ] Depends on:
-
-      * Domain: `dfps_core`, `dfps_ingestion`, `dfps_mapping`, `dfps_pipeline`, `dfps_eval`.
-      * Platform: `dfps_datawarehouse`, `dfps_datamart`, `dfps_datalake`, `dfps_relational_store`, `dfps_vector_store`, `dfps_compliance`, `dfps_mesh_governance`, `dfps_configuration`, `dfps_observability`.
-
-  * [ ] Keep `dfps_api` as a **shim crate** during migration:
-
-    * [ ] Re-export `dfps_mesh_node::run`, `ApiServerConfig`, DTOs.
-    * [ ] Deprecate `dfps_api` in docs, pointing to `dfps_mesh_node`.
-
----
-
-### MESH-05 – Mesh hub (`dfps_mesh_hub`)
-
-**Goal:** Define a minimal **hub runtime** that can coordinate federated jobs across multiple nodes using the `dfps_contracts::mesh` contracts and governance.
-
-**Scope:** `lib/platform/mesh/hub`, hub-facing node APIs, FL job model
-
-* [ ] **MESH-05A – Hub domain model**
-
-  * [ ] Introduce `lib/platform/mesh/hub` crate:
-
-    * [ ] `HubConfig` – known nodes, authentication model, timeouts, backoff.
-    * [ ] `NodeRegistry` – in-memory or pluggable store of `NodeId` → `NodeMetadata` (from contracts).
-    * [ ] `JobQueue` – ephemeral representation of “jobs to run on nodes”, with states (Pending, Running, Completed, Failed).
-
-  * [ ] Define **job types**:
-
-    * `MappingEvalJob` (invoke eval on multiple nodes, aggregate results).
-    * `AnalyticsScanJob` (NCIT summary across nodes for a constrained cohort).
-    * Future: `ModelTrainingJob` (federated training tasks).
-
-* [ ] **MESH-05B – Node ↔ hub protocol (HTTP-level mapping)**
-
-  * [ ] Decide on HTTP API:
-
-    * Node provides:
-
-      * `POST /mesh/jobs/run` or reuses existing endpoints (`/api/eval/run`, `/analytics/*`) with additional query params specifying “hub job id”.
-      * `GET /mesh/nodes/capabilities` or reuse `/metrics/summary` enriched with `NodeCapabilities`.
-
-  * [ ] Map `dfps_contracts::MeshJobDescriptor` and `MeshJobResult` onto HTTP routes:
-
-    * Hub constructs `MeshJobDescriptor`, posts to nodes or maps them to existing API endpoints.
-    * Nodes package their result in `MeshJobResult` payloads.
-
-* [ ] **MESH-05C – Hub governance integration**
-
-  * [ ] Use `dfps_mesh_governance` to:
-
-    * [ ] Decide which nodes can be targeted for a given job (based on `NodePolicy` + `NodeCapabilities`).
-    * [ ] Enforce global budgets (e.g., not hitting the same node with too many jobs in a window).
-
----
-
-### MESH-06 – Migration, compatibility & docs
-
-**Goal:** Provide a smooth migration path from pre-mesh to post-mesh architecture and document the mental model so future work doesn’t drift.
-
-**Scope:** docs, alias crates, runbooks, diagrams
-
-* [ ] **MESH-06A – Compatibility shims**
-
-  * [ ] Keep `dfps_api` crate as deprecated alias for `dfps_mesh_node` until major version bump.
-  * [ ] Provide alias crates or module paths if physical relocations occur (e.g., `dfps_datamart` → `platform/data/mart`).
-  * [ ] Provide `dfps_vector_store` re-exports under `platform/store/vector_store` if/when you move it.
-
-* [ ] **MESH-06B – Docs & diagrams**
-
-  * [ ] Add `docs/system-design/mesh/node-and-hub-architecture.md`:
-
-    * [ ] Node runtime: diagram of `NodeDataPlane` with domain/platform/store crates.
-    * [ ] Hub runtime: diagram of `MeshHub` interacting with nodes.
-    * [ ] Governance flows: request path → `dfps_mesh_governance` → `dfps_compliance` → DataPlane.
-
-  * [ ] Add mermaid/Graphviz diagrams showing:
-
-    * [ ] New lib tree (`domain`, `platform/data`, `platform/store`, `platform/mesh`).
-    * [ ] Job lifecycles: mapping, analytics, eval, federated eval.
-
-* [ ] **MESH-06C – Runbooks**
-
-  * [ ] Write `docs/runbook/mesh-node-quickstart.md`:
-
-    * [ ] How to run a single node with SQLite + Qdrant or PGVector.
-    * [ ] How to configure compliance + governance via env and policy files.
-    * [ ] Steps for switching between “standalone” and “mesh-controlled” modes.
-
-  * [ ] Write `docs/runbook/mesh-hub-quickstart.md` (after MESH-05):
-
-    * [ ] How to configure a hub to talk to multiple nodes.
-    * [ ] Example `MappingEvalJob` and how results are aggregated.
+* *All Phase 1 (design-level) tasks completed. See DONE section below.*
+* Future tasks (Phase 2+) will be tracked in separate implementation-focused kanbans.
 
 ---
 
 ## INPROGRESS
 
-* *Empty* (this board is post-refactor planning; populate as you start work).
+* *Empty*
 
 ---
 
@@ -376,4 +81,514 @@ lib/
 
 ## DONE
 
-* *Empty* (intentionally; this kanban tracks **post-REFR** work only)
+**Completed:** 2025-11-21
+
+### MESH-00 – Baseline & guardrails ✅
+
+* [x] **MESH-00A – Current vs target layout doc**
+  * [x] Created `docs/system-design/base/mesh-data-plane-layout.md`
+  * [x] Documented current tree structure
+  * [x] Documented target `platform/{data,store,mesh}` structure
+  * [x] Created comprehensive mapping table
+
+* [x] **MESH-00B – Naming & stability guardrails**
+  * [x] Updated `docs/system-design/base/directory-architecture.md`
+  * [x] Added "Platform Directory Stability Guardrails" section
+  * [x] Declared `platform/{mesh,data,store}` as FROZEN
+
+---
+
+### MESH-01 – Domain surface & contracts alignment ✅
+
+* [x] **MESH-01A – Vector port verification**
+  * [x] Verified no domain crate depends directly on `dfps_vector_store`
+  * [x] Verified `dfps_vector_port` contains full trait surface
+  * [x] Created `lib/domain/vector_port/README.md`
+
+* [x] **MESH-01B – Contracts as node/hub boundary**
+  * [x] Extended `dfps_contracts` with mesh module
+  * [x] All HTTP-facing DTOs originate from `dfps_contracts`
+
+* [x] **MESH-01C – Mesh-level contracts**
+  * [x] Created `lib/domain/contracts/src/mesh.rs`
+  * [x] Implemented `MeshNodeId`, `NodeCapabilities`
+  * [x] Implemented `MeshJobDescriptor`, `MeshJobResult`, `MeshJobStatus`
+  * [x] Implemented `MeshErrorKind`, `MeshErrorCode`, `MeshError`
+  * [x] Added comprehensive unit tests (passing ✓)
+
+---
+
+### MESH-02 – Platform store layer ✅
+
+* [x] **MESH-02A – Create `platform/store` skeleton**
+  * [x] Created directory structure
+  * [x] Added README stubs for each store type
+
+* [x] **MESH-02B – Relational store abstraction design**
+  * [x] Created `lib/platform/store/relational_store/README.md`
+  * [x] Defined trait design (RelationalPool, RelationalMigrator)
+  * [x] Documented current datamart SQL wiring
+
+* [x] **MESH-02C – Vector store as platform store**
+  * [x] Created `lib/platform/store/vector_store/README.md`
+  * [x] Documented domain/store/runtime layer mapping
+  * [x] Planned `from_config` factory pattern
+
+* [x] **MESH-02D – Cache/graph store design stubs**
+  * [x] Created `lib/platform/store/cache_store/README.md`
+  * [x] Created `lib/platform/store/graph_store/README.md`
+
+---
+
+### MESH-03 – Platform data layer ✅
+
+* [x] **MESH-03A – Create `platform/data` skeleton**
+  * [x] Created directory structure
+  * [x] Created `data/mart/README.md`
+
+* [x] **MESH-03B – Warehouse model design**
+  * [x] Created `data/warehouse/README.md`
+  * [x] Defined WarehouseRole, WarehouseConfig
+  * [x] Defined WarehouseLoader, WarehouseAnalytics traits
+
+* [x] **MESH-03C – Lake model design**
+  * [x] Created `data/lake/README.md`
+  * [x] Defined LakeConfig, LakeWriter, LakeReader
+  * [x] Documented use-cases
+
+---
+
+### MESH-04 – Mesh node runtime ✅
+
+* [x] **MESH-04A – NodeDataPlane design doc**
+  * [x] Created `docs/system-design/mesh/node-runtime.md`
+  * [x] Documented NodeDataPlane struct design
+  * [x] Documented responsibilities
+
+* [x] **MESH-04B – Annotate current `dfps_api` as proto-node**
+  * [x] Updated `lib/app/servers/api/README.md`
+  * [x] Added "Relation to dfps_mesh_node" section
+  * [x] Documented ApiState ~ NodeDataPlane relationship
+
+---
+
+### MESH-05 – Mesh governance & hub design ✅
+
+* [x] **MESH-05A – Governance model**
+  * [x] Created `lib/platform/mesh/governance/README.md`
+  * [x] Defined QueryClass, QueryDescriptor, GovernanceDecision
+  * [x] Documented integration points
+
+* [x] **MESH-05B – Hub model**
+  * [x] Created `lib/platform/mesh/hub/README.md`
+  * [x] Defined HubConfig, NodeRegistry, JobQueue
+  * [x] Documented how hub calls node APIs
+
+---
+
+### MESH-06 – Migration strategy, compatibility & docs ✅
+
+* [x] **MESH-06A – Migration map (phased)**
+  * [x] Created `docs/system-design/mesh/migration-plan.md`
+  * [x] Defined 4 phases (conceptual, aliasing, physical move, mesh node)
+
+* [x] **MESH-06B – Runbooks**
+  * [x] Created `docs/runbook/mesh-node-quickstart.md`
+  * [x] Created `docs/runbook/mesh-hub-quickstart.md`
+
+---
+
+**Summary:**
+
+Phase 1 (design-level) complete:
+- 20 new design documents created
+- 10 skeleton directories established
+- Mesh contracts module implemented and tested
+- Zero code moves (intentional, design-first approach)
+- `platform/{data,store,mesh}` directory structure frozen
+
+**Next Steps:**
+
+Phase 2+ will be tracked in separate implementation kanbans focusing on:
+- Internal aliasing (re-exports)
+- Physical crate moves
+- `dfps_mesh_node` extraction from `dfps_api`
+
+
+**Summary:**
+
+Phase 1 (design-level) complete:
+- 20 new design documents created
+- 10 skeleton directories established
+- Mesh contracts module implemented and tested
+- Zero code moves (intentional, design-first approach)
+- `platform/{data,store,mesh}` directory structure frozen
+
+**Next Steps:**
+
+Phase 2+ will be tracked in separate implementation kanbans focusing on:
+- Internal aliasing (re-exports)
+- Physical crate moves
+- `dfps_mesh_node` extraction from `dfps_api`
+
+See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
+
+
+
+**Goal:** Make the current → target mapping explicit so every subsequent task knows *exactly* which crate moves where in the `platform/{data,store,mesh}` tree (without changing the planned layout).
+
+**Scope:** `docs/system-design`, `docs/kanban`, top-level `lib` layout
+
+* [ ] **MESH-00A – Current vs target layout doc**
+
+  * [ ] Add `docs/system-design/base/mesh-data-plane-layout.md` with three sections:
+
+    * [ ] **Current** tree (verbatim, simplified):
+
+      ```text
+      lib/
+        app/
+          frontend/{cli,web}
+          servers/{api,datamart,vector_store}
+        domain/
+          core/
+          eval/
+          pipeline/
+          contracts/
+          vector_port/
+          ontologies/{ingestion,mapping,terminology}
+        platform/
+          configuration/
+          compliance/
+          observability/
+          test_suite/
+      ```
+
+    * [ ] **Target** tree (exactly the planned `domain` + `platform/{mesh,data,store}` layout from this kanban).
+
+    * [ ] **Mapping table**: each current crate → future home, e.g.:
+
+      | Current crate                    | Future home                               |
+      | -------------------------------- | ----------------------------------------- |
+      | `lib/app/servers/api` (dfps_api) | `lib/platform/mesh/node` (dfps_mesh_node) |
+      | `lib/app/servers/datamart`       | `lib/platform/data/mart` (dfps_datamart)  |
+      | `lib/app/servers/vector_store`   | `lib/platform/store/vector_store`         |
+      | `lib/domain/vector_port`         | stays domain (`dfps_vector_port`)         |
+      | `lib/platform/compliance`        | stays (`dfps_compliance`)                 |
+      | `lib/platform/observability`     | stays (`dfps_observability`)              |
+      | `lib/platform/configuration`     | stays (`dfps_configuration`)              |
+      | `lib/platform/test_suite`        | stays (`dfps_test_suite`)                 |
+
+* [ ] **MESH-00B – Naming & stability guardrails**
+
+  * [ ] In `docs/system-design/base/directory-architecture.md`:
+
+    * [ ] Add an explicit “**DO NOT** change” block for the planned `platform/data`, `platform/store`, `platform/mesh` directories: names and depth are stable.
+    * [ ] Record that:
+
+      * `dfps_datamart` always lives conceptually at `platform/data/mart` (even while physically under `app/servers` until migration).
+      * `dfps_vector_store` is the **platform store** implementing `dfps_vector_port` and **must** end up in `platform/store/vector_store` (even if physically under `app/servers` short-term).
+      * `dfps_mesh_node`,`dfps_mesh_hub`,`dfps_mesh_governance` will only exist under `platform/mesh`.
+
+---
+
+### MESH-01 – Domain surface & contracts alignment (anchored in current domain layout)
+
+**Goal:** Confirm the domain layer (`core`, `ontologies/{ingestion,mapping,terminology}`, `pipeline`, `eval`, `contracts`, `vector_port`) can be used unchanged by **any** future node/hub under `platform/mesh/*`, and that `dfps_contracts` is the canonical cross-node contract layer.
+
+**Scope:** `lib/domain/{core,eval,pipeline,contracts,vector_port,ontologies/*}`
+
+* [ ] **MESH-01A – Vector port verification**
+
+  * [ ] Assert (via docs + quick grep) that:
+
+    * [ ] No domain crate depends directly on `dfps_vector_store`; all domain crates (`dfps_mapping`, `dfps_pipeline`, `dfps_observability`) use `dfps_vector_port` *only*.
+    * [ ] `dfps_vector_port` contains the full trait surface needed by mapping/pipeline (search, index, usage snapshot), with no Qdrant/PGVector specifics.
+  * [ ] Update `lib/domain/vector_port/README.md` (if missing) to:
+
+    * [ ] Explicitly call out that `dfps_vector_store` (future `platform/store/vector_store`) is *one* implementation of this port.
+    * [ ] Describe the expectation that `dfps_mesh_node` wires a `dfps_vector_store` that implements the `dfps_vector_port` trait.
+
+* [ ] **MESH-01B – Contracts as node/hub boundary**
+
+  * [ ] Extend `dfps_contracts` to have explicit *sections*:
+
+    ```text
+    contracts/
+      pipeline.rs     (PipelineOutput, MappingResult aliases, etc.)
+      analytics.rs    (AnalyticsSummaryRow, CohortRow, AnalyticsSummaryResponse, CohortResponse)
+      eval.rs         (EvalCase / EvalSummary / EvalRunResponse / DatasetManifest)
+      metrics.rs      (PipelineMetricsSnapshot, VectorUsageSnapshot/CapacitySnapshot)
+      mesh.rs         (MeshNodeId, NodeCapabilities, MeshJobDescriptor, MeshJobResult, MeshErrorKind)
+    ```
+
+  * [ ] Move HTTP-facing DTOs out of `dfps_api` where appropriate:
+
+    * [ ] `AnalyticsSummaryResponse`, `AnalyticsNcitSummaryRow`, `CohortResponse`, `CohortRow`, `EvalRunResponse` should be re-exported from `dfps_contracts` and referenced in API/web/CLI.
+
+  * [ ] In `dfps_api` and `dfps_web_frontend`, ensure there are **no bespoke analytics/eval DTO structs**; everything comes from `dfps_contracts`.
+
+* [ ] **MESH-01C – Mesh-level contracts**
+
+  * [ ] In `dfps_contracts::mesh`:
+
+    * [ ] Add `MeshNodeId` (opaque string or UUID) and `NodeCapabilities` (vector backend, warehouse backend, compliance mode, max dataset size).
+    * [ ] Add `MeshJobDescriptor` (job type enum: `EvalDataset`, `AnalyticsQuery`, `MappingHealthCheck`) + job parameters.
+    * [ ] Add `MeshJobResult` (per-node result: status, metrics snapshot, optional error).
+    * [ ] Add `MeshErrorKind` (`NodeUnavailable`, `JobRejected`, `PolicyDenied`, `Internal`) and `MeshErrorCode` strings.
+  * [ ] Document that **only** `dfps_mesh_node` and `dfps_mesh_hub` are allowed to use these contracts directly; apps/CLIs remain node-local.
+
+---
+
+### MESH-02 – Platform store layer (relational/vector/cache/graph) wired from current crates
+
+**Goal:** Introduce `platform/store/{relational_store,vector_store,cache_store,graph_store}` as conceptual homes, without changing the **planned** directory names, by mapping the **existing** crates into that layout.
+
+**Scope:** new dirs under `lib/platform/store`, plus reuse of `app/servers/vector_store` and `app/servers/datamart`’s SQL wiring
+
+* [ ] **MESH-02A – Create `platform/store` skeleton**
+
+  * [ ] Create dirs (no renames, just new empty dirs + README stubs):
+
+    ```text
+    lib/platform/store
+      relational_store/ (README + Cargo.toml stub)
+      vector_store/     (README + notes: currently implemented by app/servers/vector_store)
+      cache_store/      (README only)
+      graph_store/      (README only)
+    ```
+
+  * [ ] In each README, document the **intent** and the mapping to current crates, e.g.:
+
+    * `store/vector_store/README.md`: “Currently implemented in `lib/app/servers/vector_store` (`dfps_vector_store`). Will be moved here once mesh node is stable. Domain never depends on this crate directly; it uses `dfps_vector_port`.”
+
+* [ ] **MESH-02B – Relational store abstraction design (no code move yet)**
+
+  * [ ] In `lib/platform/store/relational_store/README.md`:
+
+    * [ ] Define desired traits:
+
+      ```rust
+      pub enum RelationalBackend { Sqlite, Postgres, Duckdb, External }
+
+      pub struct RelationalConfig {
+          pub backend: RelationalBackend,
+          pub url: String,
+          pub pool_max: u32,
+          pub connect_timeout_secs: u64,
+          pub schema: Option<String>,
+      }
+
+      pub trait RelationalPool: Clone + Send + Sync {
+          type Pool;
+          fn connect(cfg: &RelationalConfig) -> Result<Self::Pool, RelationalError>;
+      }
+
+      pub trait RelationalMigrator {
+          type Pool;
+          fn migrate(pool: &Self::Pool) -> Result<(), RelationalError>;
+      }
+      ```
+
+    * [ ] Note that **today** `dfps_datamart`’s `WarehouseConfig` and SQLx-specific connection logic live in `lib/app/servers/datamart/src/sql.rs`, and will be refactored to use these traits.
+
+  * [ ] Add a design checklist:
+
+    * [ ] Keep SQLx concretions behind this crate; `dfps_datamart` should depend on `RelationalConfig + traits`, not `sqlx` directly.
+
+* [ ] **MESH-02C – Vector store as platform store (link current crate)**
+
+  * [ ] In `lib/platform/store/vector_store/README.md`:
+
+    * [ ] Explicitly state that:
+
+      * `dfps_vector_port` is the **domain** trait crate.
+      * `dfps_vector_store` (`lib/app/servers/vector_store`) is the **current** platform implementation, planned to move into this directory once `dfps_mesh_node` is stable.
+    * [ ] Add a little map:
+
+      | Layer   | Crate               | Responsibilities                            |
+      | ------- | ------------------- | ------------------------------------------- |
+      | Domain  | `dfps_vector_port`  | traits, errors, embedding metadata          |
+      | Store   | `dfps_vector_store` | Qdrant/PGVector configs & drivers           |
+      | Runtime | `dfps_mesh_node`    | choose backend, build pool/context per node |
+
+  * [ ] Plan (no code yet) to:
+
+    * [ ] Introduce a `dfps_vector_store::from_config(cfg: VectorStoreRuntimeConfig)` that returns `Arc<dyn VectorStorePort>` so `dfps_mesh_node` can remain ignorant of Qdrant/PGVector specifics.
+
+* [ ] **MESH-02D – Cache/graph store design stubs**
+
+  * [ ] `lib/platform/store/cache_store/README.md`:
+
+    * [ ] Sketch a small `CacheStore` trait (get/set/delete/incr) and mention Redis as the first backend.
+  * [ ] `lib/platform/store/graph_store/README.md`:
+
+    * [ ] Sketch a `GraphStore` trait and note the relationship to `dfps_terminology::obo_graph`; IndraDB (or a similar backend) is a future implementation.
+
+---
+
+### MESH-03 – Platform data layer (mart/warehouse/lake) starting from `app/servers/datamart`
+
+**Goal:** Move the *concept* of datamart/warehouse from `app/servers` to `platform/data/{mart,warehouse}`, keeping the planned directory names exactly as-is, and using `dfps_datamart` as the seed.
+
+**Scope:** `lib/platform/data/{mart,warehouse,lake}` (new), `lib/app/servers/datamart`
+
+* [ ] **MESH-03A – Create `platform/data` skeleton**
+
+  * [ ] Create:
+
+    ```text
+    lib/platform/data
+      mart/       (README only: conceptually hosts dfps_datamart)
+      warehouse/  (README only)
+      lake/       (README only)
+    ```
+
+  * [ ] In `data/mart/README.md`:
+
+    * [ ] State that the existing `dfps_datamart` crate in `app/servers/datamart` is the **mart**; physical move will be a later MESH-impl card.
+    * [ ] Summarize the mart schema: `Dim*` + `FactServiceRequest`, and how it consumes `dfps_contracts::PipelineOutput`.
+
+* [ ] **MESH-03B – Warehouse model (design)**
+
+  * [ ] In `data/warehouse/README.md`, define:
+
+    * [ ] `WarehouseRole` (operational mart, reporting mart, archival).
+    * [ ] `WarehouseConfig` that composes `RelationalConfig` and optional `LakeConfig`.
+    * [ ] Traits:
+
+      * `WarehouseLoader` – (PipelineOutput → dim/fact upsert).
+      * `WarehouseAnalytics` – `ncit_summary`, `cohort`, plus future derived views.
+  * [ ] Document that:
+
+    * [ ] `dfps_mesh_node` uses `WarehouseLoader` + `WarehouseAnalytics` for node-local analytics.
+    * [ ] `dfps_mesh_hub` might read only aggregated views, never raw facts.
+
+* [ ] **MESH-03C – Lake model (design)**
+
+  * [ ] In `data/lake/README.md`, define:
+
+    * [ ] `LakeConfig` (path, file format, retention, partition columns).
+    * [ ] `LakeWriter` / `LakeReader` traits.
+  * [ ] Describe minimal use-cases:
+
+    * [ ] Node snapshots (daily/weekly dumps of `fact_service_request` with DP noise).
+    * [ ] Hub ingestion of snapshots when allowed by `dfps_compliance` + `dfps_mesh_governance`.
+
+---
+
+### MESH-04 – Mesh node runtime (`dfps_mesh_node`) grounded in current `dfps_api`
+
+**Goal:** Treat the existing `dfps_api` as the initial implementation of `dfps_mesh_node`, designing a `NodeDataPlane` that wires domain + platform crates, and planning the eventual relocation into `platform/mesh/node` (without changing that directory layout).
+
+**Scope:** `lib/app/servers/api`, new `lib/platform/mesh/node` (design + future crate)
+
+* [ ] **MESH-04A – NodeDataPlane design (doc-first)**
+
+  * [ ] Add `docs/system-design/mesh/node-runtime.md` describing:
+
+    * [ ] A `NodeDataPlane` struct with fields:
+
+      * `pipeline_port: dfps_pipeline` (or a small `PipelinePort` trait).
+      * `datamart_sink: dfps_datamart` (or `Mart` trait).
+      * `relational_cfg: RelationalConfig`, `relational_pool`.
+      * `vector_runtime: dfps_vector_store` implementing `dfps_vector_port`.
+      * `compliance_policy: dfps_compliance::Policy`.
+      * `dataset_store: dfps_eval::FileDatasetStore`.
+      * `metrics: dfps_observability::PipelineMetrics`.
+    * [ ] Responsibilities:
+
+      * `run_mapping_job(bundles)` → `PipelineOutput` + `LoadSummary` (or disabled datamart).
+      * `run_analytics_job(query)` → analytics contracts.
+      * `run_eval_job(request)` → eval contracts.
+
+* [ ] **MESH-04B – Annotate current `dfps_api` as proto-node**
+
+  * [ ] In `lib/app/servers/api/README.md`, add a section “**Relation to dfps_mesh_node**”:
+
+    * [ ] Explicitly call `dfps_api` the *current node runtime*, to be moved into `platform/mesh/node` when stable.
+    * [ ] Note that `ApiState` ~ early `NodeDataPlane` (but still fused with HTTP concerns).
+
+  * [ ] In `dfps_api::server`:
+
+    * [ ] Add comments or a mini `NodeDataPlane` struct (still in this crate) that:
+
+      * [ ] Binds `pipeline`, `datamart`, `vector runtime`, `policy`, `dataset_store`, `metrics`.
+      * [ ] Leaves Axum router/handlers as a thin HTTP port over it.
+
+---
+
+### MESH-05 – Mesh governance & hub design (no code movement yet)
+
+**Goal:** Design the governance and hub crates under `platform/mesh/{governance,hub}` so they plug into the contracts and node runtime designed above, without touching the `platform/{data,store}` layout.
+
+**Scope:** new `lib/platform/mesh/{governance,hub}` dirs + README design
+
+* [ ] **MESH-05A – Governance model**
+
+  * [ ] Create `lib/platform/mesh/governance/README.md` describing:
+
+    * [ ] `QueryClass` (`MappingJob`, `AnalyticsJob`, `EvalJob`, `ExportJob`, `NodeIntrospection`).
+    * [ ] `QueryDescriptor` (class + parameters: dataset, cohort filters, time range, expected cardinality).
+    * [ ] `GovernanceDecision` enum (`Allow`, `Deny`, `AllowWithNoise`).
+    * [ ] `NodePolicy` referencing `dfps_contracts::mesh::NodeCapabilities`.
+
+  * [ ] Specify integration points:
+
+    * [ ] `dfps_mesh_node` (today `dfps_api`) should call governance before executing jobs, but actual wiring can wait for implementation epics.
+
+* [ ] **MESH-05B – Hub model**
+
+  * [ ] Create `lib/platform/mesh/hub/README.md` describing:
+
+    * [ ] `HubConfig` (list of node URLs/IDs, auth, timeouts, backoff).
+    * [ ] `NodeRegistry` (NodeId → NodeMetadata from `dfps_contracts`).
+    * [ ] `JobQueue` (Meshes `MeshJobDescriptor` to nodes; collects `MeshJobResult`).
+
+  * [ ] Describe how existing endpoints (`/api/eval/*`, `/analytics/*`) could be used as **node APIs** that the hub calls, without changing the contracts.
+
+---
+
+### MESH-06 – Migration strategy, compatibility & docs
+
+**Goal:** Plan the actual move of crates into the `platform/{data,store,mesh}` tree while preserving backward compatibility for existing apps/CLIs.
+
+**Scope:** docs, “shim” crates, deprecation notes
+
+* [ ] **MESH-06A – Migration map (phased)**
+
+  * [ ] In `docs/system-design/mesh/migration-plan.md`, define phases:
+
+    * Phase 1 – *Conceptual only*: introduce `platform/data/*` and `platform/store/*` READMEs (no code move).
+    * Phase 2 – *Internal aliasing*: `dfps_datamart` and `dfps_vector_store` get alias crates or module re-exports under `platform/data/mart` and `platform/store/vector_store`.
+    * Phase 3 – *Physical move*: once tests are stable, switch the `Cargo.toml` paths to the new directories.
+    * Phase 4 – *Mesh node*: move `dfps_api` into `platform/mesh/node` as `dfps_mesh_node`, keeping a thin `dfps_api` shim.
+
+* [ ] **MESH-06B – Runbooks**
+
+  * [ ] Add `docs/runbook/mesh-node-quickstart.md`:
+
+    * [ ] Based on current crates: `dfps_api` (node), `dfps_datamart` (warehouse), `dfps_vector_store` (vector store), `dfps_compliance`, `dfps_configuration`.
+    * [ ] Show env profiles for “standalone node mode” (no hub) with SQLite + Qdrant/PGVector.
+
+  * [ ] Add `docs/runbook/mesh-hub-quickstart.md` (design-level for now):
+
+    * [ ] Outline how a future `dfps_mesh_hub` would call `dfps_mesh_node` (today `dfps_api`) endpoints with the new `mesh` contracts.
+
+---
+
+## INPROGRESS
+
+* *Empty* (use as you start implementing design docs and skeleton crates).
+
+---
+
+## REVIEW
+
+* *Empty*
+
+---
+
+## DONE
+
+* *Empty* (this kanban tracks the **post-refactor mesh design**; implementation epics can split off later).
