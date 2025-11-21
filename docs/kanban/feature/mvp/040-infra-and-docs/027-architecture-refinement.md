@@ -114,9 +114,9 @@ lib/
 - [x] Update feature crates to depend on these ports via the new path.
 
 ### Phase 2 – Domain layout alignment
-- [ ] Move `dfps_ingestion` and `dfps_eval` under `domain/meta/{ingestion,evaluation}` to reflect the plan.
-- [ ] Introduce `domain/semantics` module that groups mapping + analytics helpers (without breaking crate boundaries yet) and document the intent.
-- [ ] Update `directory-architecture.md` + crate READMEs to reflect the new naming.
+- [x] Move `dfps_ingestion` and `dfps_eval` under `domain/meta/{ingestion,evaluation}` to reflect the plan.
+- [x] Introduce `domain/semantics` module that groups mapping + analytics helpers (without breaking crate boundaries yet) and document the intent.
+- [x] Update `directory-architecture.md` + crate READMEs to reflect the new naming.
 
 ### Phase 3 – DTO veneers
 - [ ] Add `lib/dto/cli` for NDJSON/CLI payload wrappers (map_bundles/map_codes) and update CLI bins to consume it.
