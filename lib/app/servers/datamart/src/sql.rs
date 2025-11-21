@@ -4,6 +4,7 @@ use dfps_contracts::{
     AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, LoadSummary,
     PipelineOutput,
 };
+use dfps_datamart_port::CohortFilters;
 use dfps_terminology::codesystem::LicenseTier;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Row, Sqlite, SqlitePool, Transaction};
@@ -103,14 +104,6 @@ pub enum WarehouseConfigError {
     MissingUrl,
     #[error("invalid warehouse env value: {0}")]
     Env(#[from] EnvValueError),
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct CohortFilters {
-    pub ncit_id: Option<String>,
-    pub status: Option<String>,
-    pub date_from: Option<String>,
-    pub date_to: Option<String>,
 }
 
 pub async fn migrate(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {

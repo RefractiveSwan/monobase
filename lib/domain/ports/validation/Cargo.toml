@@ -1,0 +1,10 @@
+[package]
+name = "dfps_validation_port"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+serde_json.workspace = true
+dfps_core = { path = "../../core" }

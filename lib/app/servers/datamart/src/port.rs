@@ -3,39 +3,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use dfps_compliance::Policy;
 use dfps_contracts::{AnalyticsSummaryResponse, CohortResponse, LoadSummary, PipelineOutput};
+use dfps_datamart_port::{CohortFilters, DatamartError, DatamartSink};
 use sqlx::{Pool, Sqlite};
-use thiserror::Error;
 use tokio::sync::OnceCell;
 
 use crate::{
-    CohortFilters, LoadError, WarehouseConfig, cohort, connect_sqlite, load_from_pipeline_output,
-    migrate, ncit_summary,
+    WarehouseConfig, cohort, connect_sqlite, load_from_pipeline_output, migrate, ncit_summary,
 };
-
-/// Datamart adapter errors surfaced to app crates.
-#[derive(Debug, Error)]
-pub enum DatamartError {
-    #[error("datamart not configured")]
-    Disabled,
-    #[error(transparent)]
-    Load(#[from] LoadError),
-    #[error(transparent)]
-    Sql(#[from] sqlx::Error),
-}
-
-/// Outbound port for persisting/querying analytics data.
-#[async_trait]
-pub trait DatamartSink: Send + Sync {
-    async fn persist(
-        &self,
-        output: &PipelineOutput,
-        policy: &Policy,
-    ) -> Result<LoadSummary, DatamartError>;
-
-    async fn ncit_summary(&self) -> Result<AnalyticsSummaryResponse, DatamartError>;
-
-    async fn cohort(&self, filters: &CohortFilters) -> Result<CohortResponse, DatamartError>;
-}
 
 /// Sqlite-backed implementation of [`DatamartSink`].
 #[derive(Clone)]
@@ -79,7 +53,7 @@ impl SqliteDatamart {
                 Ok::<_, sqlx::Error>(pool)
             })
             .await
-            .map_err(DatamartError::Sql)?;
+            .map_err(|err| DatamartError::Backend(err.to_string()))?;
         Ok(pool.clone())
     }
 }
@@ -92,19 +66,25 @@ impl DatamartSink for SqliteDatamart {
         policy: &Policy,
     ) -> Result<LoadSummary, DatamartError> {
         let pool = self.pool().await?;
-        let summary = load_from_pipeline_output(&pool, output, policy).await?;
+        let summary = load_from_pipeline_output(&pool, output, policy)
+            .await
+            .map_err(|err| DatamartError::Load(err.to_string()))?;
         Ok(summary)
     }
 
     async fn ncit_summary(&self) -> Result<AnalyticsSummaryResponse, DatamartError> {
         let pool = self.pool().await?;
-        let summary = ncit_summary(&pool).await?;
+        let summary = ncit_summary(&pool)
+            .await
+            .map_err(|err| DatamartError::Backend(err.to_string()))?;
         Ok(summary)
     }
 
     async fn cohort(&self, filters: &CohortFilters) -> Result<CohortResponse, DatamartError> {
         let pool = self.pool().await?;
-        let cohort = cohort(&pool, filters).await?;
+        let cohort = cohort(&pool, filters)
+            .await
+            .map_err(|err| DatamartError::Backend(err.to_string()))?;
         Ok(cohort)
     }
 }

@@ -15,13 +15,14 @@ use dfps_core::{
 };
 
 pub use dfps_contracts::LoadSummary;
+pub use dfps_datamart_port::{CohortFilters, DatamartError, DatamartSink};
 pub use dim::*;
 pub use fact::*;
 pub use keys::*;
-pub use port::{DatamartError, DatamartSink, SqliteDatamart};
+pub use port::SqliteDatamart;
 pub use sql::{
-    CohortFilters, LoadError, WarehouseConfig, cohort, connect_sqlite, ddl_statements,
-    load_from_pipeline_output, load_streaming_iter, migrate, ncit_summary,
+    LoadError, WarehouseConfig, cohort, connect_sqlite, ddl_statements, load_from_pipeline_output,
+    load_streaming_iter, migrate, ncit_summary,
 };
 
 #[derive(Debug, Default, Clone)]

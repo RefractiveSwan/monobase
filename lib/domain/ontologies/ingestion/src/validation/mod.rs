@@ -120,12 +120,13 @@ pub(crate) fn merge_external_report(
     mode: ValidationMode,
     mut report: ValidationReport,
     external: Result<
-        crate::validation::external::ExternalValidationReport,
-        crate::validation::external::ExternalValidationError,
+        dfps_validation_port::ExternalValidationOutcome,
+        dfps_validation_port::ExternalValidationError,
     >,
 ) -> ValidationReport {
     match external {
-        Ok(ext) => {
+        Ok(outcome) => {
+            let ext = crate::validation::external::ExternalValidationReport::from_operation_outcome(outcome);
             if ext.issues.is_empty() && matches!(mode, ValidationMode::ExternalStrict) {
                 report.issues.push(ValidationIssue::new(
                     "VAL_EXTERNAL_EMPTY",
@@ -282,7 +283,7 @@ fn collect_resource_ids(bundle: &fhir::Bundle, resource_type: &str) -> HashSet<S
 mod tests {
     use super::*;
     use crate::validation::external::{
-        ExternalValidationError, ExternalValidationReport, OperationOutcome, OperationOutcomeIssue,
+        ExternalValidationError, OperationOutcome, OperationOutcomeIssue,
     };
     use dfps_core::fhir;
 
@@ -358,18 +359,17 @@ mod tests {
 
     #[test]
     fn merge_external_includes_operation_outcome_issues() {
-        let ext = ExternalValidationReport::from_operation_outcome(Some(OperationOutcome {
-            issues: vec![OperationOutcomeIssue {
-                severity: Some("error".into()),
-                code: Some("invalid".into()),
-                diagnostics: Some("missing subject".into()),
-                expression: None,
-            }],
-        }));
         let merged = merge_external_report(
             ValidationMode::ExternalStrict,
             ValidationReport::new(vec![]),
-            Ok(ext),
+            Ok(Some(OperationOutcome {
+                issues: vec![OperationOutcomeIssue {
+                    severity: Some("error".into()),
+                    code: Some("invalid".into()),
+                    diagnostics: Some("missing subject".into()),
+                    expression: None,
+                }],
+            })),
         );
         assert_eq!(merged.issues.len(), 1);
         assert_eq!(merged.issues[0].requirement, RequirementRef::RExternal);

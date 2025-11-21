@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use dfps_validation_port::ExternalValidator;
 
 /// Requirement identifiers mirrored from the ingestion requirements doc.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -111,7 +112,7 @@ impl<T> Validated<T> {
 /// Context for optional external validation (validator + profile URL).
 #[derive(Clone, Copy, Default)]
 pub struct ExternalValidationContext<'a> {
-    pub validator: Option<&'a dyn super::external::ExternalValidator>,
+    pub validator: Option<&'a dyn ExternalValidator>,
     pub profile_url: Option<&'a str>,
 }
 

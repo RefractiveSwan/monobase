@@ -1,24 +1,12 @@
 use dfps_core::fhir::Bundle;
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
+pub use dfps_validation_port::{
+    ExternalValidationError, ExternalValidationOutcome, ExternalValidator, OperationOutcome,
+    OperationOutcomeIssue,
+};
 
 use super::{RequirementRef, ValidationIssue, ValidationSeverity};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OperationOutcomeIssue {
-    pub severity: Option<String>,
-    pub code: Option<String>,
-    pub diagnostics: Option<String>,
-    pub expression: Option<Vec<String>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct OperationOutcome {
-    #[serde(default, alias = "issue")]
-    pub issues: Vec<OperationOutcomeIssue>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ExternalValidationReport {
     pub operation_outcome: Option<OperationOutcome>,
     pub issues: Vec<ValidationIssue>,
@@ -73,26 +61,6 @@ impl ExternalValidationReport {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum ExternalValidationError {
-    #[error("external validator unavailable: {0}")]
-    Unavailable(String),
-    #[error("external validator failed: {0}")]
-    Failed(String),
-    #[error("serialize bundle: {0}")]
-    Serialize(#[from] serde_json::Error),
-    #[error("parse operation outcome: {0}")]
-    Parse(String),
-}
-
-pub trait ExternalValidator: Send + Sync {
-    fn validate_bundle(
-        &self,
-        bundle: &Bundle,
-        profile_url: Option<&str>,
-    ) -> Result<ExternalValidationReport, ExternalValidationError>;
-}
-
 /// No-op validator for test/default contexts when no external service is configured.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct NoopExternalValidator;
@@ -102,7 +70,7 @@ impl ExternalValidator for NoopExternalValidator {
         &self,
         _bundle: &Bundle,
         _profile_url: Option<&str>,
-    ) -> Result<ExternalValidationReport, ExternalValidationError> {
-        Ok(ExternalValidationReport::default())
+    ) -> Result<ExternalValidationOutcome, ExternalValidationError> {
+        Ok(None)
     }
 }

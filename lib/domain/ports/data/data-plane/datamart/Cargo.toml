@@ -1,0 +1,11 @@
+[package]
+name = "dfps_datamart_port"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dfps_contracts = { path = "../../../../meta/contracts" }
+dfps_compliance = { path = "../../../../../platform/meta/compliance" }
+async-trait = "0.1"
+thiserror.workspace = true
+serde.workspace = true

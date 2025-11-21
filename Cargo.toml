@@ -20,6 +20,7 @@ members = [
     "lib/domain/ontologies/mapping",
     "lib/domain/ontologies/terminology",
     "lib/domain/ports/data/data-store/vector",
+    "lib/domain/ports/data/data-plane/datamart",
     "lib/domain/ports/terminology",
 
     "lib/dto/web",
