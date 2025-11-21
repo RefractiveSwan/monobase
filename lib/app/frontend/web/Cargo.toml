@@ -16,11 +16,11 @@ actix-multipart.workspace = true
 actix-web.workspace = true
 bytes.workspace = true
 dfps_core = { path = "../../../domain/core" }
-dfps_eval = { path = "../../../domain/eval" }
-dfps_contracts = { path = "../../../domain/contracts" }
-dfps_web_dto = { path = "../../web/dto" }
-dfps_observability = { path = "../../../platform/observability" }
-dfps_configuration = { path = "../../../platform/configuration" }
+dfps_eval = { path = "../../../domain/meta/eval" }
+dfps_contracts = { path = "../../../domain/meta/contracts" }
+dfps_web_dto = { path = "../../../dto/web" }
+dfps_observability = { path = "../../../platform/meta/observability" }
+dfps_configuration = { path = "../../../platform/meta/configuration" }
 futures-util.workspace = true
 maud.workspace = true
 reqwest.workspace = true

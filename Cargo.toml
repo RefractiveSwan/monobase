@@ -11,20 +11,24 @@ members = [
     "lib/app/servers/api",
     "lib/app/servers/datamart",
     "lib/app/servers/vector_store",
-    "lib/domain/eval",
+    
     "lib/domain/core",
+    "lib/domain/meta/eval",
+    "lib/domain/meta/pipeline",
+    "lib/domain/meta/contracts",
     "lib/domain/ontologies/ingestion",
     "lib/domain/ontologies/mapping",
     "lib/domain/ontologies/terminology",
-    "lib/domain/pipeline",
     "lib/domain/ports/data/data-store/vector",
     "lib/domain/ports/terminology",
-    "lib/domain/contracts",
+
     "lib/dto/web",
-    "lib/platform/compliance",
-    "lib/platform/configuration",
-    "lib/platform/observability",
+    
+    "lib/platform/meta/compliance",
+    "lib/platform/meta/configuration",
+    "lib/platform/meta/observability",
     "lib/platform/test_suite",
+
     "tools/layer_lint",
 ]
 

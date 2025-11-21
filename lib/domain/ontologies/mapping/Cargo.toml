@@ -6,10 +6,10 @@ edition.workspace = true
 [dependencies]
 dfps_terminology = { path = "../terminology" }
 dfps_core = { path = "../../core" }
-dfps_eval = { path = "../../eval", features = ["eval-advanced"] }
-dfps_vector_port = { path = "../../vector_port" }
-dfps_observability = { path = "../../../platform/observability" }
-dfps_compliance = { path = "../../../platform/compliance" }
+dfps_eval = { path = "../../meta/eval", features = ["eval-advanced"] }
+dfps_vector_port = { path = "../../ports/data/data-store/vector" }
+dfps_observability = { path = "../../../platform/meta/observability" }
+dfps_compliance = { path = "../../../platform/meta/compliance" }
 serde.workspace = true
 serde_json.workspace = true
 once_cell.workspace = true

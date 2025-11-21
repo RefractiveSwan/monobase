@@ -5,11 +5,11 @@ edition.workspace = true
 
 [dependencies]
 dfps_core = { path = "../../../domain/core" }
-dfps_pipeline = { path = "../../../domain/pipeline" }
-dfps_configuration = { path = "../../../platform/configuration" }
-dfps_compliance = { path = "../../../platform/compliance" }
+dfps_pipeline = { path = "../../../domain/meta/pipeline" }
+dfps_configuration = { path = "../../../platform/meta/configuration" }
+dfps_compliance = { path = "../../../platform/meta/compliance" }
 dfps_terminology = { path = "../../../domain/ontologies/terminology" }
-dfps_contracts = { path = "../../../domain/contracts" }
+dfps_contracts = { path = "../../../domain/meta/contracts" }
 async-trait = "0.1"
 serde.workspace = true
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }

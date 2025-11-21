@@ -21,14 +21,14 @@ dfps_core = { path = "../../domain/core" }
 dfps_ingestion = { path = "../../domain/ontologies/ingestion" }
 dfps_mapping = { path = "../../domain/ontologies/mapping" }
 dfps_terminology= { path = "../../domain/ontologies/terminology" }
-dfps_contracts = { path = "../../domain/contracts" }
-dfps_pipeline = { path = "../../domain/pipeline" }
-dfps_observability = { path = "../observability" }
-dfps_configuration = { path = "../configuration" }
+dfps_contracts = { path = "../../domain/meta/contracts" }
+dfps_pipeline = { path = "../../domain/meta/pipeline" }
+dfps_observability = { path = "../meta/observability" }
+dfps_configuration = { path = "../meta/configuration" }
 dfps_vector_store = { path = "../../app/servers/vector_store" }
-dfps_compliance = { path = "../compliance" }
+dfps_compliance = { path = "../meta/compliance" }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
-dfps_eval = { path = "../../domain/eval" }
+dfps_eval = { path = "../../domain/meta/eval" }
 tempfile = "3.10"
 
 [features]
