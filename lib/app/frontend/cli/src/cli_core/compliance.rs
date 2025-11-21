@@ -1,5 +1,5 @@
 use dfps_compliance::{ComplianceConfig, Policy};
-use dfps_contracts::PipelineMetrics;
+use dfps_cli_dto::PipelineMetrics;
 
 use super::{CliError, CliResult};
 

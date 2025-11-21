@@ -119,7 +119,7 @@ lib/
 - [x] Update `directory-architecture.md` + crate READMEs to reflect the new naming.
 
 ### Phase 3 – DTO veneers
-- [ ] Add `lib/dto/cli` for NDJSON/CLI payload wrappers (map_bundles/map_codes) and update CLI bins to consume it.
+- [x] Add `lib/dto/cli` for NDJSON/CLI payload wrappers (map_bundles/map_codes) and update CLI bins to consume it.
 - [ ] Draft `lib/dto/mesh` for node governance/control-plane payloads needed by the upcoming mesh server.
 
 ### Phase 4 – Platform moves (ties into MESH-025)

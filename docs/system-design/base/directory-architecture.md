@@ -136,12 +136,12 @@ Current structure:
 ```text
 code/lib/dto/
   web/
-  cli/    # planned
+  cli/
   mesh/   # planned
 ```
 
 * `dto/web` (`dfps_web_dto`) – re-exports analytics/eval/pipeline payloads for the HTTP surfaces (Axum API + Actix frontend). Contains **no** env/config logic.
-* `dto/cli` – planned veneer for CLI NDJSON payloads so binaries stop importing `dfps_contracts` directly.
+* `dto/cli` (`dfps_cli_dto`) – re-exports the DTOs consumed by the CLI binaries (pipeline metrics, eval summaries, load summaries, etc.) so the CLI depends on a curated surface instead of the entire contracts crate.
 * `dto/mesh` – planned veneer for mesh/node control-plane DTOs used by future `dfps_mesh_node` APIs.
 
 ---

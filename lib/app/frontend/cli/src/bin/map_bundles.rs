@@ -6,7 +6,7 @@ use dfps_cli::cli_core::{
     CliError, CliResult, enforce_metrics_gate, init_cli_env, init_logging, input_reader,
     json_stream, load_policy, pipeline_vector_context_from_env, run_bin, tag_metrics, write_record,
 };
-use dfps_contracts::{MappingState, PipelineMetrics};
+use dfps_cli_dto::{MappingState, PipelineMetrics};
 use dfps_core::fhir::Bundle;
 use dfps_ingestion::validation::ValidationSeverity;
 use dfps_observability::{log_no_match, log_pipeline_output_with_summary};

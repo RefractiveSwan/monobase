@@ -1,0 +1,7 @@
+[package]
+name = "dfps_cli_dto"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dfps_contracts = { path = "../../domain/meta/contracts" }

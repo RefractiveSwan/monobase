@@ -3,7 +3,7 @@ use dfps_cli::cli_core::{
     CliError, CliResult, JsonStream, init_cli_env, input_reader, json_stream, load_policy,
     pipeline_vector_context_from_env, run_bin, write_record,
 };
-use dfps_contracts::LoadSummary;
+use dfps_cli_dto::LoadSummary;
 use dfps_core::fhir::Bundle;
 use dfps_datamart::{LoadError, WarehouseConfig, connect_sqlite, load_streaming_iter, migrate};
 use dfps_pipeline::{

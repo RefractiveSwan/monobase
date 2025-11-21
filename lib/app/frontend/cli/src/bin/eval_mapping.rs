@@ -7,7 +7,7 @@ use dfps_cli::cli_core::{
     CliError, CliResult, dataset_store_from_env, init_cli_env, parse_json_file, read_to_string,
     run_bin, write_record,
 };
-use dfps_contracts::{DatasetManifest, EvalRunResponse, EvalSummary};
+use dfps_cli_dto::{DatasetManifest, EvalRunResponse, EvalSummary};
 use dfps_mapping::map_staging_codes;
 use serde::Deserialize;
 
