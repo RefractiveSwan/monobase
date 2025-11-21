@@ -1,0 +1,15 @@
+[package]
+name = "dfps_compliance"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dfps_configuration = { path = "../configuration" }
+dfps_terminology = { path = "../../../domain/ontologies/terminology" }
+serde = { workspace = true }
+serde_json.workspace = true
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+uuid = { workspace = true }
