@@ -1,4 +1,4 @@
-# dfps_terminology
+# refractive_swan_terminology
 
 Domain-level terminology layer that normalizes staging codes, classifies their
 license/source metadata, and mediates access to external terminology services.
@@ -31,7 +31,7 @@ See:
 
 `LicenseTier` (`licensed`, `open`, `internal_only`) and `SourceKind` (`fhir`,
 `umls`, `obo_foundry`, `local`) flow through `EnrichedCode` and into
-`dfps_mapping::MappingSummary`. Use the exposed `canonicalize_system()` helper
+`refractive_swan_mapping::MappingSummary`. Use the exposed `canonicalize_system()` helper
 (`canonicalize_system_url` remains as an alias) to normalize system URLs before
 looking up metadata, and rely on `CodeKind` to emit consistent observability
 buckets (`known_licensed_system`, `obo_backed`, etc.) across ingestion and
@@ -40,7 +40,7 @@ mapping.
 ## Term clients & env seams
 
 Application layers should construct `TerminologyClientConfig` via their
-configuration adapters (e.g., `dfps_configuration`) and pass it to
+configuration adapters (e.g., `refractive_swan_configuration`) and pass it to
 `HttpTerminologyClient::from_config`, keeping HTTP/env responsibilities out of
 domain crates.
 
@@ -48,5 +48,5 @@ domain crates.
 
 - The in-crate `obo_graph` module supplies the embedded NCIt/MONDO mini graphs
   used by the `obo` bridge.
-- `lib/domain/ontologies/mapping` (`dfps_mapping`) consumes `EnrichedCode` to
+- `lib/domain/ontologies/mapping` (`refractive_swan_mapping`) consumes `EnrichedCode` to
   produce license-aware mapping summaries and compliance signals.

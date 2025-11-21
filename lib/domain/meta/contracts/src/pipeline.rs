@@ -1,10 +1,10 @@
 //! Pipeline-level contracts re-exported for cross-surface use.
 
-pub use dfps_core::{
+pub use refractive_swan_core::{
     mapping::{
         DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
         MappingThresholds,
     },
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-pub use dfps_pipeline::PipelineOutput;
+pub use refractive_swan_pipeline::PipelineOutput;

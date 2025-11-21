@@ -2,12 +2,12 @@
 //!
 //! This module defines the canonical DTOs for mesh operations: node identity,
 //! capabilities, job descriptors, results, and errors. These contracts enable
-//! cross-node communication while keeping the mesh runtime (`dfps_mesh_node`,
-//! `dfps_mesh_hub`) decoupled from domain logic.
+//! cross-node communication while keeping the mesh runtime (`refractive_swan_mesh_node`,
+//! `refractive_swan_mesh_hub`) decoupled from domain logic.
 //!
-//! **Usage constraint**: Only `dfps_mesh_node` and `dfps_mesh_hub` should use
-//! these contracts directly. Apps/CLIs remain node-local and use existing
-//! contracts (analytics, eval, pipeline).
+//! **Usage constraint**: Only `refractive_swan_mesh_node` and `refractive_swan_mesh_hub` should use
+//! these contracts (via the `refractive_swan_mesh_dto` veneer). Apps/CLIs remain
+//! node-local and use existing contracts (analytics, eval, pipeline).
 
 use serde::{Deserialize, Serialize};
 use std::fmt;

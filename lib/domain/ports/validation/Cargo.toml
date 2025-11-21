@@ -1,5 +1,5 @@
 [package]
-name = "dfps_validation_port"
+name = "refractive_swan_validation_port"
 version.workspace = true
 edition.workspace = true
 
@@ -7,4 +7,4 @@ edition.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 serde_json.workspace = true
-dfps_core = { path = "../../core" }
+refractive_swan_core = { path = "../../core" }

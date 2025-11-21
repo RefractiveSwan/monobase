@@ -1,6 +1,6 @@
-# Web Quickstart - DFPS Mapping Workbench
+# Web Quickstart - refractive_swan Mapping Workbench
 
-This runbook teaches new contributors how to run the DFPS web experience locally. It walks through the backend HTTP gateway, the frontend UI shell, the relevant environment variables, and the expected end-to-end flows so you can validate the FHIR -> NCIt pipeline in under ten minutes.
+This runbook teaches new contributors how to run the refractive_swan web experience locally. It walks through the backend HTTP gateway, the frontend UI shell, the relevant environment variables, and the expected end-to-end flows so you can validate the FHIR -> NCIt pipeline in under ten minutes.
 
 ---
 
@@ -8,8 +8,8 @@ This runbook teaches new contributors how to run the DFPS web experience locally
 
 | Component | Path | Crate | Purpose |
 | --- | --- | --- | --- |
-| Backend API | `code/lib/app/servers/api` | `dfps_api` | Axum HTTP gateway that exposes `/api/map-bundles`, `/metrics/summary`, and `/health` by delegating to `dfps_pipeline`. |
-| Frontend UI | `code/lib/app/frontend/web` | `dfps_web_frontend` | Actix server that renders Tailwind/HTMX pages, proxies uploads/paste actions to the backend, and shows metrics/NoMatch explorer views. |
+| Backend API | `code/lib/app/servers/api` | `refractive_swan_api` | Axum HTTP gateway that exposes `/api/map-bundles`, `/metrics/summary`, and `/health` by delegating to `refractive_swan_pipeline`. |
+| Frontend UI | `code/lib/app/frontend/web` | `refractive_swan_web_frontend` | Actix server that renders Tailwind/HTMX pages, proxies uploads/paste actions to the backend, and shows metrics/NoMatch explorer views. |
 | Shared fixtures | `code/lib/platform/test_suite/src/regression.rs` | - | Contains helper functions that emit baseline FHIR bundles used in tests and manual runs. |
 
 Both binaries live in the main Cargo workspace, so `cargo run -p <crate>` works anywhere under `code/`.
@@ -27,7 +27,7 @@ Both binaries live in the main Cargo workspace, so `cargo run -p <crate>` works 
 
 ## 3. Configure environment
 
-Before launching the web surfaces, follow `docs/runbook/env-quickstart.md` to copy the appropriate `.env.<namespace>.example` files into `data/environment/` and set `DFPS_ENV` / `DFPS_ENV_DIR` as needed. Once the backend (`app.web.api`) and frontend (`app.web.frontend`) env files are in place, return here to start the services.
+Before launching the web surfaces, follow `docs/runbook/env-quickstart.md` to copy the appropriate `.env.<namespace>.example` files into `data/environment/` and set `refractive_swan_ENV` / `refractive_swan_ENV_DIR` as needed. Once the backend (`app.web.api`) and frontend (`app.web.frontend`) env files are in place, return here to start the services.
 
 ### Serve mdBook docs
 
@@ -35,7 +35,7 @@ If you want `/docs` in the frontend to redirect to an mdBook instance:
 
 1. Build the book once: `cargo make docs`
 2. Run it in another terminal: `cargo make docs-serve` (defaults to `http://127.0.0.1:3000`)
-3. Export `DFPS_DOCS_URL=http://127.0.0.1:3000` before running the frontend so `/docs` redirects there.
+3. Export `refractive_swan_DOCS_URL=http://127.0.0.1:3000` before running the frontend so `/docs` redirects there.
 
 ## 4. Start the backend API
 
@@ -43,7 +43,7 @@ In terminal **A**:
 
 ```bash
 cd code
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 ```
 
 What to expect:
@@ -54,7 +54,7 @@ What to expect:
   - `GET http://127.0.0.1:8080/metrics/summary`
   - `GET http://127.0.0.1:8080/health`
 
-If the port is in use, pick another (e.g., `0.0.0.0:9090`) and remember to update `DFPS_API_BASE_URL` for the frontend.
+If the port is in use, pick another (e.g., `0.0.0.0:9090`) and remember to update `refractive_swan_API_BASE_URL` for the frontend.
 
 ---
 
@@ -64,9 +64,9 @@ In terminal **B**:
 
 ```bash
 cd code
-DFPS_API_BASE_URL=http://127.0.0.1:8080 \
-DFPS_FRONTEND_LISTEN_ADDR=127.0.0.1:8090 \
-cargo run -p dfps_web_frontend --bin dfps_web_frontend
+refractive_swan_API_BASE_URL=http://127.0.0.1:8080 \
+refractive_swan_FRONTEND_LISTEN_ADDR=127.0.0.1:8090 \
+cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 ```
 
 Key files:
@@ -148,7 +148,7 @@ If the backend is offline, the hero displays a red “Backend warning” card wi
 Frontend crate:
 
 ```bash
-cargo test -p dfps_web_frontend
+cargo test -p refractive_swan_web_frontend
 ```
 
 Included tests:
@@ -160,7 +160,7 @@ Included tests:
 Backend integration tests live in `lib/platform/test_suite/tests/integration/web_api.rs`. Run them with:
 
 ```bash
-cargo test -p dfps_test_suite --tests web_api
+cargo test -p refractive_swan_test_suite --tests web_api
 ```
 
 ---
@@ -169,8 +169,8 @@ cargo test -p dfps_test_suite --tests web_api
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| Frontend hero shows “Backend warning: Health endpoint unreachable” | Backend not running or wrong `DFPS_API_BASE_URL`. | Start `dfps_api` and confirm the URL matches the actual port. |
-| Upload/paste returns “Backend error: status 500 ...” | Backend rejected the JSON (invalid FHIR or not an array/Bundle). | Validate the payload; compare with `sample-bundle.json` or use fixtures from `dfps_test_suite::regression`. |
+| Frontend hero shows “Backend warning: Health endpoint unreachable” | Backend not running or wrong `refractive_swan_API_BASE_URL`. | Start `refractive_swan_api` and confirm the URL matches the actual port. |
+| Upload/paste returns “Backend error: status 500 ...” | Backend rejected the JSON (invalid FHIR or not an array/Bundle). | Validate the payload; compare with `sample-bundle.json` or use fixtures from `refractive_swan_test_suite::regression`. |
 | Curl works but frontend shows blank results | Frontend displays a friendly message when zero `MappingResult` rows come back. | Ensure the bundle includes codes under `stg_sr_code_exploded` by checking backend logs. |
 | Port already in use errors | Another service bound to `8080` or `8090`. | Change the respective env vars to free ports. |
 

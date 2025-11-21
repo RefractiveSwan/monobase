@@ -2,15 +2,15 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use clap::Parser;
-use dfps_cli::cli_core::{
+use refractive_swan_cli::cli_core::{
     CliError, CliResult, enforce_metrics_gate, init_cli_env, init_logging, input_reader,
     json_stream, load_policy, pipeline_vector_context_from_env, run_bin, tag_metrics, write_record,
 };
-use dfps_cli_dto::{MappingState, PipelineMetrics};
-use dfps_core::fhir::Bundle;
-use dfps_ingestion::validation::ValidationSeverity;
-use dfps_observability::{log_no_match, log_pipeline_output_with_summary};
-use dfps_pipeline::{DefaultPipeline, PipelinePort, PipelineRunConfig};
+use refractive_swan_cli_dto::{MappingState, PipelineMetrics};
+use refractive_swan_core::fhir::Bundle;
+use refractive_swan_ingestion::validation::ValidationSeverity;
+use refractive_swan_observability::{log_no_match, log_pipeline_output_with_summary};
+use refractive_swan_pipeline::{DefaultPipeline, PipelinePort, PipelineRunConfig};
 use log::{info, warn};
 
 #[derive(Parser)]
@@ -113,7 +113,7 @@ fn run() -> CliResult<()> {
     }
 
     info!(
-        target: "dfps_pipeline",
+        target: "refractive_swan_pipeline",
         "pipeline_complete bundles={} automap={} review={} nomatch={} license_blocked={} compliance_mode={}",
         metrics.bundle_count,
         metrics.auto_mapped,
@@ -124,7 +124,7 @@ fn run() -> CliResult<()> {
     );
     if metrics.license_blocked > 0 {
         warn!(
-            target: "dfps_compliance",
+            target: "refractive_swan_compliance",
             "audit compliance_blocked reason=license_blocked mode={} count={}",
             policy.mode.as_str(),
             metrics.license_blocked

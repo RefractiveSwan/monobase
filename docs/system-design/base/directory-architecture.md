@@ -115,10 +115,10 @@ code/lib/app/
     datamart_api/
 ```
 
-* `frontends/cli` – `dfps_cli` binaries. Parse args/config, stream NDJSON, call pipeline/mapping ports, surface compliance/logging, exit with codes.
-* `frontends/web` – `dfps_web_frontend` Actix UI. Renders HTMX/Tailwind, calls backend via DTO veneers, handles paste/upload workflows, metrics dashboard, docs redirect.
+* `frontends/cli` – `refractive_swan_cli` binaries. Parse args/config, stream NDJSON, call pipeline/mapping ports, surface compliance/logging, exit with codes.
+* `frontends/web` – `refractive_swan_web_frontend` Actix UI. Renders HTMX/Tailwind, calls backend via DTO veneers, handles paste/upload workflows, metrics dashboard, docs redirect.
 * `frontends/desktop` – reserved for future desktop shells (Tauri/Wry/etc.).
-* `servers/api` – `dfps_api` Axum gateway. Thin HTTP ingress wiring domain pipeline + platform adapters (vector store, datamart sink, compliance). Loads `.env.app.web.api.<profile>`.
+* `servers/api` – `refractive_swan_api` Axum gateway. Thin HTTP ingress wiring domain pipeline + platform adapters (vector store, datamart sink, compliance). Loads `.env.app.web.api.<profile>`.
 * `servers/datamart_api` – placeholder for future node/datamart APIs in the mesh rollout.
 
 **Principle:** No heavy business logic lives in `app/`. Frontends & servers orchestrate domain ports + platform adapters only.
@@ -137,12 +137,12 @@ Current structure:
 code/lib/dto/
   web/
   cli/
-  mesh/   # planned
+  mesh/
 ```
 
-* `dto/web` (`dfps_web_dto`) – re-exports analytics/eval/pipeline payloads for the HTTP surfaces (Axum API + Actix frontend). Contains **no** env/config logic.
-* `dto/cli` (`dfps_cli_dto`) – re-exports the DTOs consumed by the CLI binaries (pipeline metrics, eval summaries, load summaries, etc.) so the CLI depends on a curated surface instead of the entire contracts crate.
-* `dto/mesh` – planned veneer for mesh/node control-plane DTOs used by future `dfps_mesh_node` APIs.
+* `dto/web` (`refractive_swan_web_dto`) – re-exports analytics/eval/pipeline payloads for the HTTP surfaces (Axum API + Actix frontend). Contains **no** env/config logic.
+* `dto/cli` (`refractive_swan_cli_dto`) – re-exports the DTOs consumed by the CLI binaries (pipeline metrics, eval summaries, load summaries, etc.) so the CLI depends on a curated surface instead of the entire contracts crate.
+* `dto/mesh` (`refractive_swan_mesh_dto`) – veneer for mesh/node control-plane DTOs used by upcoming `refractive_swan_mesh_node`, `refractive_swan_mesh_hub`, and governance services.
 
 ---
 
@@ -173,32 +173,32 @@ code/lib/domain/
 
 #### `core/` – Core models & kernel
 
-Crate: `dfps_core`.
+Crate: `refractive_swan_core`.
 
 * Responsibilities: ID/primitives, clinical aggregates, staging/mapping value objects, serde + bridge helpers.
-* Notes: module README ties back to system-design docs; `lib.rs` exposes stable paths (`dfps_core::{patient, order, staging, mapping, value, fhir}`).
+* Notes: module README ties back to system-design docs; `lib.rs` exposes stable paths (`refractive_swan_core::{patient, order, staging, mapping, value, fhir}`).
 
 #### `semantics/`
 
-Crates: `dfps_mapping` (mapping engine, rankers), analytics helpers (summary calculators, mapping state logic).
+Crates: `refractive_swan_mapping` (mapping engine, rankers), analytics helpers (summary calculators, mapping state logic).
 
 * Responsibilities: lexical/vector rankers, rule rerankers, semantic helpers reused by pipeline/app layers. See `lib/domain/semantics/README.md` for the evolving directory structure; the actual crate still lives under `lib/domain/ontologies/mapping` until the migration is complete.
 
 #### `pipeline/`
 
-Crate: `dfps_pipeline`.
+Crate: `refractive_swan_pipeline`.
 
 * Responsibilities: orchestrate ingestion + mapping via injected ports, emit `PipelineOutput`, expose `PipelinePort` for CLI/API/web.
 
 #### `meta/ingestion`
 
-Crate: `dfps_ingestion`.
+Crate: `refractive_swan_ingestion`.
 
 * Responsibilities: transforms from FHIR bundles → staging rows, validation semantics, profile metadata. Houses profile snapshots (feature-gated) and consumes the validation port.
 
 #### `meta/evaluation`
 
-Crate: `dfps_eval` (+ `fake_data`).
+Crate: `refractive_swan_eval` (+ `fake_data`).
 
 * Responsibilities: evaluation harness, dataset store traits, deterministic fake data generators.
 
@@ -206,13 +206,13 @@ Crate: `dfps_eval` (+ `fake_data`).
 
 Namespace for outbound ports. Contains traits + DTO veneers consumed by domain crates and implemented by platform adapters.
 
-* `data/dto` – e.g., `dfps_web_dto` (existing), `dfps_cli_dto` + `dfps_mesh_dto` (planned).
-* `data/data-store/vector` – home for `dfps_vector_port` traits + helpers.
+* `data/dto` – DTO veneers (`refractive_swan_web_dto`, `refractive_swan_cli_dto`, `refractive_swan_mesh_dto`) that shield surfaces from depending on the entire contracts crate.
+* `data/data-store/vector` – home for `refractive_swan_vector_port` traits + helpers.
 * `data/data-plane/datamart` – datamart sink port consumed by pipeline + analytics.
-* `terminology` – terminology client/config traits re-exported from `dfps_terminology`.
+* `terminology` – terminology client/config traits re-exported from `refractive_swan_terminology`.
 * `validation` – `ExternalValidator` & related contexts used by ingestion.
 
-During migration we keep compatibility re-exports (e.g., `dfps_mapping::vector` modules) so downstream crates compile.
+During migration we keep compatibility re-exports (e.g., `refractive_swan_mapping::vector` modules) so downstream crates compile.
 
 ---
 
@@ -246,11 +246,17 @@ code/lib/platform/
     governance/
 ```
 
-* `meta/*` – env/config (`dfps_configuration`), compliance policies (`dfps_compliance`), observability (`dfps_observability`). Shared helpers for all apps.
-* `test_suite` – integration/regression helpers (`dfps_test_suite`).
-* `data/data-plane` – adapters that persist/query analytics data (`dfps_datamart`, warehouse/lake crates). Today some live under `app/servers/*`; MESH-025 + REFR-027 migrate them here.
-* `data/data-store` – physical stores (vector, relational, cache). `dfps_vector_store` moves here.
-* `mesh/*` – node runtime orchestration (`dfps_mesh_node`), research/orchestrator (`dfps_mesh_hub`), governance/policy services.
+* `meta/*` – env/config (`refractive_swan_configuration`), compliance policies (`refractive_swan_compliance`), observability (`refractive_swan_observability`). Shared helpers for all apps.
+* `test_suite` – integration/regression helpers (`refractive_swan_test_suite`).
+* `data/data-plane` – adapters that persist/query analytics data (`refractive_swan_datamart`, warehouse/lake crates). Today some live under `app/servers/*`; MESH-025 + REFR-027 migrate them here.
+* `data/data-store` – physical stores (vector, relational, cache). `refractive_swan_vector_store` moves here.
+* `mesh/*` – node runtime orchestration (`refractive_swan_mesh_node`), research/orchestrator (`refractive_swan_mesh_hub`), governance/policy services.
+
+**Current migration status**
+
+* `data/data-plane/mart` – hosts the `refractive_swan_datamart` crate (migrated from `app/servers/datamart`).
+* `data/data-store/vector_store` – hosts the `refractive_swan_vector_store` crate (migrated from `app/servers/vector_store`).
+* `mesh/node` – now contains the `refractive_swan_mesh_node` crate with the shared `NodeDataPlane` surface consumed by `refractive_swan_api` and future mesh adapters.
 
 **Guardrails:** The `platform/{data,store,mesh}` directory names and depth are stable—do not rename them without updating the architecture docs + MESH-025 kanban. Runtime adapters should never drift back into `app/` once migrated.
 
@@ -260,5 +266,5 @@ code/lib/platform/
 
 1. When adding a new crate, decide its bucket here before writing code.
 2. If creating a new port or DTO, update this file **and** `docs/system-design/base/dependency-seams.md`.
-3. When migrating crates (e.g., moving `dfps_vector_store` into `platform/data-store/vector_store`), reference both REFR-027 and MESH-025 kanbans to keep status aligned.
+3. When migrating crates (e.g., moving `refractive_swan_vector_store` into `platform/data-store/vector_store`), reference both REFR-027 and MESH-025 kanbans to keep status aligned.
 4. Run `cargo make layers-check` after structural changes to ensure dependencies obey the architectural boundaries.

@@ -12,8 +12,8 @@ impl ServiceRequest {
     /// `docs/system-design/fhir/models/data-model-er.md`.
     ///
     /// ```
-    /// use dfps_core::order::{ServiceRequest, ServiceRequestStatus, ServiceRequestIntent};
-    /// use dfps_core::value::{PatientId, EncounterId, ServiceRequestId};
+    /// use refractive_swan_core::order::{ServiceRequest, ServiceRequestStatus, ServiceRequestIntent};
+    /// use refractive_swan_core::value::{PatientId, EncounterId, ServiceRequestId};
     ///
     /// let sr = ServiceRequest::new(
     ///     ServiceRequestId::new("SR-123"),

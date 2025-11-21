@@ -14,4 +14,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Run warehouse integration tests (sqlite)
         run: |
-          cargo test -p dfps_test_suite --test integration_tests -- warehouse
+          cargo test -p refractive_swan_test_suite --test integration_tests -- warehouse

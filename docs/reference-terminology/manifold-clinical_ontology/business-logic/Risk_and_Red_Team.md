@@ -5,4 +5,4 @@
 - **Synonym noise.** Noisy paraphrases inflate \(R_M\). *Mitigation:* synonym quality scoring; roll back if \(R_M\sqrt{D_M}\) ↑ by >20% after update.
 - **Graph fragmentation.** Louvain partitions with disconnected communities inflate \(D_M\)/\(R_M\). *Mitigation:* enforce Leiden; audit disconnectedness.
 - **Over‑flattening.** Excess flattening collapses class topology. *Mitigation:* add reconstruction/topology terms (as in S7); monitor triplet‑loss violations.
-- **License constraints.** Licensed code systems (e.g., CPT) restrict redistribution. *Mitigation:* track license tiers via `dfps_terminology` and mask artifacts accordingly.
+- **License constraints.** Licensed code systems (e.g., CPT) restrict redistribution. *Mitigation:* track license tiers via `refractive_swan_terminology` and mask artifacts accordingly.

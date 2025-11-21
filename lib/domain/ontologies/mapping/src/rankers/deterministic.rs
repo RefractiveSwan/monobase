@@ -1,5 +1,5 @@
-use dfps_core::mapping::{CodeElement, MappingCandidate};
-use dfps_vector_port::{Embedding, EmbeddingMetadata, EmbeddingProvider};
+use refractive_swan_core::mapping::{CodeElement, MappingCandidate};
+use refractive_swan_vector_port::{Embedding, EmbeddingMetadata, EmbeddingProvider};
 
 use crate::traits::CandidateRanker;
 

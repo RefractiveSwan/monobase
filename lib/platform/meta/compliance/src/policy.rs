@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use dfps_terminology::codesystem::LicenseTier;
+use refractive_swan_terminology::codesystem::LicenseTier;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -227,9 +227,9 @@ pub enum ComplianceError {
     #[error("invalid compliance mode '{value}', expected internal | partner | open_source")]
     InvalidMode { value: String },
     #[error("failed to load compliance env: {0}")]
-    Env(dfps_configuration::EnvLoadError),
+    Env(refractive_swan_configuration::EnvLoadError),
     #[error("invalid compliance env value: {0}")]
-    EnvValue(#[from] dfps_configuration::EnvValueError),
+    EnvValue(#[from] refractive_swan_configuration::EnvValueError),
     #[error("failed to read policy file {path:?}: {source}")]
     PolicyPathIo {
         path: PathBuf,

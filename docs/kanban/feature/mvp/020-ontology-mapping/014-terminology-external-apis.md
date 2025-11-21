@@ -2,7 +2,7 @@
 
 **Theme:** External infra & heavy services - UMLS/NCIt APIs  
 **Branch:** `feature/terminology-external-apis`  
-**Goal:** Introduce networked terminology clients for UMLS/NCIm/NCIt and wire them into `dfps_terminology` + `dfps_mapping` as an optional fallback for unknown or low-confidence codes.  
+**Goal:** Introduce networked terminology clients for UMLS/NCIm/NCIt and wire them into `refractive_swan_terminology` + `refractive_swan_mapping` as an optional fallback for unknown or low-confidence codes.  
 **Status:** INPROGRESS | **Introduced:** `v0.1.0` | **Last updated:** `v0.1.0`
 
 ### Columns
@@ -21,7 +21,7 @@
 
 ### TERM-API-01 – TerminologyClient abstraction
 
-- [x] Add a `client` module to `dfps_terminology`:
+- [x] Add a `client` module to `refractive_swan_terminology`:
 
   - [x] Define trait `TerminologyClient` with operations such as:
     - [x] `lookup_cui(system, code) -> Result<Option<CuiRecord>>`
@@ -35,14 +35,14 @@
 
 - [x] Introduce `TerminologyClientConfig` (env-driven):
 
-  - `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`.
+  - `refractive_swan_TERMINOLOGY_BASE_URL`, `refractive_swan_TERMINOLOGY_API_KEY`, `refractive_swan_TERMINOLOGY_TIMEOUT_SECS`.
 
 #### Cross-Cohesion
 
 - **Engineering Targets:** A1, B
 - **Crates & Paths:**
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -51,20 +51,20 @@
   - `docs/system-design/clinical/ncit/architecture.md`
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
   - Unit tests for terminology client
 - **Interfaces & Contracts:**
   - Trait `TerminologyClient`
-  - Env: `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`, `DFPS_TERMINOLOGY_MODE`
+  - Env: `refractive_swan_TERMINOLOGY_BASE_URL`, `refractive_swan_TERMINOLOGY_API_KEY`, `refractive_swan_TERMINOLOGY_TIMEOUT_SECS`, `refractive_swan_TERMINOLOGY_MODE`
 
 ### TERM-API-04 – Local test doubles & fixtures
 
-- [x] Add a `MockTerminologyClient` in `dfps_terminology::client::testing`:
+- [x] Add a `MockTerminologyClient` in `refractive_swan_terminology::client::testing`:
 
   - [x] Hard-code mappings for existing regression fixtures (`CPT 78815`, SNOMED PET, etc.).
   - [ ] Simulate latency and error responses for robustness tests (in progress).
 
-- [x] Add integration tests in `dfps_test_suite`:
+- [x] Add integration tests in `refractive_swan_test_suite`:
 
   - [x] When client is provided (mock), `map_staging_codes_with_summary` uses it for unknown codes.
   - [x] When client is absent, behavior is identical to current mock-table-only mapping.
@@ -73,8 +73,8 @@
 
 - **Engineering Targets:** A1, B
 - **Crates & Paths:**
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
-  - `lib/platform/test_suite` (`dfps_test_suite`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
+  - `lib/platform/test_suite` (`refractive_swan_test_suite`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -82,7 +82,7 @@
 - **Docs & Kanbans Touched:**
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
 - **Interfaces & Contracts:**
   - `MockTerminologyClient`
   - `TerminologyClient` trait
@@ -91,10 +91,10 @@
 
 - [x] Add `.env.domain.terminology.dev/example` in `data/environment` documenting:
 
-  - `DFPS_TERMINOLOGY_BASE_URL`
-  - `DFPS_TERMINOLOGY_API_KEY`
-  - `DFPS_TERMINOLOGY_TIMEOUT_SECS`
-  - `DFPS_TERMINOLOGY_MODE = "mock_only" | "http_fallback" | "http_only"`
+  - `refractive_swan_TERMINOLOGY_BASE_URL`
+  - `refractive_swan_TERMINOLOGY_API_KEY`
+  - `refractive_swan_TERMINOLOGY_TIMEOUT_SECS`
+  - `refractive_swan_TERMINOLOGY_MODE = "mock_only" | "http_fallback" | "http_only"`
 
 - [x] Extend `docs/system-design/clinical/ncit/architecture.md` with a subsection:
 
@@ -106,8 +106,8 @@
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -119,7 +119,7 @@
 - **Experiments / CI Hooks:**
   - Config validation tests for terminology env
 - **Interfaces & Contracts:**
-  - Env: `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_API_KEY`, `DFPS_TERMINOLOGY_TIMEOUT_SECS`, `DFPS_TERMINOLOGY_MODE`
+  - Env: `refractive_swan_TERMINOLOGY_BASE_URL`, `refractive_swan_TERMINOLOGY_API_KEY`, `refractive_swan_TERMINOLOGY_TIMEOUT_SECS`, `refractive_swan_TERMINOLOGY_MODE`
 
 ---
 
@@ -146,8 +146,8 @@
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -157,13 +157,13 @@
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
 - **Experiments / CI Hooks:**
   - HTTP client smoke tests (mock server)
-  - `dfps_test_suite` mapping integration with external lookups
+  - `refractive_swan_test_suite` mapping integration with external lookups
 - **Interfaces & Contracts:**
   - Feature flags: `umls-http`, `ncit-http`
   - `CompositeTerminologyClient`
-  - Env: `DFPS_TERMINOLOGY_BASE_URL`, `DFPS_TERMINOLOGY_MODE`
+  - Env: `refractive_swan_TERMINOLOGY_BASE_URL`, `refractive_swan_TERMINOLOGY_MODE`
 
-- [ ] Extend `dfps_mapping::map_with_summary` to accept an optional `TerminologyClient`:
+- [ ] Extend `refractive_swan_mapping::map_with_summary` to accept an optional `TerminologyClient`:
 
   - [x] For `UnknownSystem` or low-scoring internal candidates:
     - [x] Call `TerminologyClient::lookup_cui` / `lookup_ncit`.
@@ -176,15 +176,15 @@
 
   - [x] `extern_lookup_success`, `extern_lookup_miss`, `extern_lookup_error`.
 
-- [ ] Respect license metadata from `dfps_terminology::LicenseTier` and future compliance rules
+- [ ] Respect license metadata from `refractive_swan_terminology::LicenseTier` and future compliance rules
   (epic 020) before making external calls (e.g., skip forbidden systems).
 
 #### Cross-Cohesion
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -193,14 +193,14 @@
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
   - `docs/system-design/clinical/ncit/architecture.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
 - **Interfaces & Contracts:**
   - `map_staging_codes_with_summary` optional terminology client
   - `MappingSummary` extern lookup counters
 
 ### TERM-API-03 – Mapping integration & policy hooks
 
-- [x] Extend `dfps_mapping::map_with_summary` to accept an optional `TerminologyClient`:
+- [x] Extend `refractive_swan_mapping::map_with_summary` to accept an optional `TerminologyClient`:
 
   - [x] For `UnknownSystem` or low-scoring internal candidates:
     - [x] Call `TerminologyClient::lookup_cui` / `lookup_ncit`.
@@ -213,15 +213,15 @@
 
   - [x] `extern_lookup_success`, `extern_lookup_miss`, `extern_lookup_error`.
 
-- [x] Respect license metadata from `dfps_terminology::LicenseTier` and future compliance rules
+- [x] Respect license metadata from `refractive_swan_terminology::LicenseTier` and future compliance rules
   (epic 020) before making external calls (e.g., skip forbidden systems).
 
 #### Cross-Cohesion
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -230,7 +230,7 @@
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
   - `docs/system-design/clinical/ncit/architecture.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
 - **Interfaces & Contracts:**
   - `map_staging_codes_with_summary` optional terminology client
   - `MappingSummary` extern lookup counters
@@ -245,7 +245,7 @@
 
 ## Acceptance Criteria
 
-- `dfps_mapping` can optionally consult external terminology services via `dfps_terminology::TerminologyClient`.
+- `refractive_swan_mapping` can optionally consult external terminology services via `refractive_swan_terminology::TerminologyClient`.
 - When external APIs are disabled or unreachable, mapping behavior remains deterministic and uses only embedded mock tables.
 - Tests prove that external calls improve coverage for previously `UnknownSystem` / `NoMatch` cases without regressing existing golden tests.
 - Env + docs clearly describe how to enable/disable external terminology usage.

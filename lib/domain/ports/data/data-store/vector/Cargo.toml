@@ -1,5 +1,5 @@
 [package]
-name = "dfps_vector_port"
+name = "refractive_swan_vector_port"
 version.workspace = true
 edition.workspace = true
 

@@ -1,17 +1,17 @@
 use std::{io::StdoutLock, path::PathBuf};
 
 use clap::Parser;
-use dfps_cli::cli_core::{
+use refractive_swan_cli::cli_core::{
     CliError, CliResult, enforce_license_blocks, init_cli_env, init_logging, input_reader,
     json_stream, load_policy, load_vector_config, mapping_vector_store, run_bin, write_record,
 };
-use dfps_core::staging::StgSrCodeExploded;
-use dfps_mapping::{
+use refractive_swan_core::staging::StgSrCodeExploded;
+use refractive_swan_mapping::{
     DeterministicEmbeddingProvider, explain_staging_code,
     map_staging_codes_with_summary_and_policy, map_staging_codes_with_vector_and_policy,
 };
-use dfps_observability::VectorUsageSnapshot;
-use dfps_vector_store::{VectorStore, VectorStoreConfig};
+use refractive_swan_observability::VectorUsageSnapshot;
+use refractive_swan_vector_store::{VectorStore, VectorStoreConfig};
 use std::sync::Arc;
 
 #[derive(Parser)]
@@ -62,7 +62,7 @@ fn run() -> CliResult<()> {
     let stdout = std::io::stdout();
     let mut handle = stdout.lock();
     let mut buffer = Vec::with_capacity(DEFAULT_BATCH_SIZE);
-    let mut total_summary = dfps_mapping::MappingSummary::default();
+    let mut total_summary = refractive_swan_mapping::MappingSummary::default();
     let mut total_usage: Option<VectorUsageSnapshot> = None;
     let mut license_blocked = 0usize;
     let mut processed = 0usize;
@@ -124,10 +124,10 @@ fn run() -> CliResult<()> {
 fn process_chunk(
     buffer: &mut Vec<StgSrCodeExploded>,
     engine: &MappingMode,
-    policy: &dfps_compliance::Policy,
+    policy: &refractive_swan_compliance::Policy,
     args: &Args,
     handle: &mut StdoutLock<'_>,
-    summary: &mut dfps_mapping::MappingSummary,
+    summary: &mut refractive_swan_mapping::MappingSummary,
     usage: &mut Option<VectorUsageSnapshot>,
     license_blocked: &mut usize,
 ) -> CliResult<usize> {
@@ -182,7 +182,7 @@ impl MappingMode {
     fn vector_from_env() -> CliResult<Self> {
         let config = load_vector_config()?;
         if !config.enabled {
-            return Err(CliError::config("DFPS_VECTOR_ENABLED=false"));
+            return Err(CliError::config("refractive_swan_VECTOR_ENABLED=false"));
         }
         let store = mapping_vector_store(&config)?;
         Ok(Self::Vector(VectorMapper::new(config, store)))
@@ -191,10 +191,10 @@ impl MappingMode {
     fn map_chunk(
         &self,
         codes: &[StgSrCodeExploded],
-        policy: &dfps_compliance::Policy,
+        policy: &refractive_swan_compliance::Policy,
     ) -> CliResult<(
-        Vec<dfps_core::mapping::MappingResult>,
-        dfps_mapping::MappingSummary,
+        Vec<refractive_swan_core::mapping::MappingResult>,
+        refractive_swan_mapping::MappingSummary,
         Option<VectorUsageSnapshot>,
     )> {
         match self {
@@ -231,10 +231,10 @@ impl VectorMapper {
     fn map_chunk(
         &self,
         codes: &[StgSrCodeExploded],
-        policy: &dfps_compliance::Policy,
+        policy: &refractive_swan_compliance::Policy,
     ) -> CliResult<(
-        Vec<dfps_core::mapping::MappingResult>,
-        dfps_mapping::MappingSummary,
+        Vec<refractive_swan_core::mapping::MappingResult>,
+        refractive_swan_mapping::MappingSummary,
         VectorUsageSnapshot,
     )> {
         map_staging_codes_with_vector_and_policy(
@@ -260,19 +260,19 @@ impl ErasedVectorStore {
 }
 
 impl VectorStore for ErasedVectorStore {
-    fn backend(&self) -> dfps_vector_store::VectorBackend {
+    fn backend(&self) -> refractive_swan_vector_store::VectorBackend {
         self.0.backend()
     }
 
-    fn health(&self, namespace: &str) -> Result<(), dfps_vector_store::VectorStoreError> {
+    fn health(&self, namespace: &str) -> Result<(), refractive_swan_vector_store::VectorStoreError> {
         self.0.health(namespace)
     }
 
     fn index_items(
         &self,
         namespace: &str,
-        items: &[dfps_vector_store::VectorItem],
-    ) -> Result<(), dfps_vector_store::VectorStoreError> {
+        items: &[refractive_swan_vector_store::VectorItem],
+    ) -> Result<(), refractive_swan_vector_store::VectorStoreError> {
         self.0.index_items(namespace, items)
     }
 
@@ -281,7 +281,7 @@ impl VectorStore for ErasedVectorStore {
         namespace: &str,
         query_vec: &[f32],
         top_k: usize,
-    ) -> Result<dfps_vector_store::VectorSearchResult, dfps_vector_store::VectorStoreError> {
+    ) -> Result<refractive_swan_vector_store::VectorSearchResult, refractive_swan_vector_store::VectorStoreError> {
         self.0.search(namespace, query_vec, top_k)
     }
 }

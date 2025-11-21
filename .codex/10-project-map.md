@@ -31,7 +31,7 @@ _All paths relative to `code/`._
 - `Makefile.toml` + `data/makefiles/` � standardized cargo-make tasks
 - `docs/book/` � mdBook sources and built HTML
 - `docs/runbook/` � runbooks (synced into the mdBook)
-- `data/environment/` � `.env.*.example` templates (loader: `dfps_configuration`)
+- `data/environment/` � `.env.*.example` templates (loader: `refractive_swan_configuration`)
 
 ## Binary entrypoint
 - `src/main.rs` � if used; may compose `lib/pipeline` etc.

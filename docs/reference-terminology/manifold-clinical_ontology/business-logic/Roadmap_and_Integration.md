@@ -1,10 +1,10 @@
 \
-# VIII. Roadmap & Integration (DFPS crates)
+# VIII. Roadmap & Integration (refractive_swan crates)
 
 **30 days**
-- Implement estimators (`dfps_mapping` or a new `dfps_geometry` crate):
+- Implement estimators (`refractive_swan_mapping` or a new `refractive_swan_geometry` crate):
   - Anchor solver, \(R_M\), \(D_M\), \(\alpha_{\text{mf}}\); \(\alpha_{\text{sim}}\) via subspace‑search + SVM.
-  - Expose metrics to `dfps_observability` and render via `dfps_eval::report`.
+  - Expose metrics to `refractive_swan_observability` and render via `refractive_swan_eval::report`.
 - Graph health: add Leiden pre‑processing before training embeddings.
 
 **60 days**

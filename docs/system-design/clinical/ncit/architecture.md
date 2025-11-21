@@ -59,19 +59,19 @@ architecture-beta
 ## Implementation layers
 
 - **Domain crates**
-  - `lib/domain/ingestion` (`dfps_ingestion`) : emits `stg_sr_code_exploded` rows.
-  - `lib/domain/mapping` (`dfps_mapping`) : lexical/vector rankers, rule rerankers, `MappingEngine`, plus the license-aware `map_staging_codes_with_summary` helper that produces `MappingSummary` (now also tracks external terminology lookup counts). Evaluation is now owned by `dfps_eval::run_eval_with_mapper`, with `dfps_mapping` providing a deprecated shim for backwards compatibility.
-  - `lib/domain/meta/evaluation` (`dfps_eval`) : owns `EvalCase`/`EvalSummary`, dataset manifests/baselines via `FileDatasetStore`, and streaming runners. Apps/API/CLI read `DFPS_EVAL_DATA_ROOT` (via `dfps_configuration`) and build a store instead of letting the domain crate touch env.
-  - `lib/domain/meta/pipeline` (`dfps_pipeline`) : composes ingestion + mapping via `bundle_to_mapped_sr`.
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`) -?" license-aware CodeSystem/ValueSet registries plus staging-code enrichment.
+  - `lib/domain/ingestion` (`refractive_swan_ingestion`) : emits `stg_sr_code_exploded` rows.
+  - `lib/domain/mapping` (`refractive_swan_mapping`) : lexical/vector rankers, rule rerankers, `MappingEngine`, plus the license-aware `map_staging_codes_with_summary` helper that produces `MappingSummary` (now also tracks external terminology lookup counts). Evaluation is now owned by `refractive_swan_eval::run_eval_with_mapper`, with `refractive_swan_mapping` providing a deprecated shim for backwards compatibility.
+  - `lib/domain/meta/evaluation` (`refractive_swan_eval`) : owns `EvalCase`/`EvalSummary`, dataset manifests/baselines via `FileDatasetStore`, and streaming runners. Apps/API/CLI read `refractive_swan_EVAL_DATA_ROOT` (via `refractive_swan_configuration`) and build a store instead of letting the domain crate touch env.
+  - `lib/domain/meta/pipeline` (`refractive_swan_pipeline`) : composes ingestion + mapping via `bundle_to_mapped_sr`.
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`) -?" license-aware CodeSystem/ValueSet registries plus staging-code enrichment.
 - **Platform crates**
   - `lib/platform/observability` : metrics/log helpers used by the CLI and tests.
   - `lib/platform/test_suite` : regression/property tests and fixtures, plus the evaluation harness tests (`tests/integration/mapping_eval.rs`) that keep `run_eval` wired to the gold datasets.
 - **Warehouse bridge**
-  - `lib/app/servers/datamart` (`dfps_datamart`) -?" turns `bundle_to_mapped_sr` output into the dimensional mart (`DimPatient`, `DimEncounter`, `DimCode`, `DimNCIT`, `FactServiceRequest`) and maintains the sentinel `DimNCIT` row that collects `NoMatch` facts.
+  - `lib/platform/data/data-plane/mart` (`refractive_swan_datamart`) – turns `bundle_to_mapped_sr` output into the dimensional mart (`DimPatient`, `DimEncounter`, `DimCode`, `DimNCIT`, `FactServiceRequest`) and maintains the sentinel `DimNCIT` row that collects `NoMatch` facts.
 - **App surfaces**
-  - `lib/app/frontend/cli` : `map_bundles` streams Bundles -> staging/mapping rows; `map_codes` explains staged codes; `eval_mapping` reads gold NDJSON or a named dataset (`--dataset pet_ct_small`) and prints enriched metrics (precision/recall/F1, stratified tables) via `dfps_eval::run_eval_with_mapper` (backed by `map_staging_codes`). The quickstart lives in `docs/runbook/mapping-eval-quickstart.md`; use `--thresholds` to gate CI and `--out-dir` to capture `eval_summary.json`/`eval_results.ndjson`.
-  - `lib/app/servers/api` : exposes `GET /api/eval/summary?dataset=...` (runs the same eval harness on a dataset) alongside `/api/map-bundles`, plus analytics surfaces `/analytics/ncit-summary` and `/analytics/cohort` that stream in-memory counts/facts for dashboards and BI smoke tests; when `DFPS_WAREHOUSE_URL` is set the analytics endpoints persist dim/fact tables via `dfps_datamart`.
+  - `lib/app/frontend/cli` : `map_bundles` streams Bundles -> staging/mapping rows; `map_codes` explains staged codes; `eval_mapping` reads gold NDJSON or a named dataset (`--dataset pet_ct_small`) and prints enriched metrics (precision/recall/F1, stratified tables) via `refractive_swan_eval::run_eval_with_mapper` (backed by `map_staging_codes`). The quickstart lives in `docs/runbook/mapping-eval-quickstart.md`; use `--thresholds` to gate CI and `--out-dir` to capture `eval_summary.json`/`eval_results.ndjson`.
+  - `lib/app/servers/api` : exposes `GET /api/eval/summary?dataset=...` (runs the same eval harness on a dataset) alongside `/api/map-bundles`, plus analytics surfaces `/analytics/ncit-summary` and `/analytics/cohort` that stream in-memory counts/facts for dashboards and BI smoke tests; when `refractive_swan_WAREHOUSE_URL` is set the analytics endpoints persist dim/fact tables via `refractive_swan_datamart`.
 
 ## Mapping states & thresholds
 
@@ -81,11 +81,11 @@ architecture-beta
 | NeedsReview  | 0.60 >= score < 0.95                        | Surface to curation queue                          |
 | NoMatch      | Score < 0.60 or missing identifiers        | Track with `reason` + provenance for later triage  |
 
-- Thresholds live in `dfps_core::mapping::MappingThresholds`; defaults are surfaced in `MappingResult`.
+- Thresholds live in `refractive_swan_core::mapping::MappingThresholds`; defaults are surfaced in `MappingResult`.
 - `MappingResult.reason` explains whether a NoMatch came from missing data, low scores, or rule filters.
-- `map_bundles --log-level info â€¦` logs aggregated metrics (`auto_mapped`, `needs_review`, `no_match`) via `dfps_observability`.
+- `map_bundles --log-level info â€¦` logs aggregated metrics (`auto_mapped`, `needs_review`, `no_match`) via `refractive_swan_observability`.
 ## Terminology instrumentation
 
-- `dfps_terminology::bridge::EnrichedCode` normalises system URLs, classifies codes into a `CodeKind`, and hands license/source metadata to `dfps_mapping`.
+- `refractive_swan_terminology::bridge::EnrichedCode` normalises system URLs, classifies codes into a `CodeKind`, and hands license/source metadata to `refractive_swan_mapping`.
 - Every `MappingResult` includes `license_tier` / `source_kind`; NoMatch rows specify whether identifiers were missing or the system was unknown.
-- `dfps_mapping::MappingSummary` tallies counts by `CodeKind` and license tier; `map_staging_codes_with_summary` (used by `map_codes`) prints those tallies for quick observability.
+- `refractive_swan_mapping::MappingSummary` tallies counts by `CodeKind` and license tier; `map_staging_codes_with_summary` (used by `map_codes`) prints those tallies for quick observability.

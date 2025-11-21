@@ -28,25 +28,25 @@
 ## DONE
 
 ### FP-01 – Core: minimal typed FHIR + staging models
-- [x] Add `dfps_core::fhir` (typed, minimal R4) with:
+- [x] Add `refractive_swan_core::fhir` (typed, minimal R4) with:
   - [x] `Coding`, `CodeableConcept`, `Reference`
   - [x] `Patient`, `Encounter`, `ServiceRequest`
   - [x] `Bundle` + `BundleEntry` (JSON passthrough entry)
   - [x] `Bundle::iter_servicerequests()` iterator
-- [x] Add `dfps_core::staging`:
+- [x] Add `refractive_swan_core::staging`:
   - [x] `StgServiceRequestFlat { sr_id, patient_id, encounter_id, status, intent, description }`
   - [x] `StgSrCodeExploded { sr_id, system, code, display }`
 - [x] Module docs (`//!`) stating scope & invariants; align terms with diagrams in `docs/system-design/fhir/*`.
 
 ### FP-02 – Ingestion crate: transforms
-- [x] New crate `dfps_ingestion`
+- [x] New crate `refractive_swan_ingestion`
   - [x] `sr_to_staging(sr)` -> `(StgServiceRequestFlat, Vec<StgSrCodeExploded>)`
-  - [x] `sr_to_domain(sr)` -> `dfps_core::order::ServiceRequest` (normalize `status`/`intent`)
+  - [x] `sr_to_domain(sr)` -> `refractive_swan_core::order::ServiceRequest` (normalize `status`/`intent`)
   - [x] `bundle_to_staging(bundle)` + `bundle_to_domain(bundle)`
   - [x] Helper to parse FHIR `Reference` `"Type/ID"` -> `ID`
 
 ### FP-03 – Fake raw FHIR generators
-- [x] Extend `dfps_eval::fake_data` with `raw_fhir` module:
+- [x] Extend `refractive_swan_eval::fake_data` with `raw_fhir` module:
   - [x] `fake_fhir_patient[_with_seed]`
   - [x] `fake_fhir_encounter_for[_with_seed]`
   - [x] `fake_fhir_servicerequest[_with_seed]` (compose 2–3 codings from CPT/SNOMED/LOINC)
@@ -54,7 +54,7 @@
 - [x] CLI: `generate_fhir_bundle` emitting NDJSON `Bundle`s (count + optional seed)
 
 ### FP-04 – Tests: e2e, properties, regression
-- [x] Add `dfps_test_suite` dependency on `dfps_ingestion`
+- [x] Add `refractive_swan_test_suite` dependency on `refractive_swan_ingestion`
 - [x] E2E: `fhir_ingest_flow.rs`
   - [x] bundle -> staging rows (1 flat per SR; N exploded rows = `coding.len()`)
   - [x] bundle -> domain aggregate matches IDs & normalized status/intent
@@ -73,18 +73,18 @@
 - [x] Short “ingestion MVP” note in `docs/system-design/fhir/index.md`
 
 ### E2E-01 – Bundle -> mapped concepts facade
-- [x] Add a public entrypoint (new crate `dfps_pipeline` or module in `dfps_mapping`) that composes `bundle_to_staging` and `map_staging_codes`:
+- [x] Add a public entrypoint (new crate `refractive_swan_pipeline` or module in `refractive_swan_mapping`) that composes `bundle_to_staging` and `map_staging_codes`:
   - [x] `bundle_to_mapped_sr(bundle) -> (Vec<StgServiceRequestFlat>, Vec<MappingResult>, Vec<DimNCITConcept>)`
   - [x] Return structured errors for ingestion/mapping failures.
 
 ### E2E-02 – End-to-end test: FHIR -> staging -> NCIt
-- [x] In `dfps_test_suite`, load the regression bundle fixture, run the facade, and assert:
+- [x] In `refractive_swan_test_suite`, load the regression bundle fixture, run the facade, and assert:
   - [x] Flat/exploded counts match the staging invariants.
   - [x] PET codes resolve to the expected NCIt IDs and mapping states.
   - [x] Mapping state distribution (AutoMapped / NeedsReview / NoMatch) is stable.
 
 ### E2E-03 – Pipeline CLI
-- [x] Add a binary (e.g. `dfps_pipeline::bin::map_bundles`) that:
+- [x] Add a binary (e.g. `refractive_swan_pipeline::bin::map_bundles`) that:
   - [x] Reads NDJSON FHIR Bundles.
   - [x] Emits NDJSON staging rows, mapping results, and NCIt dims.
   - [x] Supports deterministic seeds / sample data for demos.
@@ -94,7 +94,7 @@
 
 ## Acceptance Criteria
 - `cargo test --all` passes.
-- `dfps_eval` bin `generate_fhir_bundle` prints valid FHIR `Bundle` NDJSON.
+- `refractive_swan_eval` bin `generate_fhir_bundle` prints valid FHIR `Bundle` NDJSON.
 - `bundle_to_staging` yields exactly one flat row per SR and one exploded row per `code.coding[]`.
 - Domain aggregate fields (IDs, status, intent, description) match the source FHIR semantics.
 

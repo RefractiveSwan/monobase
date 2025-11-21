@@ -53,10 +53,10 @@
   - [x] `run_eval(cases: &[EvalCase]) -> EvalSummary` that:
     - [x] runs each case through `map_staging_codes` (or equivalent),
     - [x] compares `expected_ncit_id` to the top `MappingResult`.
-- [x] Implementation lives at `lib/domain/meta/evaluation` (`dfps_eval::run_eval_with_mapper`), with a deprecated shim exposed through `dfps_mapping::eval`.
+- [x] Implementation lives at `lib/domain/meta/evaluation` (`refractive_swan_eval::run_eval_with_mapper`), with a deprecated shim exposed through `refractive_swan_mapping::eval`.
 
 ### EVAL-03 - Test harness integration
-- [x] Add evaluation tests in `dfps_test_suite`:
+- [x] Add evaluation tests in `refractive_swan_test_suite`:
   - [x] Construct a small suite of EvalCase rows from fixtures.
   - [x] Assert:
     - [x] AutoMapped precision meets a minimal bar for the tiny sample.
@@ -65,7 +65,7 @@
 
 ### EVAL-04 - CLI wrapper
 - [x] Introduce a small CLI binary, e.g.:
-  - [x] Integrate a new `dfps_cli` subcommand `eval-mapping`.
+  - [x] Integrate a new `refractive_swan_cli` subcommand `eval-mapping`.
 - [x] CLI behavior:
   - [x] Accepts an NDJSON gold file path (`--input`).
   - [x] Prints summary metrics (precision, recall, counts by MappingState).

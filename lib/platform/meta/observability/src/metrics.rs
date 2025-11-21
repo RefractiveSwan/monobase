@@ -1,8 +1,8 @@
-use dfps_core::{
+use refractive_swan_core::{
     mapping::{MappingResult, MappingState},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use dfps_vector_port::VectorUsageSnapshot;
+use refractive_swan_vector_port::VectorUsageSnapshot;
 use serde::{Deserialize, Serialize};
 
 /// Workspace-wide pipeline counters shared across CLI/API surfaces.
@@ -18,7 +18,7 @@ pub struct PipelineMetrics {
     /// Compliance mode recorded at the app/CLI layer; domain crates leave this unset.
     #[serde(default)]
     pub compliance_mode: Option<String>,
-    /// Number of mappings blocked by policy (set via `dfps_compliance` in pipeline/app layers).
+    /// Number of mappings blocked by policy (set via `refractive_swan_compliance` in pipeline/app layers).
     #[serde(default)]
     pub license_blocked: usize,
     #[serde(default)]

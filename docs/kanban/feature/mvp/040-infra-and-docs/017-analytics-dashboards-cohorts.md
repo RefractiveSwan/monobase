@@ -18,7 +18,7 @@
 
 ### ANL-01 – Backend analytics endpoints
 
-- [ ] Extend `dfps_api` router with an `analytics` module:
+- [ ] Extend `refractive_swan_api` router with an `analytics` module:
 
   - [ ] `GET /analytics/ncit-summary`:
 
@@ -38,8 +38,8 @@
 
 - **Engineering Targets:** B, C, D
 - **Crates & Paths:**
-  - `lib/app/servers/api` (`dfps_api`)
-  - `lib/app/servers/datamart` (`dfps_datamart`)
+  - `lib/app/servers/api` (`refractive_swan_api`)
+  - `lib/app/servers/datamart` (`refractive_swan_datamart`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -49,16 +49,16 @@
   - `docs/system-design/clinical/ncit/models/data-model-er.md`
   - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/web_api.rs`
-  - `dfps_test_suite/tests/e2e/observability_metrics.rs`
+  - `refractive_swan_test_suite/tests/integration/web_api.rs`
+  - `refractive_swan_test_suite/tests/e2e/observability_metrics.rs`
 - **Interfaces & Contracts:**
   - `GET /analytics/ncit-summary`
   - `GET /analytics/cohort`
-  - `DFPS_API_HOST`, `DFPS_API_PORT`
+  - `refractive_swan_API_HOST`, `refractive_swan_API_PORT`
 
 ### ANL-02 – Frontend analytics views
 
-- [ ] Extend `dfps_web_frontend` with new routes/views:
+- [ ] Extend `refractive_swan_web_frontend` with new routes/views:
 
   - [ ] `/analytics`:
 
@@ -78,8 +78,8 @@
 
 - **Engineering Targets:** B, C
 - **Crates & Paths:**
-  - `lib/app/frontend/web` (`dfps_web_frontend`)
-  - `lib/app/servers/api` (`dfps_api`)
+  - `lib/app/frontend/web` (`refractive_swan_web_frontend`)
+  - `lib/app/servers/api` (`refractive_swan_api`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -88,8 +88,8 @@
   - `docs/system-design/clinical/ncit/architecture.md`
   - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/web_api.rs`
-  - UI snapshot/assertion tests under `dfps_web_frontend`
+  - `refractive_swan_test_suite/tests/integration/web_api.rs`
+  - UI snapshot/assertion tests under `refractive_swan_web_frontend`
 - **Interfaces & Contracts:**
   - `/analytics`, `/analytics/cohort` frontend routes
   - Backend clients for `GET /analytics/ncit-summary`, `GET /analytics/cohort`
@@ -109,8 +109,8 @@
 
 - **Engineering Targets:** C, D
 - **Crates & Paths:**
-  - `lib/app/servers/datamart` (`dfps_datamart`)
-  - `lib/app/servers/api` (`dfps_api`)
+  - `lib/app/servers/datamart` (`refractive_swan_datamart`)
+  - `lib/app/servers/api` (`refractive_swan_api`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -120,7 +120,7 @@
   - `docs/system-design/clinical/ncit/models/data-model-er.md`
   - `docs/runbook/warehouse-quickstart.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/warehouse.rs`
+  - `refractive_swan_test_suite/tests/integration/warehouse.rs`
   - BI connectivity smoke tests (manual/CI)
 - **Interfaces & Contracts:**
   - Warehouse views (e.g., `fact_sr`, `dim_ncit`)
@@ -138,8 +138,8 @@
 
 - **Engineering Targets:** C, D
 - **Crates & Paths:**
-  - `lib/platform/observability` (`dfps_observability`)
-  - `lib/app/servers/api` (`dfps_api`)
+  - `lib/platform/observability` (`refractive_swan_observability`)
+  - `lib/app/servers/api` (`refractive_swan_api`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -150,16 +150,16 @@
   - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
   - `docs/system-design/clinical/ncit/architecture.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/e2e/observability_metrics.rs`
-  - `dfps_test_suite/tests/integration/web_api.rs`
+  - `refractive_swan_test_suite/tests/e2e/observability_metrics.rs`
+  - `refractive_swan_test_suite/tests/integration/web_api.rs`
 - **Interfaces & Contracts:**
   - `GET /metrics/summary`
   - `PipelineMetrics` JSON schema
-  - `DFPS_API_HOST`, `DFPS_API_PORT`
+  - `refractive_swan_API_HOST`, `refractive_swan_API_PORT`
 
 ### ANL-05 – Tests & UX polish
 
-- [ ] Integration tests (in `dfps_test_suite`) for:
+- [ ] Integration tests (in `refractive_swan_test_suite`) for:
 
   - [ ] `GET /analytics/ncit-summary` on baseline & unknown code fixtures.
   - [ ] `GET /analytics/cohort` returns coherent rows tied back to dims.
@@ -173,8 +173,8 @@
 
 - **Engineering Targets:** B, C
 - **Crates & Paths:**
-  - `lib/platform/test_suite` (`dfps_test_suite`)
-  - `lib/app/frontend/web` (`dfps_web_frontend`)
+  - `lib/platform/test_suite` (`refractive_swan_test_suite`)
+  - `lib/app/frontend/web` (`refractive_swan_web_frontend`)
 - **Shared Metrics & Signals:**
   - auto_mapped
   - needs_review
@@ -183,8 +183,8 @@
   - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
   - `docs/system-design/clinical/ncit/models/data-model-er.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/web_api.rs`
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_test_suite/tests/integration/web_api.rs`
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
 - **Interfaces & Contracts:**
   - `/analytics` and `/analytics/cohort` UI flows
   - Backend analytics endpoints and view models

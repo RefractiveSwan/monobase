@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use dfps_pipeline::VectorPipelineContext;
-use dfps_vector_store::{
+use refractive_swan_pipeline::VectorPipelineContext;
+use refractive_swan_vector_store::{
     MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
     config_from_env,
 };
 
 #[cfg(feature = "backend-pgvector")]
-use dfps_vector_store::PgVectorStore;
+use refractive_swan_vector_store::PgVectorStore;
 
 use super::{CliError, CliResult};
 

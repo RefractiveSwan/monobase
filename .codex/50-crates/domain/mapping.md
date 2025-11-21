@@ -1,12 +1,12 @@
-# Crate: lib/domain/mapping — `dfps_mapping`
+# Crate: lib/domain/mapping — `refractive_swan_mapping`
 
 **Path:** `code/lib/domain/mapping`  
-**Depends on:** `dfps_core`, `dfps_terminology`, `serde(_json)`.
+**Depends on:** `refractive_swan_core`, `refractive_swan_terminology`, `serde(_json)`.
 
 ## Responsibilities
 - Map staging codes to **NCIt** concepts; keep logic **deterministic and local**.
 - Combine lexical + vector mock rankers with a rule re‑ranker; use **UMLS cross‑refs** where available.
-- Attach **license/source** metadata using `dfps_terminology`.
+- Attach **license/source** metadata using `refractive_swan_terminology`.
 
 ## Modules & data
 - `data.rs`

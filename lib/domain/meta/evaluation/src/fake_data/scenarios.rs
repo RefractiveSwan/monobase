@@ -2,7 +2,7 @@ use crate::fake_data::{
     encounter::fake_encounter_for_patient_with_rng, order::fake_service_request_for_with_rng,
     patient::fake_patient_with_rng, rng,
 };
-use dfps_core::{encounter::Encounter, order::ServiceRequest, patient::Patient};
+use refractive_swan_core::{encounter::Encounter, order::ServiceRequest, patient::Patient};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 

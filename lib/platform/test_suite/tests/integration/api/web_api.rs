@@ -5,9 +5,9 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-// DFPS Lib
-use dfps_api::{ApiState, router as api_router};
-use dfps_core::{
+// refractive_swan Lib
+use refractive_swan_api::{ApiState, router as api_router};
+use refractive_swan_core::{
     mapping::{
         // DimNCITConcept,
         MappingResult,
@@ -15,8 +15,8 @@ use dfps_core::{
     },
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use dfps_observability::PipelineMetrics;
-use dfps_test_suite::{regression, scoped_env_var};
+use refractive_swan_observability::PipelineMetrics;
+use refractive_swan_test_suite::{regression, scoped_env_var};
 
 use http_body_util::BodyExt;
 use reqwest::StatusCode as ReqwestStatusCode;
@@ -70,7 +70,7 @@ async fn spawn_http_server() -> (SocketAddr, oneshot::Sender<()>, JoinHandle<()>
             .with_graceful_shutdown(shutdown)
             .await
         {
-            panic!("dfps_api server error: {err}");
+            panic!("refractive_swan_api server error: {err}");
         }
     });
 
@@ -97,7 +97,7 @@ where
 
 #[tokio::test]
 async fn map_bundles_returns_mapped_results() {
-    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
+    let _guard = scoped_env_var("refractive_swan_COMPLIANCE_MODE", "internal");
     let app = app();
     let bundle = regression::baseline_fhir_bundle();
     let payload = serde_json::to_vec(&bundle).expect("serialize bundle");
@@ -123,7 +123,7 @@ async fn map_bundles_returns_mapped_results() {
 
 #[tokio::test]
 async fn map_bundles_unknown_code_surfaces_no_match() {
-    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
+    let _guard = scoped_env_var("refractive_swan_COMPLIANCE_MODE", "internal");
     let app = app();
     let bundle = regression::fhir_bundle_unknown_code();
     let payload = serde_json::to_vec(&bundle).expect("serialize bundle");
@@ -146,7 +146,7 @@ async fn map_bundles_unknown_code_surfaces_no_match() {
 
 #[tokio::test]
 async fn metrics_summary_tracks_processed_bundles() {
-    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
+    let _guard = scoped_env_var("refractive_swan_COMPLIANCE_MODE", "internal");
     let app = app();
     let bundle = regression::baseline_fhir_bundle();
     let payload = serde_json::to_vec(&bundle).expect("serialize bundle");
@@ -186,7 +186,7 @@ async fn metrics_summary_tracks_processed_bundles() {
 
 #[tokio::test]
 async fn ci_smoke_server_runs_endpoints() {
-    let _guard = scoped_env_var("DFPS_COMPLIANCE_MODE", "internal");
+    let _guard = scoped_env_var("refractive_swan_COMPLIANCE_MODE", "internal");
     let (addr, shutdown_tx, handle) = spawn_http_server().await;
     let client = reqwest::Client::new();
     let base = format!("http://{addr}");
@@ -247,7 +247,7 @@ async fn eval_datasets_and_run_endpoints_work() {
         .uri("/api/eval/datasets")
         .body(Body::empty())
         .expect("datasets request");
-    let (status, manifests): (StatusCode, Vec<dfps_eval::DatasetManifest>) =
+    let (status, manifests): (StatusCode, Vec<refractive_swan_eval::DatasetManifest>) =
         send_json(&app, datasets_request).await;
     assert_eq!(status, StatusCode::OK);
     assert!(!manifests.is_empty(), "manifests should not be empty");

@@ -1,11 +1,11 @@
 //! CLI contract integration tests (REFR-14, REFR-03).
 
 use assert_cmd::Command;
-use dfps_contracts::{
+use refractive_swan_contracts::{
     DimNCITConcept, EvalRunResponse, LoadSummary, MappingResult, PipelineMetrics,
 };
-use dfps_core::mapping::MappingState;
-use dfps_test_suite::{TempSqliteWarehouse, ensure_eval_data_root, init_environment, regression};
+use refractive_swan_core::mapping::MappingState;
+use refractive_swan_test_suite::{TempSqliteWarehouse, ensure_eval_data_root, init_environment, regression};
 use serde_json::Value;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -22,13 +22,13 @@ fn parse_record(line: &str) -> (String, Value) {
 
 fn cli_command(bin: &str) -> Command {
     let mut cmd = Command::new("cargo");
-    cmd.args(["run", "--quiet", "-p", "dfps_cli", "--bin", bin, "--"]);
+    cmd.args(["run", "--quiet", "-p", "refractive_swan_cli", "--bin", bin, "--"]);
     cmd
 }
 
 #[test]
 fn map_bundles_streams_contract_rows() {
-    init_environment().expect("dfps_test_suite env");
+    init_environment().expect("refractive_swan_test_suite env");
     let bundle = regression::baseline_fhir_bundle();
     let mut bundle_file = NamedTempFile::new().expect("temp file");
     serde_json::to_writer(&mut bundle_file, &bundle).expect("write bundle NDJSON");
@@ -75,7 +75,7 @@ fn map_bundles_streams_contract_rows() {
 
 #[test]
 fn load_datamart_emits_contract_summary() {
-    init_environment().expect("dfps_test_suite env");
+    init_environment().expect("refractive_swan_test_suite env");
     let bundle = regression::baseline_fhir_bundle();
     let mut bundle_file = NamedTempFile::new().expect("bundle file");
     serde_json::to_writer(&mut bundle_file, &bundle).expect("bundle NDJSON");
@@ -90,7 +90,7 @@ fn load_datamart_emits_contract_summary() {
         .arg(&bundle_path)
         .arg("--input-kind")
         .arg("bundle")
-        .env("DFPS_WAREHOUSE_URL", &warehouse_url)
+        .env("refractive_swan_WAREHOUSE_URL", &warehouse_url)
         .assert()
         .success();
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");
@@ -108,12 +108,12 @@ fn load_datamart_emits_contract_summary() {
 
 #[test]
 fn eval_mapping_outputs_contract_summary() {
-    init_environment().expect("dfps_test_suite env");
+    init_environment().expect("refractive_swan_test_suite env");
     let eval_root = ensure_eval_data_root().expect("eval data root");
     let dataset = "pet_ct_small";
     let assert = cli_command("eval_mapping")
         .args(["--dataset", dataset])
-        .env("DFPS_EVAL_DATA_ROOT", eval_root)
+        .env("refractive_swan_EVAL_DATA_ROOT", eval_root)
         .assert()
         .success();
     let stdout = String::from_utf8(assert.get_output().stdout.clone()).expect("utf8 stdout");

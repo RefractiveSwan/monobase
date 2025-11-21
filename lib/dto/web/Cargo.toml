@@ -1,8 +1,8 @@
 [package]
-name = "dfps_web_dto"
+name = "refractive_swan_web_dto"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_contracts = { path = "../../domain/meta/contracts" }
+refractive_swan_contracts = { path = "../../domain/meta/contracts" }
 serde.workspace = true

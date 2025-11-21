@@ -7,7 +7,7 @@ description = "🟢 Run quick mapping evaluation on pet_ct_small dataset"
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "eval_mapping",
     "--",
     "--dataset", "pet_ct_small",
@@ -18,9 +18,9 @@ args = [
 [tasks.eval-full]
 description = "🟡 Run full evaluation on all datasets (bronze/silver/gold)"
 script = [
-    "cargo run -p dfps_cli --bin eval_mapping -- --dataset bronze_pet_ct_small --dump-details",
-    "cargo run -p dfps_cli --bin eval_mapping -- --dataset silver_pet_ct_extended --dump-details",
-    "cargo run -p dfps_cli --bin eval_mapping -- --dataset gold_pet_ct_comprehensive --dump-details"
+    "cargo run -p refractive_swan_cli --bin eval_mapping -- --dataset bronze_pet_ct_small --dump-details",
+    "cargo run -p refractive_swan_cli --bin eval_mapping -- --dataset silver_pet_ct_extended --dump-details",
+    "cargo run -p refractive_swan_cli --bin eval_mapping -- --dataset gold_pet_ct_comprehensive --dump-details"
 ]
 
 # 🟡 INTERMEDIATE: Generate evaluation report with baseline comparison
@@ -29,7 +29,7 @@ description = "🟡 Generate evaluation report with baseline comparison"
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "eval_mapping",
     "--",
     "--dataset", "gold_pet_ct_small",
@@ -44,7 +44,7 @@ description = "🔴 CI evaluation with thresholds and deterministic checks"
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "eval_mapping",
     "--",
     "--dataset", "pet_ct_small",
@@ -59,7 +59,7 @@ condition = { env_set = ["INPUT"] }
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "eval_mapping",
     "--",
     "--input", "${INPUT}",
@@ -72,7 +72,7 @@ condition = { env_set = ["DATASET"] }
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "eval_mapping",
     "--",
     "--dataset", "${DATASET}",
@@ -85,7 +85,7 @@ description = "🔴 Run evaluation with advanced statistics (bootstrap CI)"
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "eval_mapping",
     "--features", "eval-advanced",
     "--",

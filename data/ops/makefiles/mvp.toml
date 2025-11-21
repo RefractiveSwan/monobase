@@ -13,12 +13,12 @@ run_task = { name = ["mvp-start-api", "mvp-start-web"], parallel = true }
 [tasks.mvp-start-api]
 description = "Start API backend server"
 command = "cargo"
-args = ["run", "-p", "dfps_api", "--bin", "dfps_api"]
+args = ["run", "-p", "refractive_swan_api", "--bin", "refractive_swan_api"]
 
 [tasks.mvp-start-web]
 description = "Start web frontend server"
 command = "cargo"
-args = ["run", "-p", "dfps_web_frontend", "--bin", "dfps_web_frontend"]
+args = ["run", "-p", "refractive_swan_web_frontend", "--bin", "refractive_swan_web_frontend"]
 
 # Convenience aliases for individual services
 [tasks.mvp-api]
@@ -171,7 +171,7 @@ args = [
     "-w", "lib/app/frontend/web",
     "-w", "lib/platform",
     "-i", "target/*",
-    "-x", "run -p dfps_web_frontend --bin dfps_web_frontend"
+    "-x", "run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend"
 ]
 
 # Quick iteration: format + check + test changed files
@@ -188,9 +188,9 @@ description = "🔴 Pre-commit checks: fmt + clippy + quick tests"
 script = [
     "cargo fmt --all -- --check",
     "cargo clippy --all-targets -- -D warnings",
-    "cargo test -p dfps_core --lib",
-    "cargo test -p dfps_api --lib",
-    "cargo test -p dfps_web_frontend --lib"
+    "cargo test -p refractive_swan_core --lib",
+    "cargo test -p refractive_swan_api --lib",
+    "cargo test -p refractive_swan_web_frontend --lib"
 ]
 
 # =============================================================================
@@ -202,7 +202,7 @@ description = "Show MVP startup banner"
 script = [
     "echo ''",
     "echo '╔════════════════════════════════════════════════════════╗'",
-    "echo '║  DFPS MVP Development Environment                     ║'",
+    "echo '║  refractive_swan MVP Development Environment                     ║'",
     "echo '╚════════════════════════════════════════════════════════╝'",
     "echo ''",
     "echo 'API Backend:     http://127.0.0.1:8080'",

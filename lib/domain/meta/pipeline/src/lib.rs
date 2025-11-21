@@ -4,24 +4,24 @@
 //! - docs/system-design/fhir/index.md#quickstart
 //! - docs/system-design/ncit/behavior/sequence-servicerequest.md
 //! - lib/domain/pipeline/README.md (REFR-09 notes)
-//! - lib/domain/contracts (dfps_contracts) for cross-surface DTO alignment
+//! - lib/domain/contracts (refractive_swan_contracts) for cross-surface DTO alignment
 //!   by exposing a single entrypoint from Bundle -> staging -> NCIt concepts,
 //!   with optional vector-store contexts injected by callers.
 
-use dfps_core::{
+use refractive_swan_core::{
     fhir::Bundle,
     mapping::{DimNCITConcept, MappingResult},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use dfps_ingestion::{
+use refractive_swan_ingestion::{
     ExternalValidationContext, ValidatedBundle, ValidationMode, bundle_to_staging_from_validated,
     bundle_to_staging_with_validation, validation::ValidationReport,
 };
-use dfps_mapping::{
+use refractive_swan_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes, map_staging_codes_with_vector,
 };
-use dfps_observability::{PipelineMetrics, VectorUsageSnapshot};
-use dfps_vector_port::{
+use refractive_swan_observability::{PipelineMetrics, VectorUsageSnapshot};
+use refractive_swan_vector_port::{
     VectorBackend, VectorItem, VectorSearchResult, VectorStore, VectorStoreConfig, VectorStoreError,
 };
 use log::warn;
@@ -30,7 +30,7 @@ use thiserror::Error;
 
 /// Aggregated pipeline output for a single Bundle ingestion/mapping run.
 ///
-/// This type is re-exported in `dfps_contracts` so app surfaces can rely on a
+/// This type is re-exported in `refractive_swan_contracts` so app surfaces can rely on a
 /// single schema without bespoke DTOs.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PipelineOutput {
@@ -117,7 +117,7 @@ impl Default for MappingRunConfig {
 #[derive(Debug, Error)]
 pub enum PipelineError {
     #[error("ingestion error: {0}")]
-    Ingestion(#[from] dfps_ingestion::IngestionError),
+    Ingestion(#[from] refractive_swan_ingestion::IngestionError),
 }
 
 /// Port trait for application layers to orchestrate Bundle -> PipelineOutput flows.
@@ -312,7 +312,7 @@ fn try_vector_mapping(
 ///
 /// Construct this in app/platform crates (after reading env/config) and pass a
 /// borrowed reference into the pipeline. The context is intentionally opaque so
-/// dfps_pipeline stays environment-free.
+/// refractive_swan_pipeline stays environment-free.
 #[derive(Clone)]
 pub struct VectorPipelineContext {
     store: Arc<dyn VectorStore>,
@@ -379,9 +379,9 @@ impl VectorStore for ErasedVectorStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_ingestion::{ExternalValidationContext, ValidatedBundle, ValidationMode};
-    use dfps_test_suite::regression;
-    use dfps_vector_port::{MockVectorStore, VectorBackend};
+    use refractive_swan_ingestion::{ExternalValidationContext, ValidatedBundle, ValidationMode};
+    use refractive_swan_test_suite::regression;
+    use refractive_swan_vector_port::{MockVectorStore, VectorBackend};
     use serde_json::json;
     use std::sync::Arc;
 

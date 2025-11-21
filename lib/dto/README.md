@@ -7,9 +7,14 @@ without leaking unrelated payloads into that surface.
 
 ## Current crates
 
-- `lib/dto/web` (`dfps_web_dto`) – the Actix frontend and Axum API both depend
+- `lib/dto/web` (`refractive_swan_web_dto`) – the Actix frontend and Axum API both depend
   on this crate so analytics/cohort/eval/pipeline payloads stay in sync without
   duplicating structs in each app crate.
+- `lib/dto/cli` (`refractive_swan_cli_dto`) – CLI binaries import this veneer for pipeline
+  metrics, eval summaries, and manifest/load DTOs.
+- `lib/dto/mesh` (`refractive_swan_mesh_dto`) – mesh runtimes (node/hub/governance)
+  re-use control-plane DTOs via this veneer instead of linking to every
+  contract.
 
 New DTO contexts should live under `lib/dto/<surface>` following the same
 pattern: no env/config logic, only lightweight adapters around the canonical

@@ -1,10 +1,10 @@
-# Crate: lib/platform/test_suite — `dfps_test_suite`
+# Crate: lib/platform/test_suite — `refractive_swan_test_suite`
 
 **Purpose**  
 Reusable fixtures/assertions and a full test harness (unit, integration, E2E) spanning ingestion → mapping → datamart → web API.
 
 **Env**
-- Eagerly loads `platform.test_suite` via `dfps_configuration`.
+- Eagerly loads `platform.test_suite` via `refractive_swan_configuration`.
 - `ping()` returns `"test-suite-ready"` post‑init.
 
 **Exports**
@@ -49,5 +49,5 @@ Reusable fixtures/assertions and a full test harness (unit, integration, E2E) sp
 **Run**
 ```bash
 cd code
-cargo test -p dfps_test_suite
+cargo test -p refractive_swan_test_suite
 ```

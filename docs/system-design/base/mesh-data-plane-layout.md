@@ -16,50 +16,49 @@ As of 2025-11-21, the actual codebase layout under `lib/`:
 lib/
   app/
     frontend/
-      cli/              (dfps_cli)
-      web/              (dfps_web_frontend)
+      cli/              (refractive_swan_cli)
+      web/              (refractive_swan_web_frontend)
     servers/
-      api/              (dfps_api)
-      datamart/         (dfps_datamart)
-      vector_store/     (dfps_vector_store)
+      api/              (refractive_swan_api)
+      datamart/         (refractive_swan_datamart)
+      vector_store/     (refractive_swan_vector_store)
   
   domain/
-    core/               (dfps_core)
-    contracts/          (dfps_contracts)
-    eval/               (dfps_eval)
-    pipeline/           (dfps_pipeline)
-    vector_port/        (dfps_vector_port)
+    core/               (refractive_swan_core)
+    contracts/          (refractive_swan_contracts)
+    eval/               (refractive_swan_eval)
+    pipeline/           (refractive_swan_pipeline)
+    vector_port/        (refractive_swan_vector_port)
     ontologies/
-      ingestion/        (dfps_ingestion)
-      mapping/          (dfps_mapping)
-      terminology/      (dfps_terminology)
+      ingestion/        (refractive_swan_ingestion)
+      mapping/          (refractive_swan_mapping)
+      terminology/      (refractive_swan_terminology)
   
   platform/
-    compliance/         (dfps_compliance)
-    configuration/      (dfps_configuration)
-    observability/      (dfps_observability)
+    compliance/         (refractive_swan_compliance)
+    configuration/      (refractive_swan_configuration)
+    observability/      (refractive_swan_observability)
     stores/             (placeholder, minimal)
-    test_suite/         (dfps_test_suite)
+    test_suite/         (refractive_swan_test_suite)
 ```
 
 ### Key Observations
 
 1. **Domain layer** is already close to target state, with clean separation of:
-   - Core domain models (`dfps_core`)
+   - Core domain models (`refractive_swan_core`)
    - Ontology subsystems (ingestion, mapping, terminology)
-   - Pipeline orchestration (`dfps_pipeline`)
-   - Evaluation harness (`dfps_eval`)
-   - Shared contracts (`dfps_contracts`)
-   - Vector abstract port (`dfps_vector_port`)
+   - Pipeline orchestration (`refractive_swan_pipeline`)
+   - Evaluation harness (`refractive_swan_eval`)
+   - Shared contracts (`refractive_swan_contracts`)
+   - Vector abstract port (`refractive_swan_vector_port`)
 
 2. **Platform layer** has supporting crates but lacks `data/`, `store/`, `mesh/` organization:
    - Compliance, configuration, observability, and test suite exist as platform crates
    - No mesh-level abstractions yet
 
-3. **App servers** currently host what will become platform/data and platform/store:
-   - `app/servers/api` contains node runtime logic
-   - `app/servers/datamart` contains warehouse/mart implementation
-   - `app/servers/vector_store` contains vector store implementation
+3. **App servers** currently host only the HTTP runtime:
+   - `app/servers/api` contains node runtime logic (to be extracted into `platform/mesh/node`)
+   - `refractive_swan_datamart` and `refractive_swan_vector_store` have already moved under `platform/data/**`
 
 ---
 
@@ -71,48 +70,48 @@ The **planned** layout that MESH-025 establishes (directory names and depths are
 lib/
   app/
     frontend/
-      cli/              (dfps_cli)
-      web/              (dfps_web_frontend)
+      cli/              (refractive_swan_cli)
+      web/              (refractive_swan_web_frontend)
   
   domain/
-    core/               (dfps_core)
-    contracts/          (dfps_contracts)
-    eval/               (dfps_eval)
-    pipeline/           (dfps_pipeline)
-    vector_port/        (dfps_vector_port)
+    core/               (refractive_swan_core)
+    contracts/          (refractive_swan_contracts)
+    eval/               (refractive_swan_eval)
+    pipeline/           (refractive_swan_pipeline)
+    vector_port/        (refractive_swan_vector_port)
     ontologies/
-      ingestion/        (dfps_ingestion)
-      mapping/          (dfps_mapping)
-      terminology/      (dfps_terminology)
+      ingestion/        (refractive_swan_ingestion)
+      mapping/          (refractive_swan_mapping)
+      terminology/      (refractive_swan_terminology)
   
   platform/
-    compliance/         (dfps_compliance)
-    configuration/      (dfps_configuration)
-    observability/      (dfps_observability)
-    test_suite/         (dfps_test_suite)
+    compliance/         (refractive_swan_compliance)
+    configuration/      (refractive_swan_configuration)
+    observability/      (refractive_swan_observability)
+    test_suite/         (refractive_swan_test_suite)
     
     mesh/
-      node/             (dfps_mesh_node)       ← node runtime & governance integration
-      hub/              (dfps_mesh_hub)        ← research orchestrator / FL coordinator
-      governance/       (dfps_mesh_governance) ← mesh-level policies, DP/query model
+      node/             (refractive_swan_mesh_node)       ← node runtime & governance integration
+      hub/              (refractive_swan_mesh_hub)        ← research orchestrator / FL coordinator
+      governance/       (refractive_swan_mesh_governance) ← mesh-level policies, DP/query model
     
     data/
-      mart/             (dfps_datamart)        ← dim/fact logic inside node
-      warehouse/        (dfps_datawarehouse)   ← backend-agnostic relational warehouse traits
-      lake/             (dfps_datalake)        ← local snapshots / Parquet/Delta lake
+      mart/             (refractive_swan_datamart)        ← dim/fact logic inside node
+      warehouse/        (refractive_swan_datawarehouse)   ← backend-agnostic relational warehouse traits
+      lake/             (refractive_swan_datalake)        ← local snapshots / Parquet/Delta lake
     
     store/
-      relational_store/ (dfps_relational_store) ← SQLx/Postgres/DuckDB drivers, per node
-      vector_store/     (dfps_vector_store)     ← Qdrant/PGVector, per node
-      cache_store/      (dfps_cache_store)      ← Redis, per node
-      graph_store/      (dfps_graph_store)      ← IndraDB / graph store, per node
+      relational_store/ (refractive_swan_relational_store) ← SQLx/Postgres/DuckDB drivers, per node
+      vector_store/     (refractive_swan_vector_store)     ← Qdrant/PGVector, per node
+      cache_store/      (refractive_swan_cache_store)      ← Redis, per node
+      graph_store/      (refractive_swan_graph_store)      ← IndraDB / graph store, per node
 ```
 
 ### Key Principles
 
 1. **Domain remains stable**: No changes to `lib/domain/*` layout
 2. **Platform mesh/data/store names are frozen**: These directory names and depths will NOT change
-3. **Each deployment is a sovereign node runtime**: `dfps_mesh_node` wires together data plane components
+3. **Each deployment is a sovereign node runtime**: `refractive_swan_mesh_node` wires together data plane components
 4. **Clear separation of concerns**:
    - `mesh/` = node runtime, hub orchestration, governance
    - `data/` = analytical data layers (mart, warehouse, lake)
@@ -128,46 +127,46 @@ This table shows where each **current** crate will live in the **target** layout
 
 | Current Location | Current Crate | Future Location | Future Crate | Notes |
 |------------------|---------------|-----------------|--------------|-------|
-| `lib/app/frontend/cli` | `dfps_cli` | `lib/app/frontend/cli` | `dfps_cli` | **Stays** – user-facing CLI |
-| `lib/app/frontend/web` | `dfps_web_frontend` | `lib/app/frontend/web` | `dfps_web_frontend` | **Stays** – user-facing web UI |
-| `lib/app/servers/api` | `dfps_api` | `lib/platform/mesh/node` | `dfps_mesh_node` | **Moves** – becomes node runtime |
-| `lib/app/servers/datamart` | `dfps_datamart` | `lib/platform/data/mart` | `dfps_datamart` | **Moves** – mart is a data plane component |
-| `lib/app/servers/vector_store` | `dfps_vector_store` | `lib/platform/store/vector_store` | `dfps_vector_store` | **Moves** – store is a platform component |
+| `lib/app/frontend/cli` | `refractive_swan_cli` | `lib/app/frontend/cli` | `refractive_swan_cli` | **Stays** – user-facing CLI |
+| `lib/app/frontend/web` | `refractive_swan_web_frontend` | `lib/app/frontend/web` | `refractive_swan_web_frontend` | **Stays** – user-facing web UI |
+| `lib/app/servers/api` | `refractive_swan_api` | `lib/platform/mesh/node` | `refractive_swan_mesh_node` | **Moves** – becomes node runtime |
+| `lib/app/servers/datamart` | `refractive_swan_datamart` | `lib/platform/data/mart` | `refractive_swan_datamart` | **Completed** – crate now lives under `platform/data/data-plane/mart` |
+| `lib/app/servers/vector_store` | `refractive_swan_vector_store` | `lib/platform/store/vector_store` | `refractive_swan_vector_store` | **Completed** – crate now lives under `platform/data/data-stores/vector_store` |
 
 ### Domain Layer (No Changes)
 
 | Current Location | Current Crate | Future Location | Future Crate | Notes |
 |------------------|---------------|-----------------|--------------|-------|
-| `lib/domain/core` | `dfps_core` | `lib/domain/core` | `dfps_core` | **Stays** |
-| `lib/domain/contracts` | `dfps_contracts` | `lib/domain/meta/contracts` | `dfps_contracts` | **Stays** conceptually; crate now lives under `domain/meta/contracts`. |
-| `lib/domain/meta/evaluation` | `dfps_eval` | `lib/domain/meta/evaluation` | `dfps_eval` | **Stays** |
-| `lib/domain/meta/pipeline` | `dfps_pipeline` | `lib/domain/meta/pipeline` | `dfps_pipeline` | **Stays** |
-| `lib/domain/ports/data/data-store/vector` | `dfps_vector_port` | `lib/domain/ports/data/data-store/vector` | `dfps_vector_port` | **Stays** – domain abstraction for vector stores |
-| `lib/domain/meta/ingestion` | `dfps_ingestion` | `lib/domain/meta/ingestion` | `dfps_ingestion` | **Stays** |
-| `lib/domain/ontologies/mapping` | `dfps_mapping` | `lib/domain/ontologies/mapping` | `dfps_mapping` | **Stays** |
-| `lib/domain/ontologies/terminology` | `dfps_terminology` | `lib/domain/ontologies/terminology` | `dfps_terminology` | **Stays** |
+| `lib/domain/core` | `refractive_swan_core` | `lib/domain/core` | `refractive_swan_core` | **Stays** |
+| `lib/domain/contracts` | `refractive_swan_contracts` | `lib/domain/meta/contracts` | `refractive_swan_contracts` | **Stays** conceptually; crate now lives under `domain/meta/contracts`. |
+| `lib/domain/meta/evaluation` | `refractive_swan_eval` | `lib/domain/meta/evaluation` | `refractive_swan_eval` | **Stays** |
+| `lib/domain/meta/pipeline` | `refractive_swan_pipeline` | `lib/domain/meta/pipeline` | `refractive_swan_pipeline` | **Stays** |
+| `lib/domain/ports/data/data-store/vector` | `refractive_swan_vector_port` | `lib/domain/ports/data/data-store/vector` | `refractive_swan_vector_port` | **Stays** – domain abstraction for vector stores |
+| `lib/domain/meta/ingestion` | `refractive_swan_ingestion` | `lib/domain/meta/ingestion` | `refractive_swan_ingestion` | **Stays** |
+| `lib/domain/ontologies/mapping` | `refractive_swan_mapping` | `lib/domain/ontologies/mapping` | `refractive_swan_mapping` | **Stays** |
+| `lib/domain/ontologies/terminology` | `refractive_swan_terminology` | `lib/domain/ontologies/terminology` | `refractive_swan_terminology` | **Stays** |
 
 ### Platform Layer Migrations
 
 | Current Location | Current Crate | Future Location | Future Crate | Notes |
 |------------------|---------------|-----------------|--------------|-------|
-| `lib/platform/compliance` | `dfps_compliance` | `lib/platform/compliance` | `dfps_compliance` | **Stays** |
-| `lib/platform/configuration` | `dfps_configuration` | `lib/platform/configuration` | `dfps_configuration` | **Stays** |
-| `lib/platform/observability` | `dfps_observability` | `lib/platform/observability` | `dfps_observability` | **Stays** |
-| `lib/platform/test_suite` | `dfps_test_suite` | `lib/platform/test_suite` | `dfps_test_suite` | **Stays** |
+| `lib/platform/compliance` | `refractive_swan_compliance` | `lib/platform/compliance` | `refractive_swan_compliance` | **Stays** |
+| `lib/platform/configuration` | `refractive_swan_configuration` | `lib/platform/configuration` | `refractive_swan_configuration` | **Stays** |
+| `lib/platform/observability` | `refractive_swan_observability` | `lib/platform/observability` | `refractive_swan_observability` | **Stays** |
+| `lib/platform/test_suite` | `refractive_swan_test_suite` | `lib/platform/test_suite` | `refractive_swan_test_suite` | **Stays** |
 
 ### New Platform Crates (Not Yet Implemented)
 
 | Future Location | Future Crate | Purpose | Seed/Dependencies |
 |-----------------|--------------|---------|-------------------|
-| `lib/platform/mesh/node` | `dfps_mesh_node` | Node runtime & data plane orchestration | Seeds from current `dfps_api` |
-| `lib/platform/mesh/hub` | `dfps_mesh_hub` | Research orchestrator, FL coordinator | Net new, design-first |
-| `lib/platform/mesh/governance` | `dfps_mesh_governance` | Mesh-level policies, query governance | Extends `dfps_compliance` |
-| `lib/platform/data/warehouse` | `dfps_datawarehouse` | Backend-agnostic warehouse traits | Extracts from `dfps_datamart` SQL wiring |
-| `lib/platform/data/lake` | `dfps_datalake` | Parquet/Delta lake snapshots | Net new, design-first |
-| `lib/platform/store/relational_store` | `dfps_relational_store` | SQLx/Postgres/DuckDB drivers | Extracts from `dfps_datamart` connection logic |
-| `lib/platform/store/cache_store` | `dfps_cache_store` | Redis cache abstraction | Net new, design-first |
-| `lib/platform/store/graph_store` | `dfps_graph_store` | IndraDB/graph store abstraction | Related to `dfps_terminology` OBO graphs |
+| `lib/platform/mesh/node` | `refractive_swan_mesh_node` | Node runtime & data plane orchestration | Seeds from current `refractive_swan_api` |
+| `lib/platform/mesh/hub` | `refractive_swan_mesh_hub` | Research orchestrator, FL coordinator | Net new, design-first |
+| `lib/platform/mesh/governance` | `refractive_swan_mesh_governance` | Mesh-level policies, query governance | Extends `refractive_swan_compliance` |
+| `lib/platform/data/warehouse` | `refractive_swan_datawarehouse` | Backend-agnostic warehouse traits | Extracts from `refractive_swan_datamart` SQL wiring |
+| `lib/platform/data/lake` | `refractive_swan_datalake` | Parquet/Delta lake snapshots | Net new, design-first |
+| `lib/platform/store/relational_store` | `refractive_swan_relational_store` | SQLx/Postgres/DuckDB drivers | Extracts from `refractive_swan_datamart` connection logic |
+| `lib/platform/store/cache_store` | `refractive_swan_cache_store` | Redis cache abstraction | Net new, design-first |
+| `lib/platform/store/graph_store` | `refractive_swan_graph_store` | IndraDB/graph store abstraction | Related to `refractive_swan_terminology` OBO graphs |
 
 ---
 
@@ -179,18 +178,18 @@ During the MESH-025 design and implementation phases, crates may be **conceptual
 2. **Incremental migration**: Code moves happen in controlled phases after design is stable
 3. **Zero-disruption development**: Existing workflows continue while new structure is planned
 
-### Example: dfps_datamart
+### Example: refractive_swan_datamart
 
-- **Conceptual location**: `lib/platform/data/mart` (as documented in design)
-- **Physical location**: `lib/app/servers/datamart` (until Phase 3 of migration)
-- **Cargo.toml path**: `lib/app/servers/datamart` (unchanged until migration)
-- **Documentation references**: Should use conceptual location in new docs
+- **Conceptual location**: `lib/platform/data/mart`
+- **Physical location**: `lib/platform/data/data-plane/mart`
+- **Cargo.toml path**: `lib/platform/data/data-plane/mart`
+- **Documentation references**: Use the platform path (legacy references should be updated)
 
-### Example: dfps_vector_store
+### Example: refractive_swan_vector_store
 
 - **Conceptual location**: `lib/platform/store/vector_store`
-- **Physical location**: `lib/app/servers/vector_store`
-- **Abstraction**: Domain uses `dfps_vector_port`, never depends on `dfps_vector_store` directly
+- **Physical location**: `lib/platform/data/data-stores/vector_store`
+- **Abstraction**: Domain uses `refractive_swan_vector_port`, never depends on `refractive_swan_vector_store` directly
 
 ---
 
@@ -208,7 +207,7 @@ The transition from current to target layout follows these phases (detailed in `
 ### Phase 2: Internal Aliasing
 
 - Create alias crates or module re-exports at target locations
-- `dfps_datamart` and `dfps_vector_store` become available via new paths
+- `refractive_swan_datamart` and `refractive_swan_vector_store` become available via new paths
 - Old paths still work via re-exports
 
 ### Phase 3: Physical Move
@@ -219,8 +218,8 @@ The transition from current to target layout follows these phases (detailed in `
 
 ### Phase 4: Mesh Node
 
-- Move `dfps_api` → `dfps_mesh_node`
-- Create thin `dfps_api` shim for backward compatibility
+- Move `refractive_swan_api` → `refractive_swan_mesh_node`
+- Create thin `refractive_swan_api` shim for backward compatibility
 - Fully establish mesh runtime patterns
 
 ---
@@ -251,11 +250,11 @@ The following directory names and depths are **frozen** and will NOT change:
 
 ### Crate Names (STABLE)
 
-Crate names follow the pattern `dfps_<component>`:
+Crate names follow the pattern `refractive_swan_<component>`:
 
-- `dfps_mesh_node`, `dfps_mesh_hub`, `dfps_mesh_governance`
-- `dfps_datamart`, `dfps_datawarehouse`, `dfps_datalake`
-- `dfps_relational_store`, `dfps_vector_store`, `dfps_cache_store`, `dfps_graph_store`
+- `refractive_swan_mesh_node`, `refractive_swan_mesh_hub`, `refractive_swan_mesh_governance`
+- `refractive_swan_datamart`, `refractive_swan_datawarehouse`, `refractive_swan_datalake`
+- `refractive_swan_relational_store`, `refractive_swan_vector_store`, `refractive_swan_cache_store`, `refractive_swan_graph_store`
 
 ### Cross-References
 

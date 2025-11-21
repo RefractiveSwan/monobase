@@ -1,5 +1,5 @@
 use clap::Parser;
-use dfps_eval::fake_data::raw_fhir::{
+use refractive_swan_eval::fake_data::raw_fhir::{
     fake_fhir_bundle_scenario, fake_fhir_bundle_scenario_with_seed,
 };
 use serde_json::to_string;
@@ -41,7 +41,7 @@ fn emit_random(count: usize) {
     }
 }
 
-fn print_bundle(bundle: &dfps_core::fhir::Bundle) {
+fn print_bundle(bundle: &refractive_swan_core::fhir::Bundle) {
     match to_string(bundle) {
         Ok(json) => println!("{json}"),
         Err(err) => eprintln!("failed to serialize bundle: {err}"),

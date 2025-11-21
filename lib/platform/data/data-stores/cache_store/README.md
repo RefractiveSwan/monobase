@@ -1,23 +1,23 @@
-# dfps_relational_store (Platform Store)
+# refractive_swan_relational_store (Platform Store)
 
 **Conceptual location:** `lib/platform/store/relational_store`  
 **Current physical location:** Embedded in `lib/app/servers/datamart/src/sql.rs`  
 **Scope:** Backend-agnostic relational store abstraction with SQLx/Postgres/DuckDB drivers
 
-This directory represents the **planned home** for relational database connection pooling, migration, and query execution abstraction. The current implementation is embedded in `dfps_datamart`'s SQL wiring and will be extracted during MESH-025.
+This directory represents the **planned home** for relational database connection pooling, migration, and query execution abstraction. The current implementation is embedded in `refractive_swan_datamart`'s SQL wiring and will be extracted during MESH-025.
 
 ---
 
 ## Purpose
 
-`dfps_relational_store` provides:
+`refractive_swan_relational_store` provides:
 
 1. **Backend enum**: `RelationalBackend` (Sqlite, Postgres, Duckdb, External)
 2. **Connection traits**: `RelationalPool`, `RelationalMigrator`
 3. **Configuration**: `RelationalConfig` with URL, pool size, timeouts, schema
 4. **Error mapping**: Unified `RelationalError` wrapping SQLx/backend errors
 
-**Goal**: Keep SQLx concretions behind this crate so `dfps_datamart` and `dfps_datawarehouse` depend on traits, not SQLx directly.
+**Goal**: Keep SQLx concretions behind this crate so `refractive_swan_datamart` and `refractive_swan_datawarehouse` depend on traits, not SQLx directly.
 
 ---
 
@@ -123,24 +123,24 @@ pub enum RelationalError {
 
 ---
 
-## Current Implementation (in `dfps_datamart`)
+## Current Implementation (in `refractive_swan_datamart`)
 
-Today, `dfps_datamart` (`lib/app/servers/datamart`) hosts the SQL wiring:
+Today, `refractive_swan_datamart` (`lib/platform/data/data-plane/mart`) hosts the SQL wiring:
 
 - `src/sql.rs`: 
-  - `WarehouseConfig::from_env()` reads `DFPS_WAREHOUSE_URL`, etc.
+  - `WarehouseConfig::from_env()` reads `refractive_swan_WAREHOUSE_URL`, etc.
   - `SqliteDatamart::from_env()` creates SQLx pool
   - Schema DDL (CREATE TABLE statements)
   - Raw SQL queries for `ncit_summary`, `cohort`, `persist`
 
-### What Will Move to `dfps_relational_store`
+### What Will Move to `refractive_swan_relational_store`
 
 - **Backend selection logic**: SQLite vs Postgres vs DuckDB
 - **Connection pool creation**: `sqlx::Pool<Sqlite>`, `sqlx::Pool<Postgres>`
 - **Migration runner**: `sqlx::migrate!()` wrapper
 - **Unified error mapping**: SQLx errors → `RelationalError`
 
-### What Stays in `dfps_datamart`
+### What Stays in `refractive_swan_datamart`
 
 - **Schema definition**: Dim tables, Fact tables (warehouse-specific)
 - **Business queries**: `ncit_summary`, `cohort` (analytics-specific)
@@ -152,11 +152,11 @@ Today, `dfps_datamart` (`lib/app/servers/datamart`) hosts the SQL wiring:
 
 | Concern | Crate | Location |
 |---------|-------|----------|
-| **Connection pooling & drivers** | `dfps_relational_store` | `platform/store/relational_store` |
-| **Warehouse schema & queries** | `dfps_datamart` | `platform/data/mart` (conceptual) |
-| **Warehouse traits (role, loader, analytics)** | `dfps_datawarehouse` | `platform/data/warehouse` (future) |
+| **Connection pooling & drivers** | `refractive_swan_relational_store` | `platform/store/relational_store` |
+| **Warehouse schema & queries** | `refractive_swan_datamart` | `platform/data/mart` |
+| **Warehouse traits (role, loader, analytics)** | `refractive_swan_datawarehouse` | `platform/data/warehouse` (future) |
 
-**Analogy**: Think of `dfps_relational_store` as the "Postgres client library" and `dfps_datamart` as the "warehouse schema + business logic."
+**Analogy**: Think of `refractive_swan_relational_store` as the "Postgres client library" and `refractive_swan_datamart` as the "warehouse schema + business logic."
 
 ---
 
@@ -168,8 +168,8 @@ Different mesh nodes can use different relational backends:
 -**Node B** (production): Postgres (robust, concurrent)
 - **Node C** (analytics research): DuckDB (OLAP-optimized, columnar)
 
-The `WarehouseLoader` trait (in `dfps_datawarehouse`) remains identical, so:
-- Domain logic (`dfps_pipeline` → warehouse persistence) doesn't change
+The `WarehouseLoader` trait (in `refractive_swan_datawarehouse`) remains identical, so:
+- Domain logic (`refractive_swan_pipeline` → warehouse persistence) doesn't change
 - Hub orchestration doesn't care about backend
 - Migration/upgrades are per-node
 
@@ -180,35 +180,35 @@ The `WarehouseLoader` trait (in `dfps_datawarehouse`) remains identical, so:
 ### Phase 1: Conceptual Only (current)
 
 - This README documents the **target** abstraction
-- Code stays in `dfps_datamart/src/sql.rs`
+- Code stays in `refractive_swan_datamart/src/sql.rs`
 - No code changes
 
 ### Phase 2: Extract Traits
 
 - Create `lib/platform/store/relational_store/src/traits.rs`
 - Define `RelationalPool`, `RelationalMigrator`, `RelationalConfig`, `RelationalError`
-- `dfps_datamart` imports traits from `dfps_relational_store`
+- `refractive_swan_datamart` imports traits from `refractive_swan_relational_store`
 
 ### Phase 3: Extract Backend Implementations
 
-- Move SQLx-specific connection logic into `dfps_relational_store/src/backends/`
-- `dfps_datamart` becomes a consumer of `RelationalPool` trait
+- Move SQLx-specific connection logic into `refractive_swan_relational_store/src/backends/`
+- `refractive_swan_datamart` becomes a consumer of `RelationalPool` trait
 - Tests verify warehouse queries work with all backends
 
 ### Phase 4: Mesh Node Wiring
 
-- `dfps_mesh_node::NodeDataPlane` wires `RelationalPool` and passes to `dfps_datamart`
+- `refractive_swan_mesh_node::NodeDataPlane` wires `RelationalPool` and passes to `refractive_swan_datamart`
 - Node config selects backend (from env or `NodeConfig`)
 
 ---
 
 ## Example Usage (Future)
 
-### In `dfps_mesh_node`
+### In `refractive_swan_mesh_node`
 
 ```rust
-use dfps_relational_store::{RelationalConfig, RelationalBackend, RelationalPool};
-use dfps_datamart::Datamart;
+use refractive_swan_relational_store::{RelationalConfig, RelationalBackend, RelationalPool};
+use refractive_swan_datamart::Datamart;
 
 pub struct NodeDataPlane {
     relational_pool: Box<dyn RelationalPool>, // ← backend-agnostic
@@ -226,10 +226,10 @@ impl NodeDataPlane {
             schema: Some("public".to_string()),
         };
 
-        let pool = dfps_relational_store::connect(relational_cfg).unwrap();
-        dfps_relational_store::migrate(&pool).unwrap();
+        let pool = refractive_swan_relational_store::connect(relational_cfg).unwrap();
+        refractive_swan_relational_store::migrate(&pool).unwrap();
 
-        let datamart = dfps_datamart::SqlDatamart::new(pool);
+        let datamart = refractive_swan_datamart::SqlDatamart::new(pool);
 
         Self {
             relational_pool: Box::new(pool),
@@ -240,10 +240,10 @@ impl NodeDataPlane {
 }
 ```
 
-### In `dfps_datamart`
+### In `refractive_swan_datamart`
 
 ```rust
-use dfps_relational_store::{RelationalPool, RelationalError};
+use refractive_swan_relational_store::{RelationalPool, RelationalError};
 
 pub struct SqlDatamart<P: RelationalPool> {
     pool: P,
@@ -270,19 +270,19 @@ impl<P: RelationalPool> SqlDatamart<P> {
 
 ## Testing
 
-### Unit Tests (in `dfps_relational_store`)
+### Unit Tests (in `refractive_swan_relational_store`)
 
 - `RelationalConfig` validation
 - Backend selection logic
 - Error mapping (SQLx errors → `RelationalError`)
 
-### Integration Tests (in `dfps_relational_store`)
+### Integration Tests (in `refractive_swan_relational_store`)
 
 - Real SQLite connectivity (in-memory)
 - Real Postgres connectivity (requires Docker/env)
 - Migration runner with test schemas
 
-### Warehouse Tests (in `dfps_datamart`)
+### Warehouse Tests (in `refractive_swan_datamart`)
 
 - Use SQLite backend for fast tests
 - Verify schema DDL with all backends

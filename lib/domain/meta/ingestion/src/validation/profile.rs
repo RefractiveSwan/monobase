@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dfps_core::fhir;
+use refractive_swan_core::fhir;
 
 use crate::profiles::{ElementDefinition as ProfileElement, FhirProfile};
 

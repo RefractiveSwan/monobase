@@ -8,7 +8,7 @@
 
 use std::collections::HashSet;
 
-use dfps_core::fhir;
+use refractive_swan_core::fhir;
 
 use crate::reference::reference_id_from_str;
 use crate::validation::external::ExternalValidationError;
@@ -120,8 +120,8 @@ pub(crate) fn merge_external_report(
     mode: ValidationMode,
     mut report: ValidationReport,
     external: Result<
-        dfps_validation_port::ExternalValidationOutcome,
-        dfps_validation_port::ExternalValidationError,
+        refractive_swan_validation_port::ExternalValidationOutcome,
+        refractive_swan_validation_port::ExternalValidationError,
     >,
 ) -> ValidationReport {
     match external {
@@ -285,7 +285,7 @@ mod tests {
     use crate::validation::external::{
         ExternalValidationError, OperationOutcome, OperationOutcomeIssue,
     };
-    use dfps_core::fhir;
+    use refractive_swan_core::fhir;
 
     #[test]
     fn requirement_codes_match_docs() {
@@ -348,7 +348,7 @@ mod tests {
             ValidationMode::ExternalPreferred,
             report,
             Err(ExternalValidationError::Unavailable(
-                "DFPS_FHIR_VALIDATOR_BASE_URL not set".into(),
+                "refractive_swan_FHIR_VALIDATOR_BASE_URL not set".into(),
             )),
         );
         assert_eq!(merged.issues.len(), 1);

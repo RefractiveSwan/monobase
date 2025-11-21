@@ -6,7 +6,7 @@
 description = "🟢 Validate FHIR bundles using embedded profiles (requires INPUT=path/to/bundle.json)"
 condition = { env_set = ["INPUT"] }
 command = "cargo"
-args = ["run", "-p", "dfps_cli", "--bin", "validate_fhir", "--", "${INPUT}"]
+args = ["run", "-p", "refractive_swan_cli", "--bin", "validate_fhir", "--", "${INPUT}"]
 
 # 🟡 INTERMEDIATE: Run all FHIR validation tests
 [tasks.fhir-test]
@@ -18,7 +18,7 @@ description = "Run FHIR profile loader tests"
 command = "cargo"
 args = [
     "test",
-    "-p", "dfps_ingestion",
+    "-p", "refractive_swan_ingestion",
     "--features", "profile_validation",
     "--",
     "--nocapture"
@@ -27,21 +27,21 @@ args = [
 [tasks.fhir-test-ingestion]
 description = "Run FHIR ingestion validation tests"
 script = [
-    "cargo test -p dfps_ingestion",
-    "cargo test -p dfps_test_suite --test integration_tests validation"
+    "cargo test -p refractive_swan_ingestion",
+    "cargo test -p refractive_swan_test_suite --test integration_tests validation"
 ]
 
 # 🔴 ADVANCED: Validate against external FHIR validator
 [tasks.fhir-validate-external]
-description = "🔴 Validate using external FHIR validator (requires DFPS_FHIR_VALIDATOR_BASE_URL, DFPS_FHIR_VALIDATOR_PROFILE, INPUT)"
-condition = { env_set = ["DFPS_FHIR_VALIDATOR_BASE_URL", "DFPS_FHIR_VALIDATOR_PROFILE", "INPUT"] }
+description = "🔴 Validate using external FHIR validator (requires refractive_swan_FHIR_VALIDATOR_BASE_URL, refractive_swan_FHIR_VALIDATOR_PROFILE, INPUT)"
+condition = { env_set = ["refractive_swan_FHIR_VALIDATOR_BASE_URL", "refractive_swan_FHIR_VALIDATOR_PROFILE", "INPUT"] }
 command = "cargo"
 args = [
     "run",
-    "-p", "dfps_cli",
+    "-p", "refractive_swan_cli",
     "--bin", "validate_fhir",
     "--",
-    "--profile", "${DFPS_FHIR_VALIDATOR_PROFILE}",
+    "--profile", "${refractive_swan_FHIR_VALIDATOR_PROFILE}",
     "${INPUT}"
 ]
 

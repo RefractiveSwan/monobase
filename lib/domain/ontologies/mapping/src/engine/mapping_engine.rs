@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use dfps_core::mapping::{CodeElement, MappingCandidate, MappingResult, MappingStrategy};
-use dfps_core::staging::StgSrCodeExploded;
-use dfps_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
+use refractive_swan_core::mapping::{CodeElement, MappingCandidate, MappingResult, MappingStrategy};
+use refractive_swan_core::staging::StgSrCodeExploded;
+use refractive_swan_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
 
 use crate::config::MappingConfig;
 use crate::engine::reranker::RuleReranker;

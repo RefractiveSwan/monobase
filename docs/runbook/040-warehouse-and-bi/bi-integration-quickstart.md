@@ -1,6 +1,6 @@
 # BI Integration Quickstart
 
-Use this guide to point a BI tool (Metabase/Superset/SQLite client) at the DFPS analytics surface.
+Use this guide to point a BI tool (Metabase/Superset/SQLite client) at the refractive_swan analytics surface.
 
 ## Prerequisites
 - `cargo` toolchain
@@ -9,14 +9,14 @@ Use this guide to point a BI tool (Metabase/Superset/SQLite client) at the DFPS 
 ## Run the API with analytics enabled
 1) Configure warehouse env (SQLite URL recommended for quickstart):
    ```
-   export DFPS_WAREHOUSE_URL="sqlite://./dfps_analytics.sqlite"
-   export DFPS_WAREHOUSE_MAX_CONNECTIONS=5
+   export refractive_swan_WAREHOUSE_URL="sqlite://./refractive_swan_analytics.sqlite"
+   export refractive_swan_WAREHOUSE_MAX_CONNECTIONS=5
    ```
 2) Start the API:
    ```
-   cargo run -p dfps_api --bin dfps_api
+   cargo run -p refractive_swan_api --bin refractive_swan_api
    ```
-   - Without `DFPS_WAREHOUSE_URL`, analytics are kept in-memory only.
+   - Without `refractive_swan_WAREHOUSE_URL`, analytics are kept in-memory only.
 
 ## Endpoints to wire
 - `/analytics/ncit-summary` — aggregated counts by NCIt ID, mapping state, and time bucket.
@@ -24,11 +24,11 @@ Use this guide to point a BI tool (Metabase/Superset/SQLite client) at the DFPS 
 - `/metrics/summary` — includes analytics counters (`analytics_requests`, `cohort_queries`, `avg_cohort_size`).
 
 ## Connecting BI tools
-- Point the BI client at `DFPS_WAREHOUSE_URL` (SQLite) and use:
+- Point the BI client at `refractive_swan_WAREHOUSE_URL` (SQLite) and use:
   - `dim_patient`, `dim_encounter`, `dim_code`, `dim_ncit`
   - `fact_service_request`
 - Recommended starter view: group `fact_service_request` by `ncit_key` (join `dim_ncit`) and `status` to mirror `/analytics/ncit-summary`.
 
 ## Troubleshooting
-- Persistence disabled: ensure `DFPS_WAREHOUSE_URL` is set before starting the API.
+- Persistence disabled: ensure `refractive_swan_WAREHOUSE_URL` is set before starting the API.
 - Empty cohorts: confirm `ordered_at` timestamps are RFC 3339 or `YYYY-MM-DD`.

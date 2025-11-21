@@ -1,5 +1,5 @@
 use crate::fake_data::rng;
-use dfps_core::{
+use refractive_swan_core::{
     order::{ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId, ServiceRequestId},
 };

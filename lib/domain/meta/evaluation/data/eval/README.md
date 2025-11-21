@@ -13,7 +13,7 @@ Field meanings:
 - `display` – human-friendly label shown in fixtures
 - `expected_ncit_id` – NCIt concept ID the mapping engine should return for the code
 
-Set `DFPS_EVAL_DATA_ROOT` to override the default (`lib/domain/meta/evaluation/data/eval/`) when loading datasets. Each NDJSON is paired with `<dataset>.manifest.json`, which records version, license, row count, and a SHA-256 checksum validated by `dfps_eval`.
+Set `refractive_swan_EVAL_DATA_ROOT` to override the default (`lib/domain/meta/evaluation/data/eval/`) when loading datasets. Each NDJSON is paired with `<dataset>.manifest.json`, which records version, license, row count, and a SHA-256 checksum validated by `refractive_swan_eval`.
 
 ## Available datasets
 
@@ -49,7 +49,7 @@ Set `DFPS_EVAL_DATA_ROOT` to override the default (`lib/domain/meta/evaluation/d
     "notes": "..."
   }
   ```
-- `dfps_eval::load_dataset_with_manifest` validates checksums and row counts; CLI runs warn when the computed checksum drifts from the manifest to catch stale corpora early.
+- `refractive_swan_eval::load_dataset_with_manifest` validates checksums and row counts; CLI runs warn when the computed checksum drifts from the manifest to catch stale corpora early.
 
 ## Reporting baselines & artifacts
 - Baseline summaries live next to the NDJSON files as `<dataset>.baseline.json`. Each snapshot captures the `EvalSummary` structure (with empty `results`) plus metadata (`dataset`, `recorded_at`).

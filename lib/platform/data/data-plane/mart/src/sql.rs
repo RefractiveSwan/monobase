@@ -1,11 +1,11 @@
-use dfps_compliance::{Policy, assert_export_allowed};
-use dfps_configuration::{EnvValueError, load_env};
-use dfps_contracts::{
+use refractive_swan_compliance::{Policy, assert_export_allowed};
+use refractive_swan_configuration::{EnvValueError, load_env};
+use refractive_swan_contracts::{
     AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, LoadSummary,
     PipelineOutput,
 };
-use dfps_datamart_port::CohortFilters;
-use dfps_terminology::codesystem::LicenseTier;
+use refractive_swan_datamart_port::CohortFilters;
+use refractive_swan_terminology::codesystem::LicenseTier;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Pool, Row, Sqlite, SqlitePool, Transaction};
 use thiserror::Error;
@@ -78,16 +78,16 @@ pub struct WarehouseConfig {
 impl WarehouseConfig {
     pub fn from_env() -> Result<Self, WarehouseConfigError> {
         let _ = load_env("domain.datamart");
-        let url = dfps_configuration::string_var("DFPS_WAREHOUSE_URL")
+        let url = refractive_swan_configuration::string_var("refractive_swan_WAREHOUSE_URL")
             .map_err(WarehouseConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty())
             .ok_or(WarehouseConfigError::MissingUrl)?;
-        let schema = dfps_configuration::string_var("DFPS_WAREHOUSE_SCHEMA")
+        let schema = refractive_swan_configuration::string_var("refractive_swan_WAREHOUSE_SCHEMA")
             .map_err(WarehouseConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
-        let max_connections = dfps_configuration::u32_var("DFPS_WAREHOUSE_MAX_CONNECTIONS")
+        let max_connections = refractive_swan_configuration::u32_var("refractive_swan_WAREHOUSE_MAX_CONNECTIONS")
             .map_err(WarehouseConfigError::Env)?
             .unwrap_or(5);
         Ok(Self {
@@ -100,7 +100,7 @@ impl WarehouseConfig {
 
 #[derive(Debug, Error)]
 pub enum WarehouseConfigError {
-    #[error("DFPS_WAREHOUSE_URL must be set")]
+    #[error("refractive_swan_WAREHOUSE_URL must be set")]
     MissingUrl,
     #[error("invalid warehouse env value: {0}")]
     Env(#[from] EnvValueError),
@@ -239,7 +239,7 @@ impl From<&DimNCIT> for DimNCITRow {
 
 fn enforce_export_policy(
     output: &PipelineOutput,
-    policy: &dfps_compliance::Policy,
+    policy: &refractive_swan_compliance::Policy,
 ) -> Result<(), LoadError> {
     let mut tiers = Vec::new();
     for mapping in &output.mapping_results {
@@ -519,12 +519,12 @@ async fn ensure_fact_mapping_state_column(pool: &Pool<Sqlite>) -> Result<(), sql
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_compliance::{ComplianceMode, Policy};
-    use dfps_contracts::{
+    use refractive_swan_compliance::{ComplianceMode, Policy};
+    use refractive_swan_contracts::{
         DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, PipelineOutput,
         StgSrCodeExploded,
     };
-    use dfps_core::{
+    use refractive_swan_core::{
         clinical::order::{ServiceRequestIntent, ServiceRequestStatus},
         mapping::{MappingStrategy, MappingThresholds},
         staging::StgServiceRequestFlat,
@@ -615,9 +615,9 @@ mod tests {
 
     fn reset_env() {
         for key in [
-            "DFPS_WAREHOUSE_URL",
-            "DFPS_WAREHOUSE_SCHEMA",
-            "DFPS_WAREHOUSE_MAX_CONNECTIONS",
+            "refractive_swan_WAREHOUSE_URL",
+            "refractive_swan_WAREHOUSE_SCHEMA",
+            "refractive_swan_WAREHOUSE_MAX_CONNECTIONS",
         ] {
             unsafe {
                 env::remove_var(key);
@@ -652,9 +652,9 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_WAREHOUSE_URL", "sqlite://datamart.db");
-            env::set_var("DFPS_WAREHOUSE_SCHEMA", "analytics");
-            env::set_var("DFPS_WAREHOUSE_MAX_CONNECTIONS", "9");
+            env::set_var("refractive_swan_WAREHOUSE_URL", "sqlite://datamart.db");
+            env::set_var("refractive_swan_WAREHOUSE_SCHEMA", "analytics");
+            env::set_var("refractive_swan_WAREHOUSE_MAX_CONNECTIONS", "9");
         }
         let cfg = WarehouseConfig::from_env().expect("config");
         assert_eq!(cfg.url, "sqlite://datamart.db");

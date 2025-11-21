@@ -33,33 +33,33 @@ The hub consists of:
 ### Hub Identity
 
 ```bash
-DFPS_HUB_ID=hub-research-001
+refractive_swan_HUB_ID=hub-research-001
 ```
 
 ### Node Registry (Redis)
 
 ```bash
-DFPS_REDIS_URL=redis://localhost:6379
-DFPS_REDIS_DB=0
+refractive_swan_REDIS_URL=redis://localhost:6379
+refractive_swan_REDIS_DB=0
 ```
 
 ### Known Nodes
 
 ```bash
-DFPS_NODE_URLS=http://node-a:8080,http://node-b:8080,http://node-c:8080
+refractive_swan_NODE_URLS=http://node-a:8080,http://node-b:8080,http://node-c:8080
 ```
 
 ### Reporting Warehouse
 
 ```bash
-DFPS_HUB_WAREHOUSE_URL=postgres://user:pass@localhost:5432/hub_warehouse
+refractive_swan_HUB_WAREHOUSE_URL=postgres://user:pass@localhost:5432/hub_warehouse
 ```
 
 ### HTTP API
 
 ```bash
-DFPS_HUB_HOST=0.0.0.0
-DFPS_HUB_PORT=9000
+refractive_swan_HUB_HOST=0.0.0.0
+refractive_swan_HUB_PORT=9000
 ```
 
 ---
@@ -68,18 +68,18 @@ DFPS_HUB_PORT=9000
 
 ```bash
 # Set profile
-export DFPS_ENV=prod
+export refractive_swan_ENV=prod
 
 # Run hub
 cd code
-cargo run -p dfps_mesh_hub --bin dfps_mesh_hub
+cargo run -p refractive_swan_mesh_hub --bin refractive_swan_mesh_hub
 ```
 
 **Output**:
 ```
-INFO dfps_mesh_hub: Starting hub at http://0.0.0.0:9000
-INFO dfps_mesh_hub: Registered 3 nodes
-INFO dfps_mesh_hub: JobQueue initialized
+INFO refractive_swan_mesh_hub: Starting hub at http://0.0.0.0:9000
+INFO refractive_swan_mesh_hub: Registered 3 nodes
+INFO refractive_swan_mesh_hub: JobQueue initialized
 ```
 
 ---
@@ -202,7 +202,7 @@ curl -X POST http://hub:9000/federated/eval/run \
 
 ## Governance
 
-Hub enforces governance via `dfps_mesh_governance`:
+Hub enforces governance via `refractive_swan_mesh_governance`:
 
 ### DP Budget Check
 
@@ -317,7 +317,7 @@ curl http://node-a:8080/mesh/health
 
 **Symptom**: Jobs stuck in `InProgress` status
 
-**Solution**: Increase `DFPS_HUB_JOB_TIMEOUT_SECS`
+**Solution**: Increase `refractive_swan_HUB_JOB_TIMEOUT_SECS`
 
 ### Redis Connection Failed
 
@@ -350,9 +350,9 @@ spec:
       - name: hub
         image: mesh-hub:latest
         env:
-        - name: DFPS_ENV
+        - name: refractive_swan_ENV
           value: "prod"
-        - name: DFPS_NODE_URLS
+        - name: refractive_swan_NODE_URLS
           value: "http://node-a-svc:8080,http://node-b-svc:8080"
 ```
 

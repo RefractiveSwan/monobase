@@ -1,8 +1,8 @@
-digraph DFPS_Mesh {
+digraph refractive_swan_Mesh {
     rankdir=LR;
     fontsize=10;
     labelloc="t";
-    label="DFPS Federated Data Mesh: domain nodes + optional hub";
+    label="refractive_swan Federated Data Mesh: domain nodes + optional hub";
 
     node [shape=box, style=rounded];
 
@@ -12,7 +12,7 @@ digraph DFPS_Mesh {
         style=filled;
         color="#fff3e0";
 
-        hub_api   [label="dfps_mesh_hub\nplatform/mesh/hub\n(Research / FL Orchestrator)"];
+        hub_api   [label="refractive_swan_mesh_hub\nplatform/mesh/hub\n(Research / FL Orchestrator)"];
         hub_store [label="Hub Meta Store\n(Postgres/Redis for jobs)\n(no clinical data)", shape=note];
     }
 
@@ -22,16 +22,16 @@ digraph DFPS_Mesh {
         style=filled;
         color="#e3f2fd";
 
-        node1_api    [label="dfps_mesh_node\n(Axum HTTP)\nlib/platform/mesh/node"];
-        node1_gov    [label="dfps_mesh_governance\nplatform/mesh/governance\n(policy sidecar)", shape=component];
+        node1_api    [label="refractive_swan_mesh_node\n(Axum HTTP)\nlib/platform/mesh/node"];
+        node1_gov    [label="refractive_swan_mesh_governance\nplatform/mesh/governance\n(policy sidecar)", shape=component];
 
-        node1_pipeline [label="dfps_pipeline\n(domain)"];
-        node1_mart     [label="dfps_mart\nplatform/data/mart"];
-        node1_rel      [label="dfps_relational_store\nplatform/store/relational_store"];
-        node1_vec      [label="dfps_vector_store\nplatform/store/vector_store"];
-        node1_cache    [label="dfps_cache_store\nplatform/store/cache_store", style=dashed];
-        node1_graph    [label="dfps_graph_store\nplatform/store/graph_store", style=dashed];
-        node1_lake     [label="dfps_lake\nplatform/data/lake", style=dashed];
+        node1_pipeline [label="refractive_swan_pipeline\n(domain)"];
+        node1_mart     [label="refractive_swan_mart\nplatform/data/mart"];
+        node1_rel      [label="refractive_swan_relational_store\nplatform/store/relational_store"];
+        node1_vec      [label="refractive_swan_vector_store\nplatform/store/vector_store"];
+        node1_cache    [label="refractive_swan_cache_store\nplatform/store/cache_store", style=dashed];
+        node1_graph    [label="refractive_swan_graph_store\nplatform/store/graph_store", style=dashed];
+        node1_lake     [label="refractive_swan_lake\nplatform/data/lake", style=dashed];
 
         node1_api -> node1_gov    [label="all research/FL requests"];
         node1_api -> node1_pipeline [label="FHIR Bundles\n(local ingestion)"];
@@ -51,13 +51,13 @@ digraph DFPS_Mesh {
         style=filled;
         color="#e8f5e9";
 
-        node2_api    [label="dfps_mesh_node\n(Axum HTTP)"];
-        node2_gov    [label="dfps_mesh_governance", shape=component];
+        node2_api    [label="refractive_swan_mesh_node\n(Axum HTTP)"];
+        node2_gov    [label="refractive_swan_mesh_governance", shape=component];
 
-        node2_pipeline [label="dfps_pipeline"];
-        node2_mart     [label="dfps_mart"];
-        node2_rel      [label="dfps_relational_store"];
-        node2_vec      [label="dfps_vector_store"];
+        node2_pipeline [label="refractive_swan_pipeline"];
+        node2_mart     [label="refractive_swan_mart"];
+        node2_rel      [label="refractive_swan_relational_store"];
+        node2_vec      [label="refractive_swan_vector_store"];
 
         node2_api -> node2_gov;
         node2_api -> node2_pipeline;
@@ -68,7 +68,7 @@ digraph DFPS_Mesh {
     }
 
     // Contracts and domain shared types
-    contracts [label="dfps_contracts\n(domain/contracts)\n(shared DTOs)", shape=ellipse];
+    contracts [label="refractive_swan_contracts\n(domain/contracts)\n(shared DTOs)", shape=ellipse];
 
     node1_pipeline -> contracts;
     node2_pipeline -> contracts;

@@ -1,4 +1,4 @@
-//! Core domain model for DFPS (depth_forward_ontology_clinical_model).
+//! Core domain model for refractive_swan (depth_forward_ontology_clinical_model).
 //! Keeps staging/order/mapping value objects together with `serde` support.
 //!
 //! Super-domains: primitives, clinical, interop, semantics.
@@ -20,7 +20,7 @@ pub mod prelude;
 pub mod primitives;
 pub mod semantics;
 
-// Back-compat module aliases (so dfps_core::<module> keeps working).
+// Back-compat module aliases (so refractive_swan_core::<module> keeps working).
 pub use clinical::encounter;
 pub use clinical::order;
 pub use clinical::patient;

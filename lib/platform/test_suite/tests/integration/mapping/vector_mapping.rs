@@ -2,16 +2,16 @@
 
 use std::sync::Arc;
 
-use dfps_compliance::{ComplianceMode, Policy};
-use dfps_core::{mapping::MappingState, staging::StgSrCodeExploded};
-use dfps_mapping::{
+use refractive_swan_compliance::{ComplianceMode, Policy};
+use refractive_swan_core::{mapping::MappingState, staging::StgSrCodeExploded};
+use refractive_swan_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes_with_summary,
     map_staging_codes_with_summary_and_policy, map_staging_codes_with_summary_with_client,
     map_staging_codes_with_vector,
 };
-use dfps_observability::PipelineMetrics;
-use dfps_terminology::MockTerminologyClient;
-use dfps_vector_store::{
+use refractive_swan_observability::PipelineMetrics;
+use refractive_swan_terminology::MockTerminologyClient;
+use refractive_swan_vector_store::{
     CapacityProxies, MockVectorStore, VectorBackend, VectorSearchHit, VectorStoreConfig,
 };
 
@@ -186,14 +186,14 @@ fn external_terminology_lookup_resolves_unknown_system() {
     mock = mock.with_cui(
         "http://unknown.test/system",
         "X1",
-        dfps_terminology::CuiRecord {
+        refractive_swan_terminology::CuiRecord {
             cui: "CEXTERNAL".into(),
             preferred_name: "External".into(),
         },
     );
     mock = mock.with_ncit(
         "CEXTERNAL",
-        dfps_terminology::NcitRecord {
+        refractive_swan_terminology::NcitRecord {
             ncit_id: "CEXTERNAL".into(),
             preferred_name: "External NCIt".into(),
             synonyms: vec![],

@@ -1,5 +1,5 @@
 [package]
-name = "dfps_cli"
+name = "refractive_swan_cli"
 version.workspace = true
 edition.workspace = true
 
@@ -31,17 +31,17 @@ name = "build_vector_index"
 path = "src/bin/build_vector_index.rs"
 
 [dependencies]
-dfps_core = { path = "../../../domain/core" }
-dfps_pipeline = { path = "../../../domain/meta/pipeline" }
-dfps_mapping = { path = "../../../domain/ontologies/mapping" }
-dfps_ingestion = { path = "../../../domain/meta/ingestion" }
-dfps_observability = { path = "../../../platform/meta/observability" }
-dfps_configuration = { path = "../../../platform/meta/configuration" }
-dfps_eval = { path = "../../../domain/meta/evaluation" }
-dfps_datamart = { path = "../../servers/datamart" }
-dfps_vector_store = { path = "../../servers/vector_store" }
-dfps_compliance = { path = "../../../platform/meta/compliance" }
-dfps_cli_dto = { path = "../../../dto/cli" }
+refractive_swan_core = { path = "../../../domain/core" }
+refractive_swan_pipeline = { path = "../../../domain/meta/pipeline" }
+refractive_swan_mapping = { path = "../../../domain/ontologies/mapping" }
+refractive_swan_ingestion = { path = "../../../domain/meta/ingestion" }
+refractive_swan_observability = { path = "../../../platform/meta/observability" }
+refractive_swan_configuration = { path = "../../../platform/meta/configuration" }
+refractive_swan_eval = { path = "../../../domain/meta/evaluation" }
+refractive_swan_datamart = { workspace = true }
+refractive_swan_vector_store = { workspace = true }
+refractive_swan_compliance = { path = "../../../platform/meta/compliance" }
+refractive_swan_cli_dto = { path = "../../../dto/cli" }
 serde.workspace = true
 serde_json.workspace = true 
 reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls-tls"] }
@@ -52,4 +52,4 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
 
 [features]
-backend-pgvector = ["dfps_vector_store/backend-pgvector"]
+backend-pgvector = ["refractive_swan_vector_store/backend-pgvector"]

@@ -6,16 +6,16 @@ pub mod sql;
 
 use std::collections::{BTreeMap, HashMap};
 
-use dfps_contracts::{MappingState, PipelineOutput, StgServiceRequestFlat};
-use dfps_core::{
+use refractive_swan_contracts::{MappingState, PipelineOutput, StgServiceRequestFlat};
+use refractive_swan_core::{
     encounter::Encounter,
     mapping::CodeElement,
     patient::Patient,
     value::{EncounterId, PatientId},
 };
 
-pub use dfps_contracts::LoadSummary;
-pub use dfps_datamart_port::{CohortFilters, DatamartError, DatamartSink};
+pub use refractive_swan_contracts::LoadSummary;
+pub use refractive_swan_datamart_port::{CohortFilters, DatamartError, DatamartSink};
 pub use dim::*;
 pub use fact::*;
 pub use keys::*;
@@ -153,8 +153,8 @@ fn mapping_state_label(state: MappingState) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_contracts::{DimNCITConcept, MappingResult, MappingState, StgSrCodeExploded};
-    use dfps_core::{
+    use refractive_swan_contracts::{DimNCITConcept, MappingResult, MappingState, StgSrCodeExploded};
+    use refractive_swan_core::{
         clinical::order::{ServiceRequestIntent, ServiceRequestStatus},
         mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},
         staging::StgServiceRequestFlat,

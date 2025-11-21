@@ -25,4 +25,4 @@
 
 ## Statistical tests
 - Paired t‑tests (or Wilcoxon) on \(R_M\), \(D_M\), \(\alpha\) deltas per concept.
-- Bootstrap 95% CIs for mapping precision/recall (already available via `dfps_eval` advanced feature).
+- Bootstrap 95% CIs for mapping precision/recall (already available via `refractive_swan_eval` advanced feature).

@@ -20,32 +20,32 @@ I/O directly.
 ## Env namespaces
 
 Each platform crate owns a namespace under `data/environment/` so we can source
-settings consistently via `dfps_configuration`:
+settings consistently via `refractive_swan_configuration`:
 
 | Namespace | Crate | Purpose |
 |-----------|-------|---------|
-| `platform.configuration` | `dfps_configuration` | Workspace env loader + helpers (`string_var`, `bool_var`, `u32_var`, `workspace_root`, etc.) |
-| `platform.compliance` | `dfps_compliance` | Compliance policy config (`DFPS_COMPLIANCE_*`) + structured overrides |
-| `platform.vector_store` | `dfps_vector_store` | Vector backend config (`DFPS_VECTOR_*`) shared by apps/CLIs |
-| `platform.observability` | `dfps_observability` | Logging + metrics env (`OBS_ENV`, analytics counters) |
-| `platform.test_suite` | `dfps_test_suite` | Integration test scaffolding (`DFPS_EVAL_DATA_ROOT`, CLI helpers) |
+| `platform.configuration` | `refractive_swan_configuration` | Workspace env loader + helpers (`string_var`, `bool_var`, `u32_var`, `workspace_root`, etc.) |
+| `platform.compliance` | `refractive_swan_compliance` | Compliance policy config (`refractive_swan_COMPLIANCE_*`) + structured overrides |
+| `platform.vector_store` | `refractive_swan_vector_store` | Vector backend config (`refractive_swan_VECTOR_*`) shared by apps/CLIs |
+| `platform.observability` | `refractive_swan_observability` | Logging + metrics env (`OBS_ENV`, analytics counters) |
+| `platform.test_suite` | `refractive_swan_test_suite` | Integration test scaffolding (`refractive_swan_EVAL_DATA_ROOT`, CLI helpers) |
 
-Use `dfps_configuration::load_env("<namespace>")` before reading env vars so
-callers get consistent overrides (`DFPS_WORKSPACE_ROOT`, `DFPS_ENV_DIR`, etc.).
+Use `refractive_swan_configuration::load_env("<namespace>")` before reading env vars so
+callers get consistent overrides (`refractive_swan_WORKSPACE_ROOT`, `refractive_swan_ENV_DIR`, etc.).
 
 ## Shared helpers
 
-- **Configuration** – `dfps_configuration` exposes typed env readers
+- **Configuration** – `refractive_swan_configuration` exposes typed env readers
   (`string_var`, `bool_var`, `u32_var`, `port_var`) so platform/app crates avoid
   bespoke parsing logic.
 - **Compliance** – `ComplianceConfig::from_env()` captures policy mode + override
   files once, with `Policy::default_for_mode` providing the baseline guardrails.
-- **Vector store** – `dfps_vector_store::config_from_env()` normalizes backend
+- **Vector store** – `refractive_swan_vector_store::config_from_env()` normalizes backend
   configuration and returns a validated `VectorStoreConfig`.
-- **Observability** – `dfps_observability::init_environment()` loads the logging
+- **Observability** – `refractive_swan_observability::init_environment()` loads the logging
   namespace once and `PipelineMetrics` keeps analytics counters aligned across
   apps, CLIs, and tests.
-- **Test suite** – `dfps_test_suite` supplies CLI and datamart helpers (temp
+- **Test suite** – `refractive_swan_test_suite` supplies CLI and datamart helpers (temp
   SQLite warehouses, regression bundles, scoped env overrides) so downstream
   integration tests do not re-implement fixture logic.
 

@@ -32,7 +32,7 @@ pub async fn workbench(state: web::Data<AppState>) -> Result<HttpResponse> {
 /// Shared context builder reused across feature handlers so everything pulls from the same backend calls.
 pub(crate) async fn build_base_context(
     client: &BackendClient,
-    store: &(dyn dfps_eval::DatasetStore + Send + Sync),
+    store: &(dyn refractive_swan_eval::DatasetStore + Send + Sync),
 ) -> PageContext {
     let datasets = client.eval_datasets().await.unwrap_or_default();
     let selected_dataset = datasets

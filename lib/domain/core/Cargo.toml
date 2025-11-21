@@ -1,5 +1,5 @@
 [package]
-name = "dfps_core"
+name = "refractive_swan_core"
 version.workspace = true
 edition.workspace = true
 

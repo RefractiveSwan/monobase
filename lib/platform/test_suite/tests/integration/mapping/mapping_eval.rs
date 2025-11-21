@@ -1,9 +1,9 @@
 //! End-to-end mapping eval harness tests (EVAL-012).
 
-use dfps_core::mapping::MappingState;
-use dfps_eval::{self, EvalCase};
-use dfps_mapping::map_staging_codes;
-use dfps_test_suite::{fixtures, init_environment};
+use refractive_swan_core::mapping::MappingState;
+use refractive_swan_eval::{self, EvalCase};
+use refractive_swan_mapping::map_staging_codes;
+use refractive_swan_test_suite::{fixtures, init_environment};
 use serde_json::to_vec;
 
 fn custom_no_match_case() -> EvalCase {
@@ -83,13 +83,13 @@ fn tiered_datasets_load() {
         "gold_pet_ct_small",
     ] {
         let cases =
-            dfps_eval::load_dataset(dataset).unwrap_or_else(|_| panic!("{dataset} should load"));
+            refractive_swan_eval::load_dataset(dataset).unwrap_or_else(|_| panic!("{dataset} should load"));
         assert!(!cases.is_empty(), "{dataset} should contain rows");
     }
 }
 
-fn eval_with_pipeline(cases: &[EvalCase]) -> dfps_eval::EvalSummary {
-    dfps_eval::run_eval_with_mapper(cases, |rows| map_staging_codes(rows).0)
+fn eval_with_pipeline(cases: &[EvalCase]) -> refractive_swan_eval::EvalSummary {
+    refractive_swan_eval::run_eval_with_mapper(cases, |rows| map_staging_codes(rows).0)
 }
 
 #[test]
@@ -101,8 +101,8 @@ fn eval_summary_is_deterministic() {
     let second = eval_with_pipeline(&cases);
 
     // Byte-for-byte stable fingerprints.
-    let fp1 = dfps_eval::fingerprint_summary(&first);
-    let fp2 = dfps_eval::fingerprint_summary(&second);
+    let fp1 = refractive_swan_eval::fingerprint_summary(&first);
+    let fp2 = refractive_swan_eval::fingerprint_summary(&second);
     assert_eq!(fp1, fp2, "fingerprints should match across runs");
 
     let serialized1 = to_vec(&first).expect("serialize summary");
@@ -120,7 +120,7 @@ fn run_eval_outputs_ndjson_stable() {
 
     let capture = |cases: &[EvalCase]| {
         let summary = eval_with_pipeline(cases);
-        let fingerprint = dfps_eval::fingerprint_summary(&summary);
+        let fingerprint = refractive_swan_eval::fingerprint_summary(&summary);
         let mut buffer = Vec::new();
         for result in &summary.results {
             serde_json::to_writer(&mut buffer, result).expect("serialize eval result");

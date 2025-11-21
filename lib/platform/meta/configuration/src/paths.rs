@@ -24,7 +24,7 @@ pub fn config_paths() -> Result<ConfigPaths, EnvLoadError> {
 
 /// Resolve the workspace root (directory containing `Cargo.lock`).
 pub fn workspace_root() -> Result<PathBuf, EnvLoadError> {
-    if let Ok(root) = env::var("DFPS_WORKSPACE_ROOT") {
+    if let Ok(root) = env::var("refractive_swan_WORKSPACE_ROOT") {
         let candidate = PathBuf::from(root);
         if candidate.exists() {
             return Ok(candidate);
@@ -44,7 +44,7 @@ pub(crate) fn resolve_relative(root: &Path, filename: &str) -> PathBuf {
 }
 
 fn env_search_dirs(workspace_root: &Path) -> Vec<PathBuf> {
-    if let Ok(dir) = env::var("DFPS_ENV_DIR") {
+    if let Ok(dir) = env::var("refractive_swan_ENV_DIR") {
         vec![resolve_relative(workspace_root, &dir)]
     } else {
         vec![

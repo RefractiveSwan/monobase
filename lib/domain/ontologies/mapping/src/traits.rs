@@ -1,4 +1,4 @@
-use dfps_core::mapping::{CodeElement, MappingCandidate, MappingResult};
+use refractive_swan_core::mapping::{CodeElement, MappingCandidate, MappingResult};
 
 pub trait Mapper {
     fn map(&self, code: &CodeElement) -> MappingResult;

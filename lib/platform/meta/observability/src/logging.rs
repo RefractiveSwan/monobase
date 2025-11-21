@@ -5,14 +5,14 @@ use crate::{
     metrics::{PipelineMetrics, apply_vector_usage},
 };
 #[cfg(test)]
-use dfps_core::mapping::MappingState;
-use dfps_core::{
+use refractive_swan_core::mapping::MappingState;
+use refractive_swan_core::{
     mapping::MappingResult,
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
 #[cfg(test)]
-use dfps_vector_port::VectorCapacitySnapshot;
-use dfps_vector_port::VectorUsageSnapshot;
+use refractive_swan_vector_port::VectorCapacitySnapshot;
+use refractive_swan_vector_port::VectorUsageSnapshot;
 use log::{info, warn};
 
 pub fn log_pipeline_output(
@@ -25,7 +25,7 @@ pub fn log_pipeline_output(
 ) {
     if let Err(err) = ensure_env() {
         warn!(
-            target: "dfps_observability",
+            target: "refractive_swan_observability",
             "observability env not loaded: {err}"
         );
     }
@@ -43,7 +43,7 @@ pub fn log_pipeline_output(
         })
         .unwrap_or_else(|| "vector_capacity=None".to_string());
     info!(
-        target: "dfps_pipeline",
+        target: "refractive_swan_pipeline",
         "bundle processed; flats={}, mappings={}, automap={}, review={}, nomatch={}, license_blocked={}, vector_queries={}, vector_fallbacks={}, vector_latency_ms_p95={:?}, {capacity_note}",
         flats.len(),
         mappings.len(),
@@ -67,7 +67,7 @@ pub fn log_pipeline_output_with_summary(
 ) {
     if let Err(err) = ensure_env() {
         warn!(
-            target: "dfps_observability",
+            target: "refractive_swan_observability",
             "observability env not loaded: {err}"
         );
     }
@@ -82,7 +82,7 @@ pub fn log_pipeline_output_with_summary(
         })
         .unwrap_or_else(|| "vector_capacity=None".to_string());
     info!(
-        target: "dfps_pipeline",
+        target: "refractive_swan_pipeline",
         "bundle processed; flats={}, mappings={}, automap={}, review={}, nomatch={}, license_blocked={}, vector_queries={}, vector_fallbacks={}, vector_latency_ms_p95={:?}, {capacity_note}",
         flats.len(),
         mappings.len(),
@@ -99,12 +99,12 @@ pub fn log_pipeline_output_with_summary(
 pub fn log_no_match(result: &MappingResult) {
     if let Err(err) = ensure_env() {
         warn!(
-            target: "dfps_observability",
+            target: "refractive_swan_observability",
             "observability env not loaded: {err}"
         );
     }
     warn!(
-        target: "dfps_mapping",
+        target: "refractive_swan_mapping",
         "no_match code={} reason={}",
         result.code_element_id,
         result
@@ -118,7 +118,7 @@ pub fn log_no_match(result: &MappingResult) {
 mod tests {
     use super::*;
     use crate::metrics::PipelineMetrics;
-    use dfps_core::{
+    use refractive_swan_core::{
         clinical::order::{ServiceRequestIntent, ServiceRequestStatus},
         mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds},
         staging::{StgServiceRequestFlat, StgSrCodeExploded},
@@ -204,7 +204,7 @@ mod tests {
         let _lock = env_guard().lock().unwrap();
         reset_env_state_for_tests();
         unsafe {
-            env::set_var("DFPS_ENV_FILE", "missing.observability.env");
+            env::set_var("refractive_swan_ENV_FILE", "missing.observability.env");
         }
         let flat = sample_flat();
         let code = sample_code();
@@ -216,7 +216,7 @@ mod tests {
         let no_match = sample_mapping(MappingState::NoMatch, Some("no_match"));
         log_no_match(&no_match);
         unsafe {
-            env::remove_var("DFPS_ENV_FILE");
+            env::remove_var("refractive_swan_ENV_FILE");
         }
     }
 

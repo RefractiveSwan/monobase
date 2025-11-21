@@ -11,7 +11,7 @@ This pack contains a full report and modular handouts centered on **vectorized o
 - `Experiments.md` — design matrix and acceptance thresholds.
 - `Graph_Ontology_Actions.md` — Leiden/Louvain and ontology hygiene.
 - `Risk_and_Red_Team.md` — adversarial review and mitigations.
-- `Roadmap_and_Integration.md` — 30/60/90‑day plan wired to DFPS crates.
+- `Roadmap_and_Integration.md` — 30/60/90‑day plan wired to refractive_swan crates.
 - `Mermaid_Gallery.md` — a gallery of diagrams (flowchart, class, ER, sequence, state, gantt, journey, gitGraph, pie).
 - `References.md` — seed‑prioritized bibliography with URLs.
 

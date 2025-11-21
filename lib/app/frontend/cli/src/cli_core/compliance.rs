@@ -1,5 +1,5 @@
-use dfps_compliance::{ComplianceConfig, Policy};
-use dfps_cli_dto::PipelineMetrics;
+use refractive_swan_compliance::{ComplianceConfig, Policy};
+use refractive_swan_cli_dto::PipelineMetrics;
 
 use super::{CliError, CliResult};
 
@@ -22,7 +22,7 @@ pub fn enforce_metrics_gate(
 ) -> CliResult<()> {
     if fail_on_license_block && metrics.license_blocked > 0 {
         return Err(CliError::compliance(format!(
-            "{} mapping result(s) blocked by compliance mode {}; rerun without --fail-on-license-block or adjust DFPS_COMPLIANCE_MODE",
+            "{} mapping result(s) blocked by compliance mode {}; rerun without --fail-on-license-block or adjust refractive_swan_COMPLIANCE_MODE",
             metrics.license_blocked,
             policy.mode.as_str()
         )));
@@ -37,7 +37,7 @@ pub fn enforce_license_blocks(
 ) -> CliResult<()> {
     if fail_on_license_block && blocked > 0 {
         Err(CliError::compliance(format!(
-            "{blocked} code(s) blocked due to compliance mode {}; rerun with --fail-on-license-block disabled or adjust DFPS_COMPLIANCE_MODE",
+            "{blocked} code(s) blocked due to compliance mode {}; rerun with --fail-on-license-block disabled or adjust refractive_swan_COMPLIANCE_MODE",
             policy.mode.as_str()
         )))
     } else {

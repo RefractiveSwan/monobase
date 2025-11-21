@@ -1,6 +1,6 @@
-# dfps_ingestion – FHIR → staging/domain + validation
+# refractive_swan_ingestion – FHIR → staging/domain + validation
 
-`dfps_ingestion` keeps the pure domain logic for normalizing minimal FHIR Bundles into staging rows and ServiceRequest aggregates, plus validation helpers (hand-written + optional profile/external hooks). HTTP/env concerns are left to app/platform layers.
+`refractive_swan_ingestion` keeps the pure domain logic for normalizing minimal FHIR Bundles into staging rows and ServiceRequest aggregates, plus validation helpers (hand-written + optional profile/external hooks). HTTP/env concerns are left to app/platform layers.
 
 ## System-design links
 - docs/system-design/clinical/fhir/index.md

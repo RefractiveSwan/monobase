@@ -1,18 +1,18 @@
 [package]
-name = "dfps_pipeline"
+name = "refractive_swan_pipeline"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_ingestion = { path = "../../meta/ingestion" }
-dfps_mapping = { path = "../../ontologies/mapping" }
-dfps_core = { path = "../../core" }
-dfps_observability = { path = "../../../platform/meta/observability" }
-dfps_vector_port = { path = "../../ports/data/data-store/vector" }
+refractive_swan_ingestion = { path = "../../meta/ingestion" }
+refractive_swan_mapping = { path = "../../ontologies/mapping" }
+refractive_swan_core = { path = "../../core" }
+refractive_swan_observability = { path = "../../../platform/meta/observability" }
+refractive_swan_vector_port = { path = "../../ports/data/data-store/vector" }
 serde = { workspace = true }
 serde_json.workspace = true
 thiserror = "2.0.17"
 log = "0.4"
 
 [dev-dependencies]
-dfps_test_suite = { path = "../../../platform/test_suite" }
+refractive_swan_test_suite = { path = "../../../platform/test_suite" }

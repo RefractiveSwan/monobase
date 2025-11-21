@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dfps_core::mapping::{DimNCITConcept, NCItConcept};
+use refractive_swan_core::mapping::{DimNCITConcept, NCItConcept};
 use serde::Deserialize;
 
 pub const NCIT_DATA_VERSION: &str = "mock-ncit-2024-01";

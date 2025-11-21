@@ -27,7 +27,7 @@
 ## DONE
 
 ### MAP-01 – Core: mapping & concept types
-- [x] Add `dfps_core::mapping` module:
+- [x] Add `refractive_swan_core::mapping` module:
   - [x] `CodeElement { id, system, code, display }`
   - [x] `MappingCandidate { target_system, target_code, cui, score }`
   - [x] `MappingResult { code_element_id, cui, ncit_id, score, strategy, license_tier?, source_kind? }`
@@ -37,7 +37,7 @@
   - [x] `impl From<StgSrCodeExploded> for CodeElement`
 
 ### MAP-02 – Mapping crate skeleton
-- [x] New crate `dfps_mapping`
+- [x] New crate `refractive_swan_mapping`
   - [x] Traits
     - [x] `trait Mapper { fn map(&self, code: &CodeElement) -> MappingResult; }`
     - [x] `trait CandidateRanker { fn rank(&self, code: &CodeElement) -> Vec<MappingCandidate>; }`

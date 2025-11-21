@@ -1,15 +1,15 @@
-# Crate: lib/app/frontend/web — `dfps_web_frontend`
+# Crate: lib/app/frontend/web — `refractive_swan_web_frontend`
 
 **Purpose**  
 Actix‑Web UI (HTMX + Tailwind) that talks to the backend.
 
 **Env**
-- Loads `app.web.frontend` via `dfps_configuration`.
+- Loads `app.web.frontend` via `refractive_swan_configuration`.
 - `AppConfig`:
-  - `DFPS_FRONTEND_LISTEN_ADDR` (default `127.0.0.1:8090`)
-  - `DFPS_API_BASE_URL` (default `http://127.0.0.1:8080`)
-  - `DFPS_API_CLIENT_TIMEOUT_SECS` (default `15`)
-  - `DFPS_DOCS_URL` (optional `/docs` redirect)
+  - `refractive_swan_FRONTEND_LISTEN_ADDR` (default `127.0.0.1:8090`)
+  - `refractive_swan_API_BASE_URL` (default `http://127.0.0.1:8080`)
+  - `refractive_swan_API_CLIENT_TIMEOUT_SECS` (default `15`)
+  - `refractive_swan_DOCS_URL` (optional `/docs` redirect)
 
 **Backend client**
 - `GET /health` → `HealthResponse`
@@ -21,7 +21,7 @@ Actix‑Web UI (HTMX + Tailwind) that talks to the backend.
 - `GET /` — base page with health + metrics
 - `POST /map/paste` — parse JSON from textarea; HTMX fragment swap
 - `POST /map/upload` — multipart file read (UTF‑8 JSON only; **max 512 KiB**)
-- `GET /docs` — redirect to `DFPS_DOCS_URL` if present, else 404
+- `GET /docs` — redirect to `refractive_swan_DOCS_URL` if present, else 404
 
 **UI**
 - Results panel with `MappingResult` rows and state chips:
@@ -32,7 +32,7 @@ Actix‑Web UI (HTMX + Tailwind) that talks to the backend.
 **Run**
 ```bash
 cd code
-cargo run -p dfps_web_frontend --bin dfps_web_frontend
+cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 ```
 
 **Tests**

@@ -33,10 +33,10 @@ flowchart LR
 ## Embedding Sources
 - Deterministic TF-IDF/SVD (FOSS) for baseline offline mode.
 - Sentence encoders (FOSS/OSS) permitted under GPLv3-compatible licenses (e.g., open models from Hugging Face); pin model name/version.
-- Generated via CLI builder (`dfps_cli build-vector-index`) that loads NCIt concepts + UMLS xrefs and bulk-writes to the configured namespace.
+- Generated via CLI builder (`refractive_swan_cli build-vector-index`) that loads NCIt concepts + UMLS xrefs and bulk-writes to the configured namespace.
 
 ## Fallback Behavior
-- `DFPS_VECTOR_ENABLED=false` → skip vector store; use lexical + mock vector ranker; log “vector disabled”.
+- `refractive_swan_VECTOR_ENABLED=false` → skip vector store; use lexical + mock vector ranker; log “vector disabled”.
 - Health probe failure or search timeout → warn once per batch, increment `vector_fallbacks`, retry once then fall back deterministically.
 - Missing index/namespace → log warning, continue with lexical + mock to keep pipelines deterministic.
 
@@ -44,7 +44,7 @@ flowchart LR
 - Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, search latency (mean/p95), tagged with `backend` and `namespace`.
 - Capacity proxies (when surfaced by the backend or mock): `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `cap_alpha_sim`; logged alongside vector counters for drift detection.
 - Logs: health probe failures, index build start/finish, per-namespace counts; structured fields for backend, namespace, duration_ms, error.
-- Surface metrics via `dfps_observability` and expose counts alongside pipeline metrics consumers.
+- Surface metrics via `refractive_swan_observability` and expose counts alongside pipeline metrics consumers.
 
 Complexity notes:
 - Deterministic embedding is `O(d)` for dimensionality `d`; search is `O(kd)` for top-k without ANN, with `O(n log n)` upfront collection/index creation on first bootstrap. If the backend is down or times out, the pipeline logs the failure, increments `vector_fallbacks`, and reverts to lexical + mock ranking deterministically.
@@ -54,7 +54,7 @@ Complexity notes:
 - Geometry stats: track `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `geom_centroid_cos` (if available) and `cap_alpha_sim` per build; compare against prior baselines for drift.
 - Norms/participation ratio: record mean/median vector norm and participation ratio from index build logs to spot collapse or explosion.
 - Community health (Leiden/Louvain): snapshot cluster/graph health where available; flag unexpected community splits/merges across builds.
-- Fallback posture: toggling `DFPS_VECTOR_ENABLED=false` or health failures must preserve deterministic lexical+mock behavior, with `vector_fallbacks` incremented and structured warning logs.
+- Fallback posture: toggling `refractive_swan_VECTOR_ENABLED=false` or health failures must preserve deterministic lexical+mock behavior, with `vector_fallbacks` incremented and structured warning logs.
 - Latency budgets: track search p95; gate CI if vector-enabled latency exceeds baseline by budget or if recall drops > X% vs mock/lexical baseline.
 
 ## Cross-Links

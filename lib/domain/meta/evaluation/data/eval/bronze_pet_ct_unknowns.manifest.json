@@ -2,7 +2,7 @@
   "name": "bronze_pet_ct_unknowns",
   "version": "20250119",
   "license": "internal_demo",
-  "source": "dfps_eval::fake_data",
+  "source": "refractive_swan_eval::fake_data",
   "n_cases": 3,
   "sha256": "18fe113e97c9869fc83af7c9286196631b12e4b80e12a8a37efecdca39c75bda",
   "notes": "Bronze tier mix emphasizing unknown systems and NCIt fallback"

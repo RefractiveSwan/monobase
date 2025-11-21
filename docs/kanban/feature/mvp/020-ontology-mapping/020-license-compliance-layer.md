@@ -8,7 +8,7 @@
 **Last updated in:** `v0.1.0`  
 **Goal:** Turn the existing license metadata into enforceable policies that gate mapping, CLIs, and exports according to configured license modes.
 
-**Scope guardrails:** Keep compliance behavior purely policy-driven; do not change mapping thresholds or vector behavior from epics 013/014/017/018/019. Reuse existing license metadata from `dfps_terminology` and NCIt/OBO imports; no new licensing inference.
+**Scope guardrails:** Keep compliance behavior purely policy-driven; do not change mapping thresholds or vector behavior from epics 013/014/017/018/019. Reuse existing license metadata from `refractive_swan_terminology` and NCIt/OBO imports; no new licensing inference.
 
 ### Columns
 * **TODO** – Not started yet  
@@ -34,7 +34,7 @@
 
 Define a reusable policy layer that other epics (014 external terminology APIs, 019 OBO import) can depend on without altering their data flows.
 
-- [x] Add `lib/platform/compliance` crate (`dfps_compliance`) with:
+- [x] Add `lib/platform/compliance` crate (`refractive_swan_compliance`) with:
 
   - [x] `ComplianceMode` enum:
 
@@ -49,16 +49,16 @@ Define a reusable policy layer that other epics (014 external terminology APIs, 
 
   - [x] Env-driven config:
 
-    - `DFPS_COMPLIANCE_MODE`
-    - `DFPS_COMPLIANCE_POLICY_PATH` (optional JSON/YAML override).
+    - `refractive_swan_COMPLIANCE_MODE`
+    - `refractive_swan_COMPLIANCE_POLICY_PATH` (optional JSON/YAML override).
 
 #### Cross-Cohesion
 
 - **Engineering Targets:** A1, B, D
 - **Crates & Paths:**
-  - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/domain/ontologies/terminology` (`dfps_terminology`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/platform/compliance` (`refractive_swan_compliance`)
+  - `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`
 - **Docs & Kanbans Touched:**
@@ -67,16 +67,16 @@ Define a reusable policy layer that other epics (014 external terminology APIs, 
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
   - `docs/kanban/feature/mvp/019-obo-import-and-reasoning.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite` policy/unit coverage for policy parsing
+  - `refractive_swan_test_suite` policy/unit coverage for policy parsing
 - **Interfaces & Contracts:**
-  - Env: `DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`
+  - Env: `refractive_swan_COMPLIANCE_MODE`, `refractive_swan_COMPLIANCE_POLICY_PATH`
   - Traits/APIs: compliance policy loader (new)
 
 ### LIC-02 – License-aware gating
 
 Apply the policy layer to the mapping flow without changing ranking logic from 013/017. Ensure observability lines up with vector metrics already present in `vector_mapping.rs`.
 
-  - [x] Integrate `dfps_compliance` into mapping paths:
+  - [x] Integrate `refractive_swan_compliance` into mapping paths:
 
   - [x] Before mapping codes:
 
@@ -101,10 +101,10 @@ Apply the policy layer to the mapping flow without changing ranking logic from 0
 
 - **Engineering Targets:** B, D
 - **Crates & Paths:**
-  - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/app/frontend/cli` (`dfps_cli`)
-  - `lib/platform/observability` (`dfps_observability`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
+  - `lib/platform/compliance` (`refractive_swan_compliance`)
+  - `lib/app/frontend/cli` (`refractive_swan_cli`)
+  - `lib/platform/observability` (`refractive_swan_observability`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`, `mapping_f1`
 - **Docs & Kanbans Touched:**
@@ -112,11 +112,11 @@ Apply the policy layer to the mapping flow without changing ranking logic from 0
   - `docs/system-design/clinical/ncit/behavior/state-servicerequest.md`
   - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs` (add compliance modes)
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs` (add compliance modes)
   - CLI smoke for `map_bundles`/`map_codes` strict mode
 - **Interfaces & Contracts:**
-  - CLIs: `dfps_cli map_bundles`, `dfps_cli map_codes`
-  - Env: `DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`
+  - CLIs: `refractive_swan_cli map_bundles`, `refractive_swan_cli map_codes`
+  - Env: `refractive_swan_COMPLIANCE_MODE`, `refractive_swan_COMPLIANCE_POLICY_PATH`
 
 ### LIC-03 – Export & docs safeguards
 
@@ -124,12 +124,12 @@ Provide guardrails for downstream warehouse/BI work (017) without redefining exp
 
   - [x] Add helper APIs for downstream exporters (warehouse, BI):
 
-    - [x] `dfps_compliance::assert_export_allowed(license_tiers: &[LicenseTier]) -> Result<(), ComplianceError>`.
+    - [x] `refractive_swan_compliance::assert_export_allowed(license_tiers: &[LicenseTier]) -> Result<(), ComplianceError>`.
 
   - [x] Document how to:
 
-  - [x] Run DFPS in `OpenSource` mode (no licensed vocabularies).
-  - [x] Run DFPS in `Internal` mode (full mapping allowed).
+  - [x] Run refractive_swan in `OpenSource` mode (no licensed vocabularies).
+  - [x] Run refractive_swan in `Internal` mode (full mapping allowed).
 
   - [x] Add pointers to the relevant env templates (e.g., `data/environment/.env.platform.vector_store.dev`, `.env.domain.terminology.dev.example`) explaining compliance settings.
 
@@ -137,30 +137,30 @@ Provide guardrails for downstream warehouse/BI work (017) without redefining exp
 
 - **Engineering Targets:** B, C, D
 - **Crates & Paths:**
-  - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/app/servers/datamart` (`dfps_datamart`)
-  - `lib/app/frontend/cli` (`dfps_cli`)
+  - `lib/platform/compliance` (`refractive_swan_compliance`)
+  - `lib/app/servers/datamart` (`refractive_swan_datamart`)
+  - `lib/app/frontend/cli` (`refractive_swan_cli`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`
 - **Docs & Kanbans Touched:**
   - `docs/runbook/terminology-apis-quickstart.md`
   - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
 - **Experiments / CI Hooks:**
-  - Export/BI smoke checks in `dfps_test_suite` (new compliance gate tests)
+  - Export/BI smoke checks in `refractive_swan_test_suite` (new compliance gate tests)
 - **Interfaces & Contracts:**
-  - Env: `DFPS_COMPLIANCE_MODE`
-  - APIs: `dfps_compliance::assert_export_allowed`
+  - Env: `refractive_swan_COMPLIANCE_MODE`
+  - APIs: `refractive_swan_compliance::assert_export_allowed`
   
 ### LIC-04 – Tests & audit logging
 
 Codify behavior so regression suites (especially vector_mapping.rs from 013) stay green in Internal mode and gain new coverage for OpenSource/Partner.
 
-  - [x] Add tests in `dfps_test_suite` ensuring:
+  - [x] Add tests in `refractive_swan_test_suite` ensuring:
 
   - [x] In `OpenSource` mode, CPT/SNOMED codes are blocked from mapping; LOINC/OBO remain allowed.
   - [x] In `Internal` mode, behavior is unchanged from current mapping.
 
-  - [x] Ensure logs from `dfps_observability` include:
+  - [x] Ensure logs from `refractive_swan_observability` include:
 
     - [x] License mode.
     - [x] Counts of license-blocked codes.
@@ -171,9 +171,9 @@ Codify behavior so regression suites (especially vector_mapping.rs from 013) sta
 
 - **Engineering Targets:** B, D
 - **Crates & Paths:**
-  - `lib/platform/compliance` (`dfps_compliance`)
-  - `lib/platform/test_suite` (`dfps_test_suite`)
-  - `lib/platform/observability` (`dfps_observability`)
+  - `lib/platform/compliance` (`refractive_swan_compliance`)
+  - `lib/platform/test_suite` (`refractive_swan_test_suite`)
+  - `lib/platform/observability` (`refractive_swan_observability`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`, `mapping_precision`, `mapping_recall`, `mapping_f1`
 - **Docs & Kanbans Touched:**
@@ -181,11 +181,11 @@ Codify behavior so regression suites (especially vector_mapping.rs from 013) sta
   - `docs/kanban/feature/mvp/017-analytics-dashboards-cohorts.md`
   - `docs/kanban/feature/mvp/014-terminology-external-apis.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs` (mode matrix)
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs` (mode matrix)
   - Compliance-mode log assertions in CI
 - **Interfaces & Contracts:**
-  - CLIs: `dfps_cli map_bundles`, `dfps_cli map_codes`
-  - Env: `DFPS_COMPLIANCE_MODE`, `DFPS_COMPLIANCE_POLICY_PATH`
+  - CLIs: `refractive_swan_cli map_bundles`, `refractive_swan_cli map_codes`
+  - Env: `refractive_swan_COMPLIANCE_MODE`, `refractive_swan_COMPLIANCE_POLICY_PATH`
 
 ---
 

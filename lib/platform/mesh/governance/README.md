@@ -1,16 +1,16 @@
-# dfps_mesh_governance
+# refractive_swan_mesh_governance
 
 **Conceptual location:** `lib/platform/mesh/governance`  
 **Current physical location:** Not yet implemented  
 **Scope:** Mesh-level policies, query governance, differential privacy budget management
 
-This directory will host the **governance engine** that evaluates policy decisions for mesh operations, integrating with `dfps_compliance` for DP enforcement and node-level access control.
+This directory will host the **governance engine** that evaluates policy decisions for mesh operations, integrating with `refractive_swan_compliance` for DP enforcement and node-level access control.
 
 ---
 
 ## Purpose
 
-`dfps_mesh_governance` provides:
+`refractive_swan_mesh_governance` provides:
 
 1. **QueryClass**: Categorize mesh jobs (MappingJob, AnalyticsJob, EvalJob, ExportJob, NodeIntrospection)
 2. **QueryDescriptor**: Job parameters + expected cardinality
@@ -83,10 +83,10 @@ pub enum GovernanceDecision {
 }
 ```
 
-### NodePolicy
+### NodePolicy (mesh DTOs)
 
 ```rust
-use dfps_contracts::mesh::NodeCapabilities;
+use refractive_swan_mesh_dto::NodeCapabilities;
 
 #[derive(Clone, Debug)]
 pub struct NodePolicy {
@@ -139,7 +139,7 @@ pub trait GovernanceEngine: Send + Sync {
 
 ```rust
 pub struct DefaultGovernanceEngine {
-    compliance: Arc<dfps_compliance::Policy>,
+    compliance: Arc<refractive_swan_compliance::Policy>,
 }
 
 impl GovernanceEngine for DefaultGovernanceEngine {
@@ -202,7 +202,7 @@ impl GovernanceEngine for DefaultGovernanceEngine {
 
 ## Integration Points
 
-### With dfps_mesh_node
+### With refractive_swan_mesh_node
 
 ```rust
 // In NodeDataPlane
@@ -234,9 +234,9 @@ pub async fn run_job_with_governance(
 }
 ```
 
-### With dfps_compliance
+### With refractive_swan_compliance
 
-Governance delegates DP enforcement to `dfps_compliance`:
+Governance delegates DP enforcement to `refractive_swan_compliance`:
 
 ```rust
 // In GovernanceEngine
@@ -244,7 +244,7 @@ async fn apply_dp_if_required(
     &self,
     data: &serde_json::Value,
     decision: &GovernanceDecision,
-    compliance: &dfps_compliance::Policy,
+    compliance: &refractive_swan_compliance::Policy,
 ) -> Result<serde_json::Value, GovernanceError> {
     match decision {
         GovernanceDecision::AllowWithNoise { epsilon } => {

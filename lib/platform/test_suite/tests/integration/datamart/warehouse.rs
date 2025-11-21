@@ -1,13 +1,13 @@
 //! Datamart warehouse + compliance enforcement tests (REFR-16 / REFR-11).
 
-use dfps_compliance::{ComplianceMode, Policy};
-use dfps_datamart::{LoadError, load_from_pipeline_output, migrate};
-use dfps_pipeline::bundle_to_mapped_sr;
-use dfps_test_suite::regression;
+use refractive_swan_compliance::{ComplianceMode, Policy};
+use refractive_swan_datamart::{LoadError, load_from_pipeline_output, migrate};
+use refractive_swan_pipeline::bundle_to_mapped_sr;
+use refractive_swan_test_suite::regression;
 use sqlx::SqlitePool;
 use std::sync::{Mutex, OnceLock};
 
-async fn load_baseline(pool: &SqlitePool, policy: &dfps_compliance::Policy) {
+async fn load_baseline(pool: &SqlitePool, policy: &refractive_swan_compliance::Policy) {
     let bundle = regression::baseline_fhir_bundle();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps baseline bundle");
     load_from_pipeline_output(pool, &output, policy)
@@ -15,7 +15,7 @@ async fn load_baseline(pool: &SqlitePool, policy: &dfps_compliance::Policy) {
         .expect("load baseline into warehouse");
 }
 
-async fn load_unknown(pool: &SqlitePool, policy: &dfps_compliance::Policy) {
+async fn load_unknown(pool: &SqlitePool, policy: &refractive_swan_compliance::Policy) {
     let bundle = regression::fhir_bundle_unknown_code();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline maps unknown bundle");
     load_from_pipeline_output(pool, &output, policy)

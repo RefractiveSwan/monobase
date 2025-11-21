@@ -35,7 +35,7 @@ sequenceDiagram
   participant Phi as Transformation (ops/flattening)
   participant A as Anchor Estimation
   participant M as alpha_mf & alpha_sim
-  participant E as DFPS Mapping Eval
+  participant E as refractive_swan Mapping Eval
   S->>Phi: apply op set
   Phi->>A: anchors & covariances
   A->>M: R_M, D_M, rho_CC -> alpha estimates

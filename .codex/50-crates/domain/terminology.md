@@ -1,7 +1,7 @@
-# Crate: lib/domain/terminology — `dfps_terminology`
+# Crate: lib/domain/terminology — `refractive_swan_terminology`
 
 **Path:** `code/lib/domain/terminology`  
-**Depends on:** `dfps_core`, `serde`.
+**Depends on:** `refractive_swan_core`, `serde`.
 
 ## Responsibilities
 - Normalize and classify **code systems**; provide lightweight **registry** and **OBO** metadata.
@@ -24,7 +24,7 @@
   - `ValueSetMeta` records for PET imaging subsets combining CPT/SNOMED, LOINC/NCIt.
 
 ## How mapping uses this
-- `dfps_mapping` calls `EnrichedCode::from_staging(...)` to:
+- `refractive_swan_mapping` calls `EnrichedCode::from_staging(...)` to:
   - Classify by `CodeKind` for **summary** tallies.
   - Attach `license_tier`/`source_kind` into `MappingResult` for downstream filtering.
 

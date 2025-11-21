@@ -1,11 +1,11 @@
 //! Observability metrics e2e flow (REFR-12).
 
-use dfps_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
-use dfps_observability::{
+use refractive_swan_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario_with_seed;
+use refractive_swan_observability::{
     PipelineMetrics, VectorUsageSnapshot, log_no_match, log_pipeline_output, metrics_snapshot,
 };
-use dfps_pipeline::bundle_to_mapped_sr;
-use dfps_vector_store::VectorCapacitySnapshot;
+use refractive_swan_pipeline::bundle_to_mapped_sr;
+use refractive_swan_vector_store::VectorCapacitySnapshot;
 
 #[test]
 fn metrics_snapshot_matches_expected_counts() {
@@ -21,7 +21,7 @@ fn metrics_snapshot_matches_expected_counts() {
         None,
     );
     for result in &output.mapping_results {
-        if matches!(result.state, dfps_core::mapping::MappingState::NoMatch) {
+        if matches!(result.state, refractive_swan_core::mapping::MappingState::NoMatch) {
             log_no_match(result);
         }
     }

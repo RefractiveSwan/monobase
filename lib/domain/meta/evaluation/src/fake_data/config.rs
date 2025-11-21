@@ -1,4 +1,4 @@
-use dfps_configuration::{self, EnvLoadError, EnvValueError};
+use refractive_swan_configuration::{self, EnvLoadError, EnvValueError};
 use thiserror::Error;
 
 /// Configuration for fake-data generators (default counts, seeds).
@@ -10,15 +10,15 @@ pub struct FakeDataConfig {
 
 impl FakeDataConfig {
     pub fn from_env() -> Result<Self, FakeDataConfigError> {
-        match dfps_configuration::load_env("domain.fake_data") {
+        match refractive_swan_configuration::load_env("domain.fake_data") {
             Ok(_) => {}
             Err(EnvLoadError::FileMissing { .. }) => {}
             Err(err) => return Err(FakeDataConfigError::Env(err)),
         }
-        let default_count = dfps_configuration::u64_var("DFPS_FAKE_DATA_DEFAULT_COUNT")
+        let default_count = refractive_swan_configuration::u64_var("refractive_swan_FAKE_DATA_DEFAULT_COUNT")
             .map_err(FakeDataConfigError::EnvValue)?
             .map(|value| value as usize);
-        let default_seed = dfps_configuration::u64_var("DFPS_FAKE_DATA_SEED")
+        let default_seed = refractive_swan_configuration::u64_var("refractive_swan_FAKE_DATA_SEED")
             .map_err(FakeDataConfigError::EnvValue)?;
         Ok(Self {
             default_count,
@@ -29,7 +29,7 @@ impl FakeDataConfig {
 
 #[derive(Debug, Error)]
 pub enum FakeDataConfigError {
-    #[error("dfps_configuration env error: {0}")]
+    #[error("refractive_swan_configuration env error: {0}")]
     Env(#[from] EnvLoadError),
     #[error("invalid fake data env value: {0}")]
     EnvValue(#[from] EnvValueError),
@@ -44,8 +44,8 @@ mod tests {
 
     fn reset_env() {
         unsafe {
-            env::remove_var("DFPS_FAKE_DATA_DEFAULT_COUNT");
-            env::remove_var("DFPS_FAKE_DATA_SEED");
+            env::remove_var("refractive_swan_FAKE_DATA_DEFAULT_COUNT");
+            env::remove_var("refractive_swan_FAKE_DATA_SEED");
         }
     }
 
@@ -63,8 +63,8 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_FAKE_DATA_DEFAULT_COUNT", "5");
-            env::set_var("DFPS_FAKE_DATA_SEED", "42");
+            env::set_var("refractive_swan_FAKE_DATA_DEFAULT_COUNT", "5");
+            env::set_var("refractive_swan_FAKE_DATA_SEED", "42");
         }
         let cfg = FakeDataConfig::from_env().expect("config loads");
         assert_eq!(cfg.default_count, Some(5));

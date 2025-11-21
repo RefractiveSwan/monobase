@@ -1,4 +1,4 @@
-# dfps_cache_store (Platform Store)
+# refractive_swan_cache_store (Platform Store)
 
 **Conceptual location:** `lib/platform/store/cache_store`  
 **Current physical location:** Not yet implemented  
@@ -10,7 +10,7 @@ This directory represents the **planned home** for caching infrastructure. The i
 
 ## Purpose
 
-`dfps_cache_store` provides:
+`refractive_swan_cache_store` provides:
 
 1. **Cache traits**: `CacheStore` with get/set/delete/incr operations
 2. **Backend enum**: `CacheBackend` (Redis, InMemory)
@@ -114,7 +114,7 @@ pub enum CacheError {
 Cache expensive OLAP queries (NCIt summary, cohort results):
 
 ```rust
-// In dfps_datamart or dfps_datawarehouse
+// In refractive_swan_datamart or refractive_swan_datawarehouse
 async fn ncit_summary_cached(
     &self,
     filters: &Filters,
@@ -143,7 +143,7 @@ async fn ncit_summary_cached(
 Track request counts for governance:
 
 ```rust
-// In dfps_mesh_governance or dfps_mesh_node
+// In refractive_swan_mesh_governance or refractive_swan_mesh_node
 async fn check_rate_limit(
     &self,
     node_id: &MeshNodeId,
@@ -166,7 +166,7 @@ async fn check_rate_limit(
 If hub-node communication requires auth:
 
 ```rust
-// In dfps_mesh_hub
+// In refractive_swan_mesh_hub
 async fn validate_token(
     &self,
     token: &str,
@@ -229,13 +229,13 @@ Different nodes can use different cache backends:
 
 ### Phase 3: Wire into Datamart/Governance
 
-- `dfps_datamart` accepts optional `Arc<dyn CacheStore>`
+- `refractive_swan_datamart` accepts optional `Arc<dyn CacheStore>`
 - Analytics queries check cache before running SQL
-- `dfps_mesh_governance` uses cache for rate limits/counters
+- `refractive_swan_mesh_governance` uses cache for rate limits/counters
 
 ### Phase 4: Hub Coordination
 
-- `dfps_mesh_hub` uses Redis cache for:
+- `refractive_swan_mesh_hub` uses Redis cache for:
   - Node registration/discovery
   - Job queue metadata
   - Auth tokens (if required)

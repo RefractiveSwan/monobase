@@ -83,7 +83,7 @@ flowchart LR
   end
 
   subgraph NEXT
-    X1[004 CLI app (dfps_cli) 🕘]
+    X1[004 CLI app (refractive_swan_cli) 🕘]
     X2[006 Desktop app 🕘]
     X3[013 Vector backend 🕘]
     X4[014 Terminology external APIs 🕘]
@@ -139,7 +139,7 @@ flowchart LR
 
 **004 – App / CLI MVP**
 
-* [ ] Scaffold `dfps_cli` and expose `run()`.
+* [ ] Scaffold `refractive_swan_cli` and expose `run()`.
 * [ ] `map-bundles` subcommand (+ `--explain`, `--no-metrics`, `--pretty`).
 * [ ] `generate-fhir-bundles` subcommand.
 * [ ] Logging + `--help` + README.
@@ -156,14 +156,14 @@ flowchart LR
 
 **008 – Docs & Makefiles**
 
-* [ ] Confirm `/docs` redirects to `DFPS_DOCS_URL`.
+* [ ] Confirm `/docs` redirects to `refractive_swan_DOCS_URL`.
 * [ ] Confirm `make` targets succeed on a clean checkout.
 * [ ] Optional CI hook: run `cargo make docs` / `cargo make ci`.
 
 **009 – NCIt analytics mart**
 
 * [ ] Confirm dim/fact types match ERD (names/keys/cardinalities).
-* [ ] Confirm adding `dfps_datamart` causes no regressions.
+* [ ] Confirm adding `refractive_swan_datamart` causes no regressions.
 
 **010 – FHIR validation profiles**
 
@@ -183,7 +183,7 @@ flowchart LR
 * **015** External FHIR conformance: `$validate` client, blending with internal validation, CLI, fixtures.
 * **016** Warehouse SQL: DDL/migrations, loader, CLI, integration tests, quickstart.
 * **017** Analytics surfaces: backend endpoints, frontend views, BI integration, tests/metrics.
-* **018** FHIR profiles: `dfps_ingestion::profiles`, profile‑linked validation, fixtures, docs.
+* **018** FHIR profiles: `refractive_swan_ingestion::profiles`, profile‑linked validation, fixtures, docs.
 * **019** OBO graph: import minimal OBO, reasoning utilities, mapping boosts, fixtures.
 * **020** License compliance: policy model, gating, exporters, logs/tests/docs.
 * **021** Docs hosting/search: mdBook search, theming, publish pipeline, frontend link.

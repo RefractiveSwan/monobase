@@ -1,4 +1,4 @@
-use dfps_terminology_port::{
+use refractive_swan_terminology_port::{
     CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError, TerminologyResult,
 };
 use std::collections::HashMap;

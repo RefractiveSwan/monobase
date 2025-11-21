@@ -14,7 +14,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Run eval harness (pet_ct_small)
         run: |
-          cargo run -p dfps_cli --bin eval_mapping -- \
+          cargo run -p refractive_swan_cli --bin eval_mapping -- \
             --dataset pet_ct_small \
             --thresholds lib/domain/meta/evaluation/data/meta/eval_thresholds.json \
             --out-dir target/eval/pet_ct_small

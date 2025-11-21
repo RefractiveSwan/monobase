@@ -2,18 +2,18 @@
 
 use std::sync::Arc;
 
-use dfps_core::mapping::MappingState;
-use dfps_eval::{self, EvalCase, EvalSummary};
-use dfps_mapping::{
+use refractive_swan_core::mapping::MappingState;
+use refractive_swan_eval::{self, EvalCase, EvalSummary};
+use refractive_swan_mapping::{
     DeterministicEmbeddingProvider, map_staging_codes_with_summary, map_staging_codes_with_vector,
 };
-use dfps_test_suite::fixtures;
-use dfps_vector_store::{MockVectorStore, VectorBackend, VectorStoreConfig};
+use refractive_swan_test_suite::fixtures;
+use refractive_swan_vector_store::{MockVectorStore, VectorBackend, VectorStoreConfig};
 
-fn build_codes_from_cases(cases: &[EvalCase]) -> Vec<dfps_core::staging::StgSrCodeExploded> {
+fn build_codes_from_cases(cases: &[EvalCase]) -> Vec<refractive_swan_core::staging::StgSrCodeExploded> {
     cases
         .iter()
-        .map(|case| dfps_core::staging::StgSrCodeExploded {
+        .map(|case| refractive_swan_core::staging::StgSrCodeExploded {
             sr_id: format!("SR-{}", case.code),
             system: Some(case.system.clone()),
             code: Some(case.code.clone()),
@@ -39,7 +39,7 @@ fn summary_states(summary: &EvalSummary) -> (usize, usize, usize) {
 
 #[test]
 fn offline_and_vector_parity_on_pet_ct_small() {
-    dfps_test_suite::init_environment().expect("load test env");
+    refractive_swan_test_suite::init_environment().expect("load test env");
     let cases = fixtures::eval_pet_ct_small_cases();
     let codes = build_codes_from_cases(&cases);
 
@@ -73,7 +73,7 @@ fn offline_and_vector_parity_on_pet_ct_small() {
             .iter()
             .filter_map(|r| r.ncit_id.clone())
             .enumerate()
-            .map(|(idx, id)| dfps_vector_store::VectorSearchHit {
+            .map(|(idx, id)| refractive_swan_vector_store::VectorSearchHit {
                 ref_id: id.replace("NCIT:", ""),
                 score: 0.9 - (idx as f32) * 0.001,
             })

@@ -1,0 +1,21 @@
+[package]
+name = "refractive_swan_datamart"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+refractive_swan_core = { path = "../../../../domain/core" }
+refractive_swan_pipeline = { path = "../../../../domain/meta/pipeline" }
+refractive_swan_configuration = { path = "../../../../platform/meta/configuration" }
+refractive_swan_compliance = { path = "../../../../platform/meta/compliance" }
+refractive_swan_terminology = { path = "../../../../domain/ontologies/terminology" }
+refractive_swan_contracts = { path = "../../../../domain/meta/contracts" }
+refractive_swan_datamart_port = { path = "../../../../domain/ports/data/data-plane/datamart" }
+async-trait = "0.1"
+serde.workspace = true
+sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["sync"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

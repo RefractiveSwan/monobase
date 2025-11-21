@@ -1,21 +1,21 @@
 [tasks.api]
-description = "Run the backend API (dfps_api)"
+description = "Run the backend API (refractive_swan_api)"
 command = "cargo"
-args = ["run", "-p", "dfps_api", "--bin", "dfps_api"]
+args = ["run", "-p", "refractive_swan_api", "--bin", "refractive_swan_api"]
 
 [tasks.web]
-description = "Run the frontend; serves docs via DFPS_DOCS_URL"
+description = "Run the frontend; serves docs via refractive_swan_DOCS_URL"
 command = "cargo"
-args = ["run", "-p", "dfps_web_frontend", "--bin", "dfps_web_frontend"]
+args = ["run", "-p", "refractive_swan_web_frontend", "--bin", "refractive_swan_web_frontend"]
 
 [tasks.map-bundles]
 description = "Map Bundles NDJSON -> emit staging/mapping rows (INPUT=<file>)"
 condition = { env_set = ["INPUT"] }
 command = "cargo"
-args = ["run", "-p", "dfps_cli", "--bin", "map_bundles", "--", "${INPUT}"]
+args = ["run", "-p", "refractive_swan_cli", "--bin", "map_bundles", "--", "${INPUT}"]
 
 [tasks.map-codes]
 description = "Map staging codes NDJSON -> emit MappingResult"
 condition = { env_set = ["INPUT"] }
 command = "cargo"
-args = ["run", "-p", "dfps_cli", "--bin", "map_codes", "--", "${INPUT}"]
+args = ["run", "-p", "refractive_swan_cli", "--bin", "map_codes", "--", "${INPUT}"]

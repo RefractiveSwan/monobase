@@ -161,24 +161,24 @@ code/
 **Backend API:**
 ```bash
 cd code
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 # Runs on http://127.0.0.1:8080
 ```
 
 **Web Frontend:**
 ```bash
 cd code
-DFPS_API_BASE_URL=http://127.0.0.1:8080 \
-DFPS_FRONTEND_LISTEN_ADDR=127.0.0.1:8090 \
-cargo run -p dfps_web_frontend --bin dfps_web_frontend
+refractive_swan_API_BASE_URL=http://127.0.0.1:8080 \
+refractive_swan_FRONTEND_LISTEN_ADDR=127.0.0.1:8090 \
+cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 # Runs on http://127.0.0.1:8090
 ```
 
 **CLI Tools:**
 ```bash
 cd code
-cargo run -p dfps_cli -- map-codes --help
-cargo run -p dfps_cli -- map-bundles --file data/examples/bundle.json
+cargo run -p refractive_swan_cli -- map-codes --help
+cargo run -p refractive_swan_cli -- map-bundles --file data/examples/bundle.json
 ```
 
 ### Useful Commands
@@ -248,8 +248,8 @@ FHIR ServiceRequest
 cargo test --all
 
 # Run specific package tests
-cargo test -p dfps_mapping
-cargo test -p dfps_web_frontend
+cargo test -p refractive_swan_mapping
+cargo test -p refractive_swan_web_frontend
 
 # Run with output
 cargo test -- --nocapture
@@ -260,7 +260,7 @@ cargo test -- --nocapture
 Refractive Swan includes gold-standard evaluation datasets for regression testing:
 
 ```bash
-cargo run -p dfps_cli -- eval-run --dataset gold_pet_ct_small --top-k 3
+cargo run -p refractive_swan_cli -- eval-run --dataset gold_pet_ct_small --top-k 3
 ```
 
 **Metrics:**

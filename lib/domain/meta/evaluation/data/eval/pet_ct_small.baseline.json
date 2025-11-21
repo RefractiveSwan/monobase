@@ -111,5 +111,5 @@
     "advanced": null,
     "results": []
   },
-  "notes": "Baseline captured via dfps_cli eval_mapping on pet_ct_small; results omitted for brevity."
+  "notes": "Baseline captured via refractive_swan_cli eval_mapping on pet_ct_small; results omitted for brevity."
 }

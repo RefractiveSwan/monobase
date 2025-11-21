@@ -25,7 +25,7 @@
 
 ## REVIEW
 - [ ] Confirm license tiers and source kinds are modeled correctly for all seeded systems.
-- [ ] Ensure mapping behavior is stable and existing golden tests (`dfps_mapping`, `dfps_test_suite`) remain valid.
+- [ ] Ensure mapping behavior is stable and existing golden tests (`refractive_swan_mapping`, `refractive_swan_test_suite`) remain valid.
 - [ ] Sanity check docs so they match the actual licensed/unlicensed split and OBO integration points.
 
 ---
@@ -33,7 +33,7 @@
 ## DONE
 
 ### TERM-01 - Terminology crate scaffold
-- [x] Create `lib/domain/ontologies/terminology` crate (e.g., `dfps_terminology`).
+- [x] Create `lib/domain/ontologies/terminology` crate (e.g., `refractive_swan_terminology`).
 - [x] Wire into `Cargo.toml` workspace members.
 - [x] Initial modules:
   - [x] `codesystem` - FHIR / code system metadata.
@@ -61,7 +61,7 @@
   - [x] seed entries for NCIt OBO and at least one additional OBO Foundry ontology (e.g., MONDO) referenced in docs.
 - [x] Provide helper APIs:
   - [x] `lookup_ontology(prefix_or_iri: &str) -> Option<OntologyMeta>`.
-  - [x] mapping between NCIt IDs in `dfps_core::mapping::DimNCITConcept` and OBO IRIs when available.
+  - [x] mapping between NCIt IDs in `refractive_swan_core::mapping::DimNCITConcept` and OBO IRIs when available.
 - [x] Ensure OBO ontologies are recorded as **unlicensed/open** in metadata and never treated as “licensed-protected” in downstream flows.
 
 ### TERM-04 - Staging ↔ terminology bridge (license-aware)
@@ -77,7 +77,7 @@
     - [x] `MissingSystemOrCode`.
 
 ### TERM-05 - Mapping integration (reason codes, policy hooks)
-- [x] Integrate terminology checks into `dfps_mapping::map_staging_codes`:
+- [x] Integrate terminology checks into `refractive_swan_mapping::map_staging_codes`:
   - [x] For `UnknownSystem` ?+' `MappingResult.state = NoMatch`, `reason = "unknown_code_system"`.
   - [x] For `MissingSystemOrCode` ?+' `reason = "missing_system_or_code"` (existing behavior).
 - [x] Add **license-aware** hooks (no hard policy yet, but wiring in the data):
@@ -91,7 +91,7 @@
   - [x] Bogus/non-canonical URLs resolve as `UnknownSystem`.
 - [x] Unit tests for `EnrichedCode`:
   - [x] correct classification into `CodeKind` variants.
-- [x] Integration tests with `dfps_mapping`:
+- [x] Integration tests with `refractive_swan_mapping`:
   - [x] Known systems behave as before for mapping outcomes.
   - [x] Unknown systems produce `reason = "unknown_code_system"`.
   - [x] Ensure OBO-backed concepts are still treated as `Open` and do not flip any licensed flags.
@@ -112,7 +112,7 @@
 ---
 
 ## Acceptance Criteria
-- `dfps_terminology` exists and exposes:
+- `refractive_swan_terminology` exists and exposes:
   - license-aware `CodeSystemMeta` lookups,
   - OBO Foundry `OntologyMeta` lookups,
   - a classification of staging codes into `CodeKind` with license/source context.

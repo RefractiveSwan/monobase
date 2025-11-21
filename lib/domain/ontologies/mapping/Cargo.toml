@@ -1,20 +1,20 @@
 [package]
-name = "dfps_mapping"
+name = "refractive_swan_mapping"
 version.workspace = true
 edition.workspace = true
 
 [dependencies]
-dfps_terminology = { path = "../terminology" }
-dfps_core = { path = "../../core" }
-dfps_eval = { path = "../../meta/evaluation", features = ["eval-advanced"] }
-dfps_vector_port = { path = "../../ports/data/data-store/vector" }
-dfps_observability = { path = "../../../platform/meta/observability" }
-dfps_compliance = { path = "../../../platform/meta/compliance" }
+refractive_swan_terminology = { path = "../terminology" }
+refractive_swan_core = { path = "../../core" }
+refractive_swan_eval = { path = "../../meta/evaluation", features = ["eval-advanced"] }
+refractive_swan_vector_port = { path = "../../ports/data/data-store/vector" }
+refractive_swan_observability = { path = "../../../platform/meta/observability" }
+refractive_swan_compliance = { path = "../../../platform/meta/compliance" }
 serde.workspace = true
 serde_json.workspace = true
 once_cell.workspace = true
 
 [features]
 default = ["eval-advanced", "obo-graph"]
-eval-advanced = ["dfps_eval/eval-advanced"]
-obo-graph = ["dfps_terminology/obo-graph"]
+eval-advanced = ["refractive_swan_eval/eval-advanced"]
+obo-graph = ["refractive_swan_terminology/obo-graph"]

@@ -9,8 +9,6 @@ members = [
     "lib/app/frontend/cli",
     "lib/app/frontend/web",
     "lib/app/servers/api",
-    "lib/app/servers/datamart",
-    "lib/app/servers/vector_store",
 
     "lib/domain/core",
     "lib/domain/meta/evaluation",
@@ -25,10 +23,14 @@ members = [
 
     "lib/dto/web",
     "lib/dto/cli",
+    "lib/dto/mesh",
     
+    "lib/platform/data/data-plane/mart",
+    "lib/platform/data/data-stores/vector_store",
     "lib/platform/meta/compliance",
     "lib/platform/meta/configuration",
     "lib/platform/meta/observability",
+    "lib/platform/mesh/node",
     "lib/platform/test_suite",
 
     "tools/layer_lint",
@@ -62,7 +64,8 @@ serde_yaml = "0.9.34"
 tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal"] }
 dotenvy = "0.15.7"
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
-dfps_vector_store = { path = "lib/app/servers/vector_store" }
+refractive_swan_datamart = { path = "lib/platform/data/data-plane/mart" }
+refractive_swan_vector_store = { path = "lib/platform/data/data-stores/vector_store" }
 thiserror = "2.0.17"
 
 [dependencies]
@@ -70,4 +73,4 @@ thiserror = "2.0.17"
 # domain crates, CLIs, etc.
 
 [dev-dependencies]
-dfps_test_suite = { path = "lib/platform/test_suite" }
+refractive_swan_test_suite = { path = "lib/platform/test_suite" }

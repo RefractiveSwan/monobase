@@ -1,11 +1,11 @@
 use clap::Parser;
-use dfps_cli::cli_core::{CliError, CliResult, init_cli_env, load_vector_config, run_bin};
-use dfps_core::mapping::CodeElement;
-use dfps_mapping::{DeterministicEmbeddingProvider, load_ncit_concepts};
-use dfps_vector_store::EmbeddingProvider;
+use refractive_swan_cli::cli_core::{CliError, CliResult, init_cli_env, load_vector_config, run_bin};
+use refractive_swan_core::mapping::CodeElement;
+use refractive_swan_mapping::{DeterministicEmbeddingProvider, load_ncit_concepts};
+use refractive_swan_vector_store::EmbeddingProvider;
 #[cfg(feature = "backend-pgvector")]
-use dfps_vector_store::PgVectorStore;
-use dfps_vector_store::{
+use refractive_swan_vector_store::PgVectorStore;
+use refractive_swan_vector_store::{
     MockVectorStore, QdrantVectorStore, VectorBackend, VectorItem, VectorStore,
 };
 
@@ -15,7 +15,7 @@ use dfps_vector_store::{
     about = "Build NCIt vector index for mapping"
 )]
 struct Args {
-    /// Override namespace (defaults to DFPS_VECTOR_NAMESPACE)
+    /// Override namespace (defaults to refractive_swan_VECTOR_NAMESPACE)
     #[arg(long)]
     namespace: Option<String>,
     /// Limit how many NCIt concepts to index (useful for smoke runs)
@@ -47,7 +47,7 @@ fn run() -> CliResult<()> {
     }
     if !config.enabled {
         return Err(CliError::config(
-            "DFPS_VECTOR_ENABLED=false; set to true before building the index",
+            "refractive_swan_VECTOR_ENABLED=false; set to true before building the index",
         ));
     }
 

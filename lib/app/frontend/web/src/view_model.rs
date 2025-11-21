@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use dfps_contracts::{
+use refractive_swan_contracts::{
     PipelineMetrics,
     eval::{DatasetManifest, EvalSummary},
     pipeline::{MappingState, StgServiceRequestFlat, StgSrCodeExploded},
@@ -397,11 +397,11 @@ impl CohortView {
 mod tests {
     use super::*;
     use crate::client::MapBundlesResponse;
-    use dfps_contracts::pipeline::{
+    use refractive_swan_contracts::pipeline::{
         DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
         MappingThresholds, StgServiceRequestFlat, StgSrCodeExploded,
     };
-    use dfps_core::order::{ServiceRequestIntent, ServiceRequestStatus};
+    use refractive_swan_core::order::{ServiceRequestIntent, ServiceRequestStatus};
 
     fn sample_response() -> MapBundlesResponse {
         let flats = vec![

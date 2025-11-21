@@ -1,4 +1,4 @@
-//! Commonly used dfps_core types for ergonomic imports.
+//! Commonly used refractive_swan_core types for ergonomic imports.
 //!
 //! See:
 //! - docs/system-design/base/directory-architecture.md

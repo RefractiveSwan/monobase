@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use dfps_contracts::{
+use refractive_swan_contracts::{
     AnalyticsSummaryResponse, CohortResponse, ErrorCode, ErrorKind, EvalRunResponse, LoadSummary,
 };
 use schemars::{JsonSchema, schema_for};

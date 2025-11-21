@@ -27,7 +27,7 @@ pub use transforms::{
     service_request::sr_to_staging,
 };
 
-pub use dfps_validation_port::{
+pub use refractive_swan_validation_port::{
     ExternalValidationError, ExternalValidator, OperationOutcome, OperationOutcomeIssue,
 };
 pub use validation::external::ExternalValidationReport;

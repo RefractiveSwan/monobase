@@ -1,7 +1,7 @@
 //! Compliance policy definitions for license-aware gating across mapping, CLI, and export surfaces.
 //! See:
 //! - docs/kanban/feature/mvp/020-license-compliance-layer.md
-//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-11--platform-compliance--export-gating-dfps_compliance
+//! - docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-11--platform-compliance--export-gating-refractive_swan_compliance
 //! - docs/system-design/clinical/fhir/concepts/terminology-layer.md
 //! - docs/system-design/clinical/ncit/architecture.md
 
@@ -22,7 +22,7 @@ pub fn load_policy_from_env() -> Result<Policy, ComplianceError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_terminology::codesystem::LicenseTier;
+    use refractive_swan_terminology::codesystem::LicenseTier;
     use std::{
         collections::BTreeMap,
         env, fs,
@@ -50,31 +50,31 @@ mod tests {
         let internal = Policy::default_for_mode(ComplianceMode::Internal);
         assert!(internal.is_allowed(
             ComplianceAction::Map,
-            dfps_terminology::codesystem::LicenseTier::Licensed
+            refractive_swan_terminology::codesystem::LicenseTier::Licensed
         ));
         assert!(internal.is_allowed(
             ComplianceAction::Export,
-            dfps_terminology::codesystem::LicenseTier::InternalOnly
+            refractive_swan_terminology::codesystem::LicenseTier::InternalOnly
         ));
 
         let partner = Policy::default_for_mode(ComplianceMode::Partner);
         assert!(partner.is_allowed(
             ComplianceAction::Map,
-            dfps_terminology::codesystem::LicenseTier::Licensed
+            refractive_swan_terminology::codesystem::LicenseTier::Licensed
         ));
         assert!(!partner.is_allowed(
             ComplianceAction::Export,
-            dfps_terminology::codesystem::LicenseTier::InternalOnly
+            refractive_swan_terminology::codesystem::LicenseTier::InternalOnly
         ));
 
         let oss = Policy::default_for_mode(ComplianceMode::OpenSource);
         assert!(oss.is_allowed(
             ComplianceAction::Map,
-            dfps_terminology::codesystem::LicenseTier::Open
+            refractive_swan_terminology::codesystem::LicenseTier::Open
         ));
         assert!(!oss.is_allowed(
             ComplianceAction::Map,
-            dfps_terminology::codesystem::LicenseTier::Licensed
+            refractive_swan_terminology::codesystem::LicenseTier::Licensed
         ));
     }
 
@@ -101,11 +101,11 @@ mod tests {
     fn load_policy_from_env_respects_override_file() {
         let _lock = env_guard().lock().unwrap();
 
-        clear_env_var("DFPS_COMPLIANCE_MODE");
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        clear_env_var("refractive_swan_COMPLIANCE_MODE");
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
 
         let tmp_path = env::temp_dir().join(format!(
-            "dfps-compliance-policy-{}.json",
+            "refractive_swan-compliance-policy-{}.json",
             uuid::Uuid::new_v4()
         ));
         fs::write(
@@ -121,9 +121,9 @@ mod tests {
         )
         .unwrap();
 
-        set_env_var("DFPS_COMPLIANCE_MODE", "internal");
+        set_env_var("refractive_swan_COMPLIANCE_MODE", "internal");
         set_env_var(
-            "DFPS_COMPLIANCE_POLICY_PATH",
+            "refractive_swan_COMPLIANCE_POLICY_PATH",
             tmp_path.to_string_lossy().as_ref(),
         );
 
@@ -134,8 +134,8 @@ mod tests {
         assert!(policy.is_allowed(ComplianceAction::Map, LicenseTier::Open));
         assert!(!policy.is_allowed(ComplianceAction::Map, LicenseTier::Licensed));
 
-        clear_env_var("DFPS_COMPLIANCE_MODE");
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        clear_env_var("refractive_swan_COMPLIANCE_MODE");
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
         let _ = fs::remove_file(&tmp_path);
     }
 
@@ -143,7 +143,7 @@ mod tests {
     fn json_policy_overrides_cover_all_actions() {
         let _lock = env_guard().lock().unwrap();
         let tmp_path = env::temp_dir().join(format!(
-            "dfps-compliance-policy-{}.json",
+            "refractive_swan-compliance-policy-{}.json",
             uuid::Uuid::new_v4()
         ));
         fs::write(
@@ -161,7 +161,7 @@ mod tests {
         .unwrap();
 
         set_env_var(
-            "DFPS_COMPLIANCE_POLICY_PATH",
+            "refractive_swan_COMPLIANCE_POLICY_PATH",
             tmp_path.to_string_lossy().as_ref(),
         );
 
@@ -173,7 +173,7 @@ mod tests {
         assert!(!policy.is_allowed(ComplianceAction::Map, LicenseTier::Licensed));
         assert!(policy.is_allowed(ComplianceAction::Export, LicenseTier::Open));
 
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
         let _ = fs::remove_file(&tmp_path);
     }
 
@@ -181,7 +181,7 @@ mod tests {
     fn yaml_policy_overrides_apply() {
         let _lock = env_guard().lock().unwrap();
         let tmp_path = env::temp_dir().join(format!(
-            "dfps-compliance-policy-{}.yaml",
+            "refractive_swan-compliance-policy-{}.yaml",
             uuid::Uuid::new_v4()
         ));
         fs::write(
@@ -247,30 +247,30 @@ allowed_tiers:
     #[test]
     fn load_policy_reports_parse_error_for_malformed_override() {
         let _lock = env_guard().lock().unwrap();
-        clear_env_var("DFPS_COMPLIANCE_MODE");
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        clear_env_var("refractive_swan_COMPLIANCE_MODE");
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
         let tmp_path = env::temp_dir().join(format!(
-            "dfps-compliance-policy-invalid-{}.yaml",
+            "refractive_swan-compliance-policy-invalid-{}.yaml",
             uuid::Uuid::new_v4()
         ));
         fs::write(&tmp_path, "mode: [not valid").unwrap();
         set_env_var(
-            "DFPS_COMPLIANCE_POLICY_PATH",
+            "refractive_swan_COMPLIANCE_POLICY_PATH",
             tmp_path.to_string_lossy().as_ref(),
         );
         let err = load_policy_from_env().expect_err("invalid overrides should fail");
         matches!(err, ComplianceError::PolicyPathParse { .. });
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
         let _ = fs::remove_file(&tmp_path);
     }
 
     #[test]
     fn load_policy_reports_missing_override_file() {
         let _lock = env_guard().lock().unwrap();
-        let dir = env::temp_dir().join(format!("dfps-compliance-missing-{}", uuid::Uuid::new_v4()));
+        let dir = env::temp_dir().join(format!("refractive_swan-compliance-missing-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&dir).unwrap();
-        unsafe { env::set_var("DFPS_WORKSPACE_ROOT", &dir) };
-        set_env_var("DFPS_COMPLIANCE_POLICY_PATH", "not_there.json");
+        unsafe { env::set_var("refractive_swan_WORKSPACE_ROOT", &dir) };
+        set_env_var("refractive_swan_COMPLIANCE_POLICY_PATH", "not_there.json");
 
         let err = load_policy_from_env().expect_err("missing policy file should error");
         match err {
@@ -281,15 +281,15 @@ allowed_tiers:
             other => panic!("expected PolicyPathIo, got {other:?}"),
         }
 
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
-        unsafe { env::remove_var("DFPS_WORKSPACE_ROOT") };
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
+        unsafe { env::remove_var("refractive_swan_WORKSPACE_ROOT") };
         let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
     fn load_policy_uses_workspace_root_for_relative_path() {
         let _lock = env_guard().lock().unwrap();
-        let dir = env::temp_dir().join(format!("dfps-compliance-root-{}", uuid::Uuid::new_v4()));
+        let dir = env::temp_dir().join(format!("refractive_swan-compliance-root-{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(&dir).unwrap();
         let policy_path = dir.join("relative_policy.json");
         fs::write(
@@ -298,14 +298,14 @@ allowed_tiers:
         )
         .unwrap();
 
-        set_env_var("DFPS_WORKSPACE_ROOT", dir.to_string_lossy().as_ref());
-        set_env_var("DFPS_COMPLIANCE_POLICY_PATH", "relative_policy.json");
+        set_env_var("refractive_swan_WORKSPACE_ROOT", dir.to_string_lossy().as_ref());
+        set_env_var("refractive_swan_COMPLIANCE_POLICY_PATH", "relative_policy.json");
 
         let policy = load_policy_from_env().expect("relative policy loads");
         assert_eq!(policy.mode, ComplianceMode::Partner);
 
-        clear_env_var("DFPS_WORKSPACE_ROOT");
-        clear_env_var("DFPS_COMPLIANCE_POLICY_PATH");
+        clear_env_var("refractive_swan_WORKSPACE_ROOT");
+        clear_env_var("refractive_swan_COMPLIANCE_POLICY_PATH");
         let _ = fs::remove_file(policy_path);
         let _ = std::fs::remove_dir(dir);
     }

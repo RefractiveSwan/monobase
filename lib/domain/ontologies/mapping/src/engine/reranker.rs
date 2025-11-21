@@ -1,4 +1,4 @@
-use dfps_core::mapping::MappingCandidate;
+use refractive_swan_core::mapping::MappingCandidate;
 
 #[derive(Debug, Default)]
 pub struct RuleReranker;

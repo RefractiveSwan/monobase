@@ -1,4 +1,4 @@
-use dfps_core::mapping::{CodeElement, MappingCandidate};
+use refractive_swan_core::mapping::{CodeElement, MappingCandidate};
 #[cfg(feature = "obo-graph")]
 use once_cell::sync::Lazy;
 
@@ -18,7 +18,7 @@ fn contains_any(haystack: &str, needles: &[String]) -> bool {
 #[cfg(feature = "obo-graph")]
 fn pet_synonyms() -> &'static Vec<String> {
     static SYNONYMS: Lazy<Vec<String>> =
-        Lazy::new(|| dfps_terminology::synonym_set(PET_PRIMARY_NCIT_ID).unwrap_or_default());
+        Lazy::new(|| refractive_swan_terminology::synonym_set(PET_PRIMARY_NCIT_ID).unwrap_or_default());
     &SYNONYMS
 }
 
@@ -28,8 +28,8 @@ fn pet_related_synonyms() -> &'static Vec<String> {
 
     static RELATED: Lazy<Vec<String>> = Lazy::new(|| {
         let mut set = BTreeSet::new();
-        for related in dfps_terminology::related_concepts(PET_PRIMARY_NCIT_ID, 2) {
-            if let Some(syns) = dfps_terminology::synonym_set(&related) {
+        for related in refractive_swan_terminology::related_concepts(PET_PRIMARY_NCIT_ID, 2) {
+            if let Some(syns) = refractive_swan_terminology::synonym_set(&related) {
                 for syn in syns {
                     set.insert(syn);
                 }

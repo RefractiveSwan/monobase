@@ -1,4 +1,4 @@
-//! Shared test utilities for the DFPS workspace.
+//! Shared test utilities for the refractive_swan workspace.
 //!
 //! This crate exposes fixtures, assertions, and regression helpers that other
 //! crates (or workspace integration tests) can pull in without duplicating code.
@@ -16,6 +16,6 @@ pub use fixtures::*;
 pub use regression::*;
 
 pub fn ping() -> &'static str {
-    init_environment().expect("dfps_test_suite env");
+    init_environment().expect("refractive_swan_test_suite env");
     "test-suite-ready"
 }

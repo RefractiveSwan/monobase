@@ -1,4 +1,4 @@
-# Crate: lib/app/servers/datamart — `dfps_datamart`
+# Crate: lib/app/servers/datamart — `refractive_swan_datamart`
 
 **Purpose**  
 Build a small star schema from `PipelineOutput` for analytics/UI rendering.

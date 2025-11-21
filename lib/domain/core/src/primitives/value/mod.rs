@@ -1,4 +1,4 @@
-//! Strongly typed value objects (IDs) for the DFPS domain model.
+//! Strongly typed value objects (IDs) for the refractive_swan domain model.
 //!
 //! These types enforce invariants discussed in
 //! `docs/system-design/fhir/models/data-model-er.md` and provide the anchors

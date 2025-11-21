@@ -1,0 +1,7 @@
+[package]
+name = "refractive_swan_mesh_dto"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+refractive_swan_contracts = { path = "../../domain/meta/contracts" }

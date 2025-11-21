@@ -1,4 +1,4 @@
-# dfps_terminology_port
+# refractive_swan_terminology_port
 
 **Path:** `code/lib/domain/ports/terminology`
 

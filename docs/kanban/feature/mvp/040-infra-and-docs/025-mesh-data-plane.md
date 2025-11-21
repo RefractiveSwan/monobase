@@ -9,42 +9,46 @@ lib/
   domain/
     core/
     mapping/
-    pipeline/          (dfps_pipeline)
+    pipeline/          (refractive_swan_pipeline)
     eval/
-    contracts/         (dfps_contracts: shared DTOs)
+    contracts/         (refractive_swan_contracts: shared DTOs)
   dto/
-    web/               (dfps_web_dto: web-facing DTO veneer)
+    web/               (refractive_swan_web_dto: web-facing DTO veneer)
   platform/
     mesh/ 
-      node/            (dfps_mesh_node)       <- node runtime & governance integration
-      hub/             (dfps_mesh_hub)        <- research/orchestrator / FL coordinator
-      governance/      (dfps_mesh_governance) <- mesh-level policies, DP/query model, node descriptors
+      node/            (refractive_swan_mesh_node)       <- node runtime & governance integration
+      hub/             (refractive_swan_mesh_hub)        <- research/orchestrator / FL coordinator
+      governance/      (refractive_swan_mesh_governance) <- mesh-level policies, DP/query model, node descriptors
     data/
-      data-stack/    
-        mart/            (dfps_datamart)        <- dim/fact logic inside node
-        warehouse/       (dfps_datawarehouse)   <- backend-agnostic relational warehouse traits
-        lake/            (dfps_datalake)        <- local snapshots / Parquet/Delta lake inside node
+      data-plane/    
+        mart/            (refractive_swan_datamart)        <- dim/fact logic inside node
+        warehouse/       (refractive_swan_datawarehouse)   <- backend-agnostic relational warehouse traits
+        lake/            (refractive_swan_datalake)        <- local snapshots / Parquet/Delta lake inside node
       data-store/
-        relational_store (dfps_relational_store) <- SQLx/Postgres/DuckDB drivers, per node
-        vector_store     (dfps_vector_store)     <- Qdrant/PGVector, per node
-        cache_store      (dfps_cache_store)      <- Redis, per node
-        graph_store      (dfps_graph_store)      <- IndraDB / graph store, per node
+        relational_store (refractive_swan_relational_store) <- SQLx/Postgres/DuckDB drivers, per node
+        vector_store     (refractive_swan_vector_store)     <- Qdrant/PGVector, per node
+        cache_store      (refractive_swan_cache_store)      <- Redis, per node
+        graph_store      (refractive_swan_graph_store)      <- IndraDB / graph store, per node
 ```
 
 > **Current reality (high-level):**
 >
 > * Domain alignment in progress:
 >
->   * `lib/domain/core` (`dfps_core`), `ontologies/{ingestion,mapping,terminology}` (headed to `domain/meta/*`), `pipeline`, `eval`, `vector_port` (headed to `domain/ports/data/data-store/vector`).
+>   * `lib/domain/core` (`refractive_swan_core`), `ontologies/{ingestion,mapping,terminology}` (headed to `domain/meta/*`), `pipeline`, `eval`, `vector_port` (headed to `domain/ports/data/data-store/vector`).
 > * DTO layer seeded:
 >
->   * `lib/dto/web` (`dfps_web_dto`) already exists; CLI + mesh veneers will land under the `domain/ports/data/dto` subtree per REFR-027.
+>   * `lib/dto/web` (`refractive_swan_web_dto`), `lib/dto/cli` (`refractive_swan_cli_dto`), and `lib/dto/mesh` (`refractive_swan_mesh_dto`) now sit under `domain/ports/data/dto`, keeping each surface on a curated DTO veneer per REFR-027.
 > * Platform exists but has no `data/`, `store/`, or `mesh/` yet:
 >
 >   * `lib/platform/{compliance,configuration,observability,test_suite}`.
-> * App servers still host what will become platform/data & platform/store:
+> * Platform/data-store migration status:
 >
->   * `lib/app/servers/{api,datamart,vector_store}`.
+>   * `refractive_swan_datamart` now lives under `lib/platform/data/data-plane/mart`.
+>   * `refractive_swan_vector_store` now lives under `lib/platform/data/data-stores/vector_store`.
+> * App server still hosting runtime orchestration:
+>
+>   * `lib/app/servers/api` (HTTP adapter) – target for `refractive_swan_mesh_node`.
 
 This kanban is about **designing and sequencing** the move from the current layout to the target `platform/{data,store,mesh}` layout without changing that target tree.
 
@@ -101,13 +105,13 @@ This kanban is about **designing and sequencing** the move from the current layo
 ### MESH-01 – Domain surface & contracts alignment ✅
 
 * [x] **MESH-01A – Vector port verification**
-  * [x] Verified no domain crate depends directly on `dfps_vector_store`
-  * [x] Verified `dfps_vector_port` contains full trait surface
+  * [x] Verified no domain crate depends directly on `refractive_swan_vector_store`
+  * [x] Verified `refractive_swan_vector_port` contains full trait surface
   * [x] Created `lib/domain/vector_port/README.md`
 
 * [x] **MESH-01B – Contracts as node/hub boundary**
-  * [x] Extended `dfps_contracts` with mesh module
-  * [x] All HTTP-facing DTOs originate from `dfps_contracts`
+  * [x] Extended `refractive_swan_contracts` with mesh module
+  * [x] All HTTP-facing DTOs originate from `refractive_swan_contracts`
 
 * [x] **MESH-01C – Mesh-level contracts**
   * [x] Created `lib/domain/contracts/src/mesh.rs`
@@ -165,9 +169,9 @@ This kanban is about **designing and sequencing** the move from the current layo
   * [x] Documented NodeDataPlane struct design
   * [x] Documented responsibilities
 
-* [x] **MESH-04B – Annotate current `dfps_api` as proto-node**
+* [x] **MESH-04B – Annotate current `refractive_swan_api` as proto-node**
   * [x] Updated `lib/app/servers/api/README.md`
-  * [x] Added "Relation to dfps_mesh_node" section
+  * [x] Added "Relation to refractive_swan_mesh_node" section
   * [x] Documented ApiState ~ NodeDataPlane relationship
 
 ---
@@ -212,7 +216,7 @@ Phase 1 (design-level) complete:
 Phase 2+ will be tracked in separate implementation kanbans focusing on:
 - Internal aliasing (re-exports)
 - Physical crate moves
-- `dfps_mesh_node` extraction from `dfps_api`
+- `refractive_swan_mesh_node` extraction from `refractive_swan_api`
 
 
 **Summary:**
@@ -229,7 +233,7 @@ Phase 1 (design-level) complete:
 Phase 2+ will be tracked in separate implementation kanbans focusing on:
 - Internal aliasing (re-exports)
 - Physical crate moves
-- `dfps_mesh_node` extraction from `dfps_api`
+- `refractive_swan_mesh_node` extraction from `refractive_swan_api`
 
 See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
@@ -270,14 +274,14 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
       | Current crate                    | Future home                               |
       | -------------------------------- | ----------------------------------------- |
-      | `lib/app/servers/api` (dfps_api) | `lib/platform/mesh/node` (dfps_mesh_node) |
-      | `lib/app/servers/datamart`       | `lib/platform/data/mart` (dfps_datamart)  |
+      | `lib/app/servers/api` (refractive_swan_api) | `lib/platform/mesh/node` (refractive_swan_mesh_node) |
+      | `lib/app/servers/datamart`       | `lib/platform/data/mart` (refractive_swan_datamart)  |
       | `lib/app/servers/vector_store`   | `lib/platform/store/vector_store`         |
-      | `lib/domain/vector_port`         | stays domain (`dfps_vector_port`)         |
-      | `lib/platform/compliance`        | stays (`dfps_compliance`)                 |
-      | `lib/platform/observability`     | stays (`dfps_observability`)              |
-      | `lib/platform/configuration`     | stays (`dfps_configuration`)              |
-      | `lib/platform/test_suite`        | stays (`dfps_test_suite`)                 |
+      | `lib/domain/vector_port`         | stays domain (`refractive_swan_vector_port`)         |
+      | `lib/platform/compliance`        | stays (`refractive_swan_compliance`)                 |
+      | `lib/platform/observability`     | stays (`refractive_swan_observability`)              |
+      | `lib/platform/configuration`     | stays (`refractive_swan_configuration`)              |
+      | `lib/platform/test_suite`        | stays (`refractive_swan_test_suite`)                 |
 
 * [ ] **MESH-00B – Naming & stability guardrails**
 
@@ -286,15 +290,15 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
     * [ ] Add an explicit “**DO NOT** change” block for the planned `platform/data`, `platform/store`, `platform/mesh` directories: names and depth are stable.
     * [ ] Record that:
 
-      * `dfps_datamart` always lives conceptually at `platform/data/mart` (even while physically under `app/servers` until migration).
-      * `dfps_vector_store` is the **platform store** implementing `dfps_vector_port` and **must** end up in `platform/store/vector_store` (even if physically under `app/servers` short-term).
-      * `dfps_mesh_node`,`dfps_mesh_hub`,`dfps_mesh_governance` will only exist under `platform/mesh`.
+      * `refractive_swan_datamart` always lives conceptually at `platform/data/mart` (even while physically under `app/servers` until migration).
+      * `refractive_swan_vector_store` is the **platform store** implementing `refractive_swan_vector_port` and **must** end up in `platform/store/vector_store` (even if physically under `app/servers` short-term).
+      * `refractive_swan_mesh_node`,`refractive_swan_mesh_hub`,`refractive_swan_mesh_governance` will only exist under `platform/mesh`.
 
 ---
 
 ### MESH-01 – Domain surface & contracts alignment (anchored in current domain layout)
 
-**Goal:** Confirm the domain layer (`core`, `ontologies/{ingestion,mapping,terminology}`, `pipeline`, `eval`, `contracts`, `vector_port`) can be used unchanged by **any** future node/hub under `platform/mesh/*`, and that `dfps_contracts` is the canonical cross-node contract layer.
+**Goal:** Confirm the domain layer (`core`, `ontologies/{ingestion,mapping,terminology}`, `pipeline`, `eval`, `contracts`, `vector_port`) can be used unchanged by **any** future node/hub under `platform/mesh/*`, and that `refractive_swan_contracts` is the canonical cross-node contract layer.
 
 **Scope:** `lib/domain/{core,eval,pipeline,contracts,vector_port,ontologies/*}`
 
@@ -302,16 +306,16 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
   * [ ] Assert (via docs + quick grep) that:
 
-    * [ ] No domain crate depends directly on `dfps_vector_store`; all domain crates (`dfps_mapping`, `dfps_pipeline`, `dfps_observability`) use `dfps_vector_port` *only*.
-    * [ ] `dfps_vector_port` contains the full trait surface needed by mapping/pipeline (search, index, usage snapshot), with no Qdrant/PGVector specifics.
+    * [ ] No domain crate depends directly on `refractive_swan_vector_store`; all domain crates (`refractive_swan_mapping`, `refractive_swan_pipeline`, `refractive_swan_observability`) use `refractive_swan_vector_port` *only*.
+    * [ ] `refractive_swan_vector_port` contains the full trait surface needed by mapping/pipeline (search, index, usage snapshot), with no Qdrant/PGVector specifics.
   * [ ] Update `lib/domain/vector_port/README.md` (if missing) to:
 
-    * [ ] Explicitly call out that `dfps_vector_store` (future `platform/store/vector_store`) is *one* implementation of this port.
-    * [ ] Describe the expectation that `dfps_mesh_node` wires a `dfps_vector_store` that implements the `dfps_vector_port` trait.
+    * [ ] Explicitly call out that `refractive_swan_vector_store` (future `platform/store/vector_store`) is *one* implementation of this port.
+    * [ ] Describe the expectation that `refractive_swan_mesh_node` wires a `refractive_swan_vector_store` that implements the `refractive_swan_vector_port` trait.
 
 * [ ] **MESH-01B – Contracts as node/hub boundary**
 
-  * [ ] Extend `dfps_contracts` to have explicit *sections*:
+  * [ ] Extend `refractive_swan_contracts` to have explicit *sections*:
 
     ```text
     contracts/
@@ -322,21 +326,21 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
       mesh.rs         (MeshNodeId, NodeCapabilities, MeshJobDescriptor, MeshJobResult, MeshErrorKind)
     ```
 
-  * [ ] Move HTTP-facing DTOs out of `dfps_api` where appropriate:
+  * [ ] Move HTTP-facing DTOs out of `refractive_swan_api` where appropriate:
 
-    * [ ] `AnalyticsSummaryResponse`, `AnalyticsNcitSummaryRow`, `CohortResponse`, `CohortRow`, `EvalRunResponse` should be re-exported from `dfps_contracts` and referenced in API/web/CLI.
+    * [ ] `AnalyticsSummaryResponse`, `AnalyticsNcitSummaryRow`, `CohortResponse`, `CohortRow`, `EvalRunResponse` should be re-exported from `refractive_swan_contracts` and referenced in API/web/CLI.
 
-  * [ ] In `dfps_api` and `dfps_web_frontend`, ensure there are **no bespoke analytics/eval DTO structs**; everything comes from `dfps_contracts`.
+  * [ ] In `refractive_swan_api` and `refractive_swan_web_frontend`, ensure there are **no bespoke analytics/eval DTO structs**; everything comes from `refractive_swan_contracts`.
 
 * [ ] **MESH-01C – Mesh-level contracts**
 
-  * [ ] In `dfps_contracts::mesh`:
+  * [ ] In `refractive_swan_contracts::mesh` (re-exported via `refractive_swan_mesh_dto`):
 
     * [ ] Add `MeshNodeId` (opaque string or UUID) and `NodeCapabilities` (vector backend, warehouse backend, compliance mode, max dataset size).
     * [ ] Add `MeshJobDescriptor` (job type enum: `EvalDataset`, `AnalyticsQuery`, `MappingHealthCheck`) + job parameters.
     * [ ] Add `MeshJobResult` (per-node result: status, metrics snapshot, optional error).
     * [ ] Add `MeshErrorKind` (`NodeUnavailable`, `JobRejected`, `PolicyDenied`, `Internal`) and `MeshErrorCode` strings.
-  * [ ] Document that **only** `dfps_mesh_node` and `dfps_mesh_hub` are allowed to use these contracts directly; apps/CLIs remain node-local.
+  * [ ] Document that **only** `refractive_swan_mesh_node` and `refractive_swan_mesh_hub` are allowed to use these contracts directly; apps/CLIs remain node-local.
 
 ---
 
@@ -360,7 +364,7 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
   * [ ] In each README, document the **intent** and the mapping to current crates, e.g.:
 
-    * `store/vector_store/README.md`: “Currently implemented in `lib/app/servers/vector_store` (`dfps_vector_store`). Will be moved here once mesh node is stable. Domain never depends on this crate directly; it uses `dfps_vector_port`.”
+    * `store/vector_store/README.md`: “Currently implemented in `lib/app/servers/vector_store` (`refractive_swan_vector_store`). Will be moved here once mesh node is stable. Domain never depends on this crate directly; it uses `refractive_swan_vector_port`.”
 
 * [ ] **MESH-02B – Relational store abstraction design (no code move yet)**
 
@@ -390,11 +394,11 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
       }
       ```
 
-    * [ ] Note that **today** `dfps_datamart`’s `WarehouseConfig` and SQLx-specific connection logic live in `lib/app/servers/datamart/src/sql.rs`, and will be refactored to use these traits.
+    * [ ] Note that **today** `refractive_swan_datamart`’s `WarehouseConfig` and SQLx-specific connection logic live in `lib/app/servers/datamart/src/sql.rs`, and will be refactored to use these traits.
 
   * [ ] Add a design checklist:
 
-    * [ ] Keep SQLx concretions behind this crate; `dfps_datamart` should depend on `RelationalConfig + traits`, not `sqlx` directly.
+    * [ ] Keep SQLx concretions behind this crate; `refractive_swan_datamart` should depend on `RelationalConfig + traits`, not `sqlx` directly.
 
 * [ ] **MESH-02C – Vector store as platform store (link current crate)**
 
@@ -402,19 +406,19 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
     * [ ] Explicitly state that:
 
-      * `dfps_vector_port` is the **domain** trait crate.
-      * `dfps_vector_store` (`lib/app/servers/vector_store`) is the **current** platform implementation, planned to move into this directory once `dfps_mesh_node` is stable.
+      * `refractive_swan_vector_port` is the **domain** trait crate.
+      * `refractive_swan_vector_store` (`lib/app/servers/vector_store`) is the **current** platform implementation, planned to move into this directory once `refractive_swan_mesh_node` is stable.
     * [ ] Add a little map:
 
       | Layer   | Crate               | Responsibilities                            |
       | ------- | ------------------- | ------------------------------------------- |
-      | Domain  | `dfps_vector_port`  | traits, errors, embedding metadata          |
-      | Store   | `dfps_vector_store` | Qdrant/PGVector configs & drivers           |
-      | Runtime | `dfps_mesh_node`    | choose backend, build pool/context per node |
+      | Domain  | `refractive_swan_vector_port`  | traits, errors, embedding metadata          |
+      | Store   | `refractive_swan_vector_store` | Qdrant/PGVector configs & drivers           |
+      | Runtime | `refractive_swan_mesh_node`    | choose backend, build pool/context per node |
 
   * [ ] Plan (no code yet) to:
 
-    * [ ] Introduce a `dfps_vector_store::from_config(cfg: VectorStoreRuntimeConfig)` that returns `Arc<dyn VectorStorePort>` so `dfps_mesh_node` can remain ignorant of Qdrant/PGVector specifics.
+    * [ ] Introduce a `refractive_swan_vector_store::from_config(cfg: VectorStoreRuntimeConfig)` that returns `Arc<dyn VectorStorePort>` so `refractive_swan_mesh_node` can remain ignorant of Qdrant/PGVector specifics.
 
 * [ ] **MESH-02D – Cache/graph store design stubs**
 
@@ -423,13 +427,13 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
     * [ ] Sketch a small `CacheStore` trait (get/set/delete/incr) and mention Redis as the first backend.
   * [ ] `lib/platform/store/graph_store/README.md`:
 
-    * [ ] Sketch a `GraphStore` trait and note the relationship to `dfps_terminology::obo_graph`; IndraDB (or a similar backend) is a future implementation.
+    * [ ] Sketch a `GraphStore` trait and note the relationship to `refractive_swan_terminology::obo_graph`; IndraDB (or a similar backend) is a future implementation.
 
 ---
 
 ### MESH-03 – Platform data layer (mart/warehouse/lake) starting from `app/servers/datamart`
 
-**Goal:** Move the *concept* of datamart/warehouse from `app/servers` to `platform/data/{mart,warehouse}`, keeping the planned directory names exactly as-is, and using `dfps_datamart` as the seed.
+**Goal:** Move the *concept* of datamart/warehouse from `app/servers` to `platform/data/{mart,warehouse}`, keeping the planned directory names exactly as-is, and using `refractive_swan_datamart` as the seed.
 
 **Scope:** `lib/platform/data/{mart,warehouse,lake}` (new), `lib/app/servers/datamart`
 
@@ -439,15 +443,15 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
     ```text
     lib/platform/data
-      mart/       (README only: conceptually hosts dfps_datamart)
+      mart/       (README only: conceptually hosts refractive_swan_datamart)
       warehouse/  (README only)
       lake/       (README only)
     ```
 
   * [ ] In `data/mart/README.md`:
 
-    * [ ] State that the existing `dfps_datamart` crate in `app/servers/datamart` is the **mart**; physical move will be a later MESH-impl card.
-    * [ ] Summarize the mart schema: `Dim*` + `FactServiceRequest`, and how it consumes `dfps_contracts::PipelineOutput`.
+    * [ ] State that the existing `refractive_swan_datamart` crate in `app/servers/datamart` is the **mart**; physical move will be a later MESH-impl card.
+    * [ ] Summarize the mart schema: `Dim*` + `FactServiceRequest`, and how it consumes `refractive_swan_contracts::PipelineOutput`.
 
 * [ ] **MESH-03B – Warehouse model (design)**
 
@@ -461,8 +465,8 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
       * `WarehouseAnalytics` – `ncit_summary`, `cohort`, plus future derived views.
   * [ ] Document that:
 
-    * [ ] `dfps_mesh_node` uses `WarehouseLoader` + `WarehouseAnalytics` for node-local analytics.
-    * [ ] `dfps_mesh_hub` might read only aggregated views, never raw facts.
+    * [ ] `refractive_swan_mesh_node` uses `WarehouseLoader` + `WarehouseAnalytics` for node-local analytics.
+    * [ ] `refractive_swan_mesh_hub` might read only aggregated views, never raw facts.
 
 * [ ] **MESH-03C – Lake model (design)**
 
@@ -473,13 +477,13 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
   * [ ] Describe minimal use-cases:
 
     * [ ] Node snapshots (daily/weekly dumps of `fact_service_request` with DP noise).
-    * [ ] Hub ingestion of snapshots when allowed by `dfps_compliance` + `dfps_mesh_governance`.
+    * [ ] Hub ingestion of snapshots when allowed by `refractive_swan_compliance` + `refractive_swan_mesh_governance`.
 
 ---
 
-### MESH-04 – Mesh node runtime (`dfps_mesh_node`) grounded in current `dfps_api`
+### MESH-04 – Mesh node runtime (`refractive_swan_mesh_node`) grounded in current `refractive_swan_api`
 
-**Goal:** Treat the existing `dfps_api` as the initial implementation of `dfps_mesh_node`, designing a `NodeDataPlane` that wires domain + platform crates, and planning the eventual relocation into `platform/mesh/node` (without changing that directory layout).
+**Goal:** Treat the existing `refractive_swan_api` as the initial implementation of `refractive_swan_mesh_node`, designing a `NodeDataPlane` that wires domain + platform crates, and planning the eventual relocation into `platform/mesh/node` (without changing that directory layout).
 
 **Scope:** `lib/app/servers/api`, new `lib/platform/mesh/node` (design + future crate)
 
@@ -489,27 +493,27 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
 
     * [ ] A `NodeDataPlane` struct with fields:
 
-      * `pipeline_port: dfps_pipeline` (or a small `PipelinePort` trait).
-      * `datamart_sink: dfps_datamart` (or `Mart` trait).
+      * `pipeline_port: refractive_swan_pipeline` (or a small `PipelinePort` trait).
+      * `datamart_sink: refractive_swan_datamart` (or `Mart` trait).
       * `relational_cfg: RelationalConfig`, `relational_pool`.
-      * `vector_runtime: dfps_vector_store` implementing `dfps_vector_port`.
-      * `compliance_policy: dfps_compliance::Policy`.
-      * `dataset_store: dfps_eval::FileDatasetStore`.
-      * `metrics: dfps_observability::PipelineMetrics`.
+      * `vector_runtime: refractive_swan_vector_store` implementing `refractive_swan_vector_port`.
+      * `compliance_policy: refractive_swan_compliance::Policy`.
+      * `dataset_store: refractive_swan_eval::FileDatasetStore`.
+      * `metrics: refractive_swan_observability::PipelineMetrics`.
     * [ ] Responsibilities:
 
       * `run_mapping_job(bundles)` → `PipelineOutput` + `LoadSummary` (or disabled datamart).
       * `run_analytics_job(query)` → analytics contracts.
       * `run_eval_job(request)` → eval contracts.
 
-* [ ] **MESH-04B – Annotate current `dfps_api` as proto-node**
+* [ ] **MESH-04B – Annotate current `refractive_swan_api` as proto-node**
 
-  * [ ] In `lib/app/servers/api/README.md`, add a section “**Relation to dfps_mesh_node**”:
+  * [ ] In `lib/app/servers/api/README.md`, add a section “**Relation to refractive_swan_mesh_node**”:
 
-    * [ ] Explicitly call `dfps_api` the *current node runtime*, to be moved into `platform/mesh/node` when stable.
+    * [ ] Explicitly call `refractive_swan_api` the *current node runtime*, to be moved into `platform/mesh/node` when stable.
     * [ ] Note that `ApiState` ~ early `NodeDataPlane` (but still fused with HTTP concerns).
 
-  * [ ] In `dfps_api::server`:
+  * [ ] In `refractive_swan_api::server`:
 
     * [ ] Add comments or a mini `NodeDataPlane` struct (still in this crate) that:
 
@@ -531,18 +535,18 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
     * [ ] `QueryClass` (`MappingJob`, `AnalyticsJob`, `EvalJob`, `ExportJob`, `NodeIntrospection`).
     * [ ] `QueryDescriptor` (class + parameters: dataset, cohort filters, time range, expected cardinality).
     * [ ] `GovernanceDecision` enum (`Allow`, `Deny`, `AllowWithNoise`).
-    * [ ] `NodePolicy` referencing `dfps_contracts::mesh::NodeCapabilities`.
+    * [ ] `NodePolicy` referencing `refractive_swan_mesh_dto::NodeCapabilities`.
 
   * [ ] Specify integration points:
 
-    * [ ] `dfps_mesh_node` (today `dfps_api`) should call governance before executing jobs, but actual wiring can wait for implementation epics.
+    * [ ] `refractive_swan_mesh_node` (today `refractive_swan_api`) should call governance before executing jobs, but actual wiring can wait for implementation epics.
 
 * [ ] **MESH-05B – Hub model**
 
   * [ ] Create `lib/platform/mesh/hub/README.md` describing:
 
     * [ ] `HubConfig` (list of node URLs/IDs, auth, timeouts, backoff).
-    * [ ] `NodeRegistry` (NodeId → NodeMetadata from `dfps_contracts`).
+    * [ ] `NodeRegistry` (NodeId → NodeMetadata from `refractive_swan_contracts`).
     * [ ] `JobQueue` (Meshes `MeshJobDescriptor` to nodes; collects `MeshJobResult`).
 
   * [ ] Describe how existing endpoints (`/api/eval/*`, `/analytics/*`) could be used as **node APIs** that the hub calls, without changing the contracts.
@@ -560,20 +564,20 @@ See `docs/system-design/mesh/migration-plan.md` for detailed timeline.
   * [ ] In `docs/system-design/mesh/migration-plan.md`, define phases:
 
     * Phase 1 – *Conceptual only*: introduce `platform/data/*` and `platform/store/*` READMEs (no code move).
-    * Phase 2 – *Internal aliasing*: `dfps_datamart` and `dfps_vector_store` get alias crates or module re-exports under `platform/data/mart` and `platform/store/vector_store`.
+    * Phase 2 – *Internal aliasing*: `refractive_swan_datamart` and `refractive_swan_vector_store` get alias crates or module re-exports under `platform/data/mart` and `platform/store/vector_store`.
     * Phase 3 – *Physical move*: once tests are stable, switch the `Cargo.toml` paths to the new directories.
-    * Phase 4 – *Mesh node*: move `dfps_api` into `platform/mesh/node` as `dfps_mesh_node`, keeping a thin `dfps_api` shim.
+    * Phase 4 – *Mesh node*: move `refractive_swan_api` into `platform/mesh/node` as `refractive_swan_mesh_node`, keeping a thin `refractive_swan_api` shim.
 
 * [ ] **MESH-06B – Runbooks**
 
   * [ ] Add `docs/runbook/mesh-node-quickstart.md`:
 
-    * [ ] Based on current crates: `dfps_api` (node), `dfps_datamart` (warehouse), `dfps_vector_store` (vector store), `dfps_compliance`, `dfps_configuration`.
+    * [ ] Based on current crates: `refractive_swan_api` (node), `refractive_swan_datamart` (warehouse), `refractive_swan_vector_store` (vector store), `refractive_swan_compliance`, `refractive_swan_configuration`.
     * [ ] Show env profiles for “standalone node mode” (no hub) with SQLite + Qdrant/PGVector.
 
   * [ ] Add `docs/runbook/mesh-hub-quickstart.md` (design-level for now):
 
-    * [ ] Outline how a future `dfps_mesh_hub` would call `dfps_mesh_node` (today `dfps_api`) endpoints with the new `mesh` contracts.
+    * [ ] Outline how a future `refractive_swan_mesh_hub` would call `refractive_swan_mesh_node` (today `refractive_swan_api`) endpoints with the new `mesh` contracts.
 
 ---
 

@@ -11,7 +11,7 @@ use crate::{
     views,
 };
 
-const MAX_UPLOAD_BYTES: usize = 512 * 1024; // Mirrors dfps_cli bundle cap.
+const MAX_UPLOAD_BYTES: usize = 512 * 1024; // Mirrors refractive_swan_cli bundle cap.
 
 /// Registers mapping-specific HTMX endpoints.
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -53,7 +53,7 @@ pub async fn map_from_paste(
     }
 }
 
-/// Handles HTMX upload flow, mirroring dfps_cli ingestion size/error semantics.
+/// Handles HTMX upload flow, mirroring refractive_swan_cli ingestion size/error semantics.
 pub async fn map_from_upload(
     state: web::Data<AppState>,
     req: HttpRequest,
@@ -89,7 +89,7 @@ pub async fn map_from_upload(
     }
 }
 
-/// Posts JSON payloads to dfps_api /api/map-bundles and wires the HTMX fragment response.
+/// Posts JSON payloads to refractive_swan_api /api/map-bundles and wires the HTMX fragment response.
 async fn handle_mapping(
     payload: serde_json::Value,
     state: web::Data<AppState>,
@@ -176,12 +176,12 @@ async fn read_bundle_file(payload: &mut Multipart) -> Result<Option<String>, Str
 mod tests {
     use super::*;
     use actix_web::{App, test, web};
-    use dfps_contracts::pipeline::{
+    use refractive_swan_contracts::pipeline::{
         DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
         MappingThresholds, StgServiceRequestFlat, StgSrCodeExploded,
     };
-    use dfps_core::order::{ServiceRequestIntent, ServiceRequestStatus};
-    use dfps_observability::PipelineMetrics;
+    use refractive_swan_core::order::{ServiceRequestIntent, ServiceRequestStatus};
+    use refractive_swan_observability::PipelineMetrics;
     use serde_json::json;
     use std::{sync::Arc, time::Duration};
     use wiremock::{
@@ -292,7 +292,7 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let dataset_store = Arc::new(dfps_eval::FileDatasetStore::default());
+        let dataset_store = Arc::new(refractive_swan_eval::FileDatasetStore::default());
         let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(
             App::new()

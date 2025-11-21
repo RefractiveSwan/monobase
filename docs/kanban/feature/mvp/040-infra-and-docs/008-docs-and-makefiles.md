@@ -23,7 +23,7 @@
 - _Empty_
 
 ## REVIEW
-- [ ] Confirm `/docs` redirects to the configured `DFPS_DOCS_URL`.
+- [ ] Confirm `/docs` redirects to the configured `refractive_swan_DOCS_URL`.
 - [ ] Confirm `make` targets succeed across the workspace on a clean checkout.
 
 ### DOCS-01 – mdBook scaffold
@@ -39,7 +39,7 @@
 - [x] `cargo make docs-serve` runs `mdbook serve` for local browsing.
 
 ### DOCS-04 – Web UI integration
-- [x] Add `DFPS_DOCS_URL` support to `dfps_web_frontend`; when set, `/docs` redirects there.
+- [x] Add `refractive_swan_DOCS_URL` support to `refractive_swan_web_frontend`; when set, `/docs` redirects there.
 - [x] Update the frontend README with the new env var.
 
 ### MAKE-01 – Workspace Makefile
@@ -47,27 +47,27 @@
   - [x] `build`, `check`, `fmt`, `clippy`, `test`, `ci`, `clean`
   - [x] `docs`, `docs-sync`, `docs-serve`
   - [x] `api` (backend), `web` (frontend)
-  - [x] `map-bundles` / `map-codes` (wrapping `dfps_cli`)
+  - [x] `map-bundles` / `map-codes` (wrapping `refractive_swan_cli`)
 - [x] Ensure commands run as `make <target>` from `code/`.
 
 ### DOCS-05 – Makefile quickstart
 - [x] Add `docs/runbook/makefile-quickstart.md` covering:
   - [x] Installing `mdbook` for docs targets.
   - [x] Core targets (`cargo make build`, `cargo make ci`, `cargo make docs`, `cargo make web`, etc.).
-  - [x] How `DFPS_ENV` / env profiles interact with targets.
+  - [x] How `refractive_swan_ENV` / env profiles interact with targets.
 
 ---
 
 - `docs/book/` scaffolded with runbook + kanban navigation.
 - `cargo make docs-sync`, `cargo make docs`, and `cargo make docs-serve` manage the mdBook pipeline.
-- Web frontend redirects `/docs` to `DFPS_DOCS_URL`; README documents the env var.
+- Web frontend redirects `/docs` to `refractive_swan_DOCS_URL`; README documents the env var.
 - Workspace `Makefile` and `docs/runbook/makefile-quickstart.md` describe all targets.
 
 ---
 
 ## Acceptance Criteria
 - `cargo make docs` builds mdBook without errors.
-- `cargo make web` serves the UI and, when `DFPS_DOCS_URL` is set, `/docs` redirects there.
+- `cargo make web` serves the UI and, when `refractive_swan_DOCS_URL` is set, `/docs` redirects there.
 - `cargo make ci` runs fmt, clippy (`-D warnings`), and tests successfully.
 
 ## Out of Scope

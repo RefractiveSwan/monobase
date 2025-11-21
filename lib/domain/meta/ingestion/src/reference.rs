@@ -1,4 +1,4 @@
-use dfps_core::fhir;
+use refractive_swan_core::fhir;
 
 /// Extracts the ID component from a `"ResourceType/id"` reference string.
 pub fn reference_id_from_str(reference: &str) -> Option<&str> {

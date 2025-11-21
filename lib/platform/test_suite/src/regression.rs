@@ -1,10 +1,10 @@
-use dfps_core::{fhir, order::ServiceRequest};
-use dfps_eval::fake_data::fixtures::{self, Registry};
+use refractive_swan_core::{fhir, order::ServiceRequest};
+use refractive_swan_eval::fake_data::fixtures::{self, Registry};
 use once_cell::sync::Lazy;
 
 static REGRESSION_ENV: Lazy<()> = Lazy::new(|| {
-    crate::init_environment().expect("dfps_test_suite env");
-    crate::ensure_eval_data_root().expect("init DFPS_EVAL_DATA_ROOT");
+    crate::init_environment().expect("refractive_swan_test_suite env");
+    crate::ensure_eval_data_root().expect("init refractive_swan_EVAL_DATA_ROOT");
 });
 
 static FIXTURE_REGISTRY: Lazy<Registry> = Lazy::new(Registry::default);

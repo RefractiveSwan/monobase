@@ -1,7 +1,7 @@
 # Design & Style Refinement - Implementation Summary
 
 ## Overview
-Successfully implemented a comprehensive design polish for the DFPS Mapping Workbench, focusing on professional aesthetics, accessibility, and user experience. The implementation covers all three phases of the design kanban.
+Successfully implemented a comprehensive design polish for the refractive_swan Mapping Workbench, focusing on professional aesthetics, accessibility, and user experience. The implementation covers all three phases of the design kanban.
 
 ## Key Improvements
 
@@ -54,7 +54,7 @@ Successfully implemented a comprehensive design polish for the DFPS Mapping Work
 - **Accessibility**: Semantic HTML, ARIA labels on icons, high-contrast text.
 
 ## Verification
-- **Automated Tests**: All existing tests passed (`cargo test -p dfps_web_frontend`).
+- **Automated Tests**: All existing tests passed (`cargo test -p refractive_swan_web_frontend`).
 - **Visual Verification**: Browser screenshots confirmed layout, icons, and interactive elements are rendering correctly.
 - **Snapshot Tests**: Verified that changes to visual components (icons, progress bars) did not regress existing logic (snapshots remained stable where logic was unchanged).
 

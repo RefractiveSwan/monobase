@@ -1,10 +1,10 @@
-# Crate: lib/platform/observability — `dfps_observability`
+# Crate: lib/platform/observability — `refractive_swan_observability`
 
 **Purpose**  
 Shared logging + metrics for the Bundle → NCIt mapping pipeline.
 
 **Env**
-- Loads `platform.observability` via `dfps_configuration::load_env("platform.observability")`.
+- Loads `platform.observability` via `refractive_swan_configuration::load_env("platform.observability")`.
 
 **Types & functions**
 ```rust
@@ -39,8 +39,8 @@ pub fn log_no_match(result: &MappingResult);
 ```
 
 **Logging targets**
-- `dfps_pipeline` (info): per‑bundle summary (flats, mappings, cumulative state counts).
-- `dfps_mapping` (warn): each `MappingState::NoMatch` with a reason.
+- `refractive_swan_pipeline` (info): per‑bundle summary (flats, mappings, cumulative state counts).
+- `refractive_swan_mapping` (warn): each `MappingState::NoMatch` with a reason.
 
 **Used by**
-- `dfps_cli`, `dfps_api`, tests in `dfps_test_suite`.
+- `refractive_swan_cli`, `refractive_swan_api`, tests in `refractive_swan_test_suite`.

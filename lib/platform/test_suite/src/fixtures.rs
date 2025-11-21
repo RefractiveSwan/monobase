@@ -1,6 +1,6 @@
-use dfps_core::{order::ServiceRequest, staging::StgSrCodeExploded};
-use dfps_eval::EvalCase;
-use dfps_eval::fake_data::{
+use refractive_swan_core::{order::ServiceRequest, staging::StgSrCodeExploded};
+use refractive_swan_eval::EvalCase;
+use refractive_swan_eval::fake_data::{
     ServiceRequestScenario, fake_service_request_for,
     fixtures::{self, Registry},
     scenarios::{fake_service_request_scenario, fake_service_request_scenario_with_seed},
@@ -66,6 +66,6 @@ pub fn mapping_ncit_obo_code() -> StgSrCodeExploded {
 }
 
 pub fn eval_pet_ct_small_cases() -> Vec<EvalCase> {
-    dfps_eval::load_dataset("pet_ct_small")
+    refractive_swan_eval::load_dataset("pet_ct_small")
         .expect("pet_ct_small dataset should load from lib/domain/meta/evaluation/data/eval")
 }

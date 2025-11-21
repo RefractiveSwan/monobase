@@ -5,14 +5,14 @@ against the gold NDJSON fixtures.
 
 ## Prerequisites
 - Rust toolchain (install via `data/scripts/install_rust_tooling.sh`).
-- Gold dataset: `lib/domain/meta/evaluation/data/eval/pet_ct_small.ndjson` (or your custom NDJSON with `EvalCase` rows). Override the root with `DFPS_EVAL_DATA_ROOT` if you keep datasets elsewhere. Each dataset ships with `<name>.manifest.json`; the CLI builds a `dfps_eval::FileDatasetStore` from the configured root and warns if the manifest checksum drifts.
+- Gold dataset: `lib/domain/meta/evaluation/data/eval/pet_ct_small.ndjson` (or your custom NDJSON with `EvalCase` rows). Override the root with `refractive_swan_EVAL_DATA_ROOT` if you keep datasets elsewhere. Each dataset ships with `<name>.manifest.json`; the CLI builds a `refractive_swan_eval::FileDatasetStore` from the configured root and warns if the manifest checksum drifts.
 - Tiered splits: bronze/silver/gold datasets (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) live under `lib/domain/meta/evaluation/data/eval/README.md`.
 
 ## Steps
 1. Build/run the CLI using a named dataset
    ```bash
    cd code
-   cargo run -p dfps_cli --bin eval_mapping -- \
+   cargo run -p refractive_swan_cli --bin eval_mapping -- \
      --dataset pet_ct_small \
      --dump-details
    ```
@@ -37,21 +37,21 @@ against the gold NDJSON fixtures.
    }
    ```
    ```bash
-  cargo run -p dfps_cli --bin eval_mapping -- \
+  cargo run -p refractive_swan_cli --bin eval_mapping -- \
     --dataset pet_ct_small \
   --thresholds lib/domain/meta/evaluation/data/meta/eval_thresholds.json
   ```
   `min_accuracy` guards overall correctness (regardless of predictions) while `min_auto_precision` focuses on the AutoMapped band specifically.
    For determinism checks, provide a baseline fingerprint file:
    ```bash
-   cargo run -p dfps_cli --bin eval_mapping -- \
+   cargo run -p refractive_swan_cli --bin eval_mapping -- \
      --dataset pet_ct_small \
      --deterministic target/eval/pet_ct_small.fingerprint
    ```
    First run writes the fingerprint; subsequent runs fail if the summary hash changes.
 5. Persist machine-readable artifacts for dashboards/CI (plus optional Markdown report):
    ```bash
-   cargo run -p dfps_cli --bin eval_mapping -- \
+   cargo run -p refractive_swan_cli --bin eval_mapping -- \
      --dataset gold_pet_ct_comprehensive \
      --out-dir target/eval \
      --report target/eval/report.md \
@@ -61,13 +61,13 @@ against the gold NDJSON fixtures.
 6. Use `jq`/scripts (or the generated report) to gate CI metrics or share summaries.
 7. Optional advanced stats: enable the `eval-advanced` feature to include bootstrap confidence intervals in the summary/report:
    ```bash
-   cargo run -p dfps_cli --bin eval_mapping --features eval-advanced -- \
+   cargo run -p refractive_swan_cli --bin eval_mapping --features eval-advanced -- \
      --dataset pet_ct_small
    ```
 
 ## Dashboards & reporting
-- `dfps_eval::report` now emits Markdown (for CLI artifacts) plus an HTML fragment consumed by the web frontend's HTMX panel.
-- Run `dfps_cli eval_mapping --dataset <name> --report target/eval/report.md` to include the Markdown summary and baseline delta (if a `<dataset>.baseline.json` exists under `lib/domain/meta/evaluation/data/eval/`).
+- `refractive_swan_eval::report` now emits Markdown (for CLI artifacts) plus an HTML fragment consumed by the web frontend's HTMX panel.
+- Run `refractive_swan_cli eval_mapping --dataset <name> --report target/eval/report.md` to include the Markdown summary and baseline delta (if a `<dataset>.baseline.json` exists under `lib/domain/meta/evaluation/data/eval/`).
 - The web frontend automatically loads the `gold_pet_ct_small` baseline and exposes a dataset picker that swaps the HTMX fragment served from `/eval/report`.
 
 ## Requirements references

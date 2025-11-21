@@ -19,12 +19,12 @@ pub struct EnvLoadOutcome {
 /// Attempt to load the `.env.<namespace>.<profile>` file for the current crate.
 ///
 /// * `namespace` follows the directory structure (e.g., `app.web.api`).
-/// * `profile` is resolved from `DFPS_ENV` / `APP_ENV`, defaulting to `dev`.
-/// * `DFPS_ENV_FILE`, if set, overrides the filename entirely (relative to workspace).
+/// * `profile` is resolved from `refractive_swan_ENV` / `APP_ENV`, defaulting to `dev`.
+/// * `refractive_swan_ENV_FILE`, if set, overrides the filename entirely (relative to workspace).
 pub fn load_env(namespace: &str) -> Result<EnvLoadOutcome, EnvLoadError> {
     let profile = env_profile();
     let paths = config_paths()?;
-    let explicit_file = env::var("DFPS_ENV_FILE").ok();
+    let explicit_file = env::var("refractive_swan_ENV_FILE").ok();
 
     let mut loaded_files = Vec::new();
     let mut attempted_paths = Vec::new();
@@ -79,13 +79,13 @@ fn load_file(path: &Path) -> Result<(), EnvLoadError> {
 }
 
 fn env_profile() -> String {
-    env::var("DFPS_ENV")
+    env::var("refractive_swan_ENV")
         .or_else(|_| env::var("APP_ENV"))
         .unwrap_or_else(|_| "dev".to_string())
 }
 
 fn strict_mode() -> bool {
-    env_flag("DFPS_ENV_STRICT") || env_flag("CI")
+    env_flag("refractive_swan_ENV_STRICT") || env_flag("CI")
 }
 
 fn env_flag(name: &str) -> bool {

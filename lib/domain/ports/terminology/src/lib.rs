@@ -1,5 +1,5 @@
 //! Terminology lookup port shared across domain crates.
-//! Implementations live in `dfps_terminology` and platform adapters.
+//! Implementations live in `refractive_swan_terminology` and platform adapters.
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

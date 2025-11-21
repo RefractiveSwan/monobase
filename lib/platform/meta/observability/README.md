@@ -1,19 +1,19 @@
-# dfps_observability – Metrics & logging adapter
+# refractive_swan_observability – Metrics & logging adapter
 
 Home for shared observability helpers that wire the Bundle → NCIt pipeline into structured logs and JSON metrics. See:
 
 - `docs/system-design/clinical/ncit/behavior/sequence-servicerequest.md`
 - `docs/runbook/040-warehouse-and-bi/bi-integration-quickstart.md`
-- `docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-12--platform-observability--metrics-dfps_observability`
+- `docs/kanban/feature/mvp/040-infra-and-docs/022-codebase-refactor.md#refr-12--platform-observability--metrics-refractive_swan_observability`
 
 ## Environment loading
 
-- Call `dfps_observability::init_environment()` once at startup to load the `platform.observability` env namespace. The function now returns `Result<(), dfps_configuration::EnvLoadError>` so API/CLI surfaces can log and continue instead of panicking when files are missing.
+- Call `refractive_swan_observability::init_environment()` once at startup to load the `platform.observability` env namespace. The function now returns `Result<(), refractive_swan_configuration::EnvLoadError>` so API/CLI surfaces can log and continue instead of panicking when files are missing.
 - Helpers (`log_pipeline_output`, `log_no_match`) internally call `load_env` and log a warning instead of panicking, so pipeline runs remain deterministic even when `.env` files are absent in non-strict mode.
 - Standard knobs:
-  - `DFPS_ENV` / `APP_ENV` select the profile (defaults to `dev`).
-  - `DFPS_ENV_FILE` points to a specific `.env` file when needed for CI.
-  - `DFPS_ENV_STRICT=1` forces an error if no env file is found for the namespace/profile.
+  - `refractive_swan_ENV` / `APP_ENV` select the profile (defaults to `dev`).
+  - `refractive_swan_ENV_FILE` points to a specific `.env` file when needed for CI.
+  - `refractive_swan_ENV_STRICT=1` forces an error if no env file is found for the namespace/profile.
 
 ## Pipeline metrics ownership
 
@@ -27,7 +27,7 @@ Home for shared observability helpers that wire the Bundle → NCIt pipeline int
 
 - `VectorUsageSnapshot` carries per-run query/hit/fallback counts plus an optional `VectorCapacitySnapshot` (geom_rm, geom_dm, geom_rm_sqrt_dm, cap_alpha_sim). Backends emit this once per pipeline run.
 - `apply_vector_usage(metrics, snapshot, latency_ms_p95)` merges those counters into `PipelineMetrics` and normalizes latency handling, so CLI/API surfaces can stick to one code path.
-- `dfps_vector_store::CapacityProxies` implements `Into<VectorCapacitySnapshot>`, keeping the conversion localized to the vector-store crate.
+- `refractive_swan_vector_store::CapacityProxies` implements `Into<VectorCapacitySnapshot>`, keeping the conversion localized to the vector-store crate.
 
 ## Metrics snapshots for API/CLI consumers
 
@@ -36,5 +36,5 @@ Home for shared observability helpers that wire the Bundle → NCIt pipeline int
 
 ## Logging helpers
 
-- `log_pipeline_output` records bundle/mapping counters, applies vector usage snapshots, and emits a structured info log on the `dfps_pipeline` target.
+- `log_pipeline_output` records bundle/mapping counters, applies vector usage snapshots, and emits a structured info log on the `refractive_swan_pipeline` target.
 - `log_no_match` logs a warning for each `MappingResult` in the `NoMatch` state, helping CLI/API logs highlight gaps (`reason` defaults to `no_match` if none is provided).

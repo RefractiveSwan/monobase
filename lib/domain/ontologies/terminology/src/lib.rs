@@ -17,7 +17,7 @@ pub use bridge::{CodeKind, EnrichedCode, canonicalize_system, canonicalize_syste
 #[cfg(feature = "http-client")]
 pub use client::HttpTerminologyClient;
 pub use client::{CompositeTerminologyClient, MockTerminologyClient};
-pub use dfps_terminology_port::{
+pub use refractive_swan_terminology_port::{
     CuiRecord, NcitRecord, TerminologyClient, TerminologyClientConfig, TerminologyClientError,
     TerminologyMode, TerminologyResult,
 };

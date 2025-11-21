@@ -1,11 +1,11 @@
-# Crate: lib/app/servers/api — `dfps_api`
+# Crate: lib/app/servers/api — `refractive_swan_api`
 
 **Purpose**  
 Axum HTTP API for mapping requests and metrics.
 
 **Env & config**
-- Loads `app.web.api` via `dfps_configuration`.
-- `ApiServerConfig` (defaults): `DFPS_API_HOST=127.0.0.1`, `DFPS_API_PORT=8080`.
+- Loads `app.web.api` via `refractive_swan_configuration`.
+- `ApiServerConfig` (defaults): `refractive_swan_API_HOST=127.0.0.1`, `refractive_swan_API_PORT=8080`.
 - `init_logging()` bootstraps `env_logger` once.
 
 **Routes**
@@ -22,9 +22,9 @@ Axum HTTP API for mapping requests and metrics.
 **Run**
 ```bash
 cd code
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 ```
 
 **Notes**
 - `parse_bundles` rejects empty/whitespace bodies; auto‑detects NDJSON.
-- Warns per `NoMatch` via `dfps_observability::log_no_match`.
+- Warns per `NoMatch` via `refractive_swan_observability::log_no_match`.

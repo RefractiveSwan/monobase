@@ -11,7 +11,7 @@ pub use http::NcitTerminologyClient;
 #[cfg(all(feature = "http-client", feature = "umls-http"))]
 pub use http::UmlsTerminologyClient;
 pub use mock::MockTerminologyClient;
-pub use dfps_terminology_port::{
+pub use refractive_swan_terminology_port::{
     CuiRecord, NcitRecord, TerminologyClient, TerminologyClientConfig, TerminologyClientError,
     TerminologyMode, TerminologyResult,
 };

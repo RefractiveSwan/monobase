@@ -48,7 +48,7 @@ _All paths relative to `code/`._
 - `Makefile.toml` + `data/makefiles/` � standardized cargo-make tasks
 - `docs/book/` � mdBook sources and built HTML
 - `docs/runbook/` � runbooks (synced into the mdBook)
-- `data/environment/` � `.env.*.example` templates (loader: `dfps_configuration`)
+- `data/environment/` � `.env.*.example` templates (loader: `refractive_swan_configuration`)
 
 ## Binary entrypoint
 - `src/main.rs` � if used; may compose `lib/pipeline` etc.
@@ -200,8 +200,8 @@ The block MUST follow this structure:
 
 - **Engineering Targets:** A1, A3, B
 - **Crates & Paths:**
-  - `lib/app/servers/vector_store` (`dfps_vector_store`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/platform/data/data-stores/vector_store` (`refractive_swan_vector_store`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - Geometry: `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `geom_centroid_cos`
   - Mapping: `auto_mapped`, `needs_review`, `no_match`
@@ -212,12 +212,12 @@ The block MUST follow this structure:
   - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
   - `docs/kanban/research/math-proofs-and-geometry-docs.md`
 - **Experiments / CI Hooks:**
-  - `dfps_eval` capacity/geometry snapshot job
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_eval` capacity/geometry snapshot job
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
 - **Interfaces & Contracts:**
   - Traits: `VectorStore`
-  - CLIs: `dfps_cli build-vector-index`, `dfps_cli map-codes`
-  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_NAMESPACE`
+  - CLIs: `refractive_swan_cli build-vector-index`, `refractive_swan_cli map-codes`
+  - Env: `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_NAMESPACE`
 ````
 
 IMPORTANT RULES:
@@ -284,10 +284,10 @@ IMPORTANT RULES:
 
 5. For **Crates & Paths**, list the specific Rust crates and paths this card touches, using the form:
 
-   * `` `lib/app/servers/vector_store` (`dfps_vector_store`) ``
-   * `` `lib/domain/mapping` (`dfps_mapping`) ``
-   * `` `lib/app/frontend/cli` (`dfps_cli`) ``
-   * `` `lib/domain/meta/evaluation` (`dfps_eval`) ``
+   * `` `lib/platform/data/data-stores/vector_store` (`refractive_swan_vector_store`) ``
+   * `` `lib/domain/mapping` (`refractive_swan_mapping`) ``
+   * `` `lib/app/frontend/cli` (`refractive_swan_cli`) ``
+   * `` `lib/domain/meta/evaluation` (`refractive_swan_eval`) ``
      etc.
 
 6. For **Docs & Kanbans Touched**, include the most relevant docs/kanban files this card interacts with. Use relative paths like:
@@ -300,15 +300,15 @@ IMPORTANT RULES:
 
 7. For **Experiments / CI Hooks**, briefly name:
 
-   * Which `dfps_eval` jobs or evaluation routines will be updated or created.
-   * Which `dfps_test_suite` tests will exercise this card (e.g., `tests/integration/vector_mapping.rs`).
+   * Which `refractive_swan_eval` jobs or evaluation routines will be updated or created.
+   * Which `refractive_swan_test_suite` tests will exercise this card (e.g., `tests/integration/vector_mapping.rs`).
    * Any specific CI job names if they are known, otherwise describe them generically.
 
 8. For **Interfaces & Contracts**, list:
 
    * Relevant traits (e.g., `VectorStore`, `CandidateRanker`).
-   * Relevant CLIs (e.g., `dfps_cli build-vector-index`, `dfps_cli map-codes`, `dfps_cli eval-mapping`).
-   * Relevant environment variables (e.g., `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`).
+   * Relevant CLIs (e.g., `refractive_swan_cli build-vector-index`, `refractive_swan_cli map-codes`, `refractive_swan_cli eval-mapping`).
+   * Relevant environment variables (e.g., `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_URL`, `refractive_swan_VECTOR_NAMESPACE`).
 
 9. The cross-cohesion block MUST be present for each VEC-XX section you edit. Sections you do not touch can remain without this block.
 
@@ -472,13 +472,13 @@ References:
 
 ## Crate Responsibilities
 
-# Crate: lib/app/frontend/cli — `dfps_cli`
+# Crate: lib/app/frontend/cli — `refractive_swan_cli`
 
 **Purpose**  
 Small CLIs for local ingestion + mapping workflows.
 
 **Env & logging**
-- Loads `app.cli` via `dfps_configuration`.
+- Loads `app.cli` via `refractive_swan_configuration`.
 - `env_logger` with `--log-level` on `map_bundles`.
 
 **Bins**
@@ -490,11 +490,11 @@ Small CLIs for local ingestion + mapping workflows.
     - `{"kind":"mapping_result", ...}`
     - `{"kind":"dim_concept", ...}` (deduped by `ncit_id`)
     - `{"kind":"metrics_summary", ...}` (final)
-  - Logs pipeline summaries and `NoMatch` reasons via `dfps_observability`.
+  - Logs pipeline summaries and `NoMatch` reasons via `refractive_swan_observability`.
   - Example:
     ```bash
     cd code
-    cargo run -p dfps_cli --bin map_bundles -- ./bundle.ndjson
+    cargo run -p refractive_swan_cli --bin map_bundles -- ./bundle.ndjson
     ```
 - **`map_codes`** — map `StgSrCodeExploded` rows.
   - Flags: `--explain` (emit candidate explanations), `--explain-top N` (default 5).
@@ -503,28 +503,28 @@ Small CLIs for local ingestion + mapping workflows.
   - Example:
     ```bash
     cd code
-    cargo run -p dfps_cli --bin map_codes -- --explain --explain-top 5 ./codes.ndjson
+    cargo run -p refractive_swan_cli --bin map_codes -- --explain --explain-top 5 ./codes.ndjson
     ```
-- **`eval_mapping`** — run `dfps_eval::run_eval_with_mapper` (via `dfps_mapping::map_staging_codes`) against a gold NDJSON file.
-  - Flags: `--dataset <name>` (uses `DFPS_EVAL_DATA_ROOT`), `--input <path>` (direct NDJSON), `--thresholds <config.json>` (enforce min precision/recall/F1), `--out-dir <dir>` (write `eval_summary.json` + `eval_results.ndjson`), `--report <path>` (Markdown summary), `--dump-details` (emit per-case `EvalResult` rows).
+- **`eval_mapping`** — run `refractive_swan_eval::run_eval_with_mapper` (via `refractive_swan_mapping::map_staging_codes`) against a gold NDJSON file.
+  - Flags: `--dataset <name>` (uses `refractive_swan_EVAL_DATA_ROOT`), `--input <path>` (direct NDJSON), `--thresholds <config.json>` (enforce min precision/recall/F1), `--out-dir <dir>` (write `eval_summary.json` + `eval_results.ndjson`), `--report <path>` (Markdown summary), `--dump-details` (emit per-case `EvalResult` rows).
   - Stdout: `{"kind":"eval_summary","value":{...}}` + optional `{"kind":"eval_result","value":{...}}`.
   - Example:
     ```bash
     cd code
-    cargo run -p dfps_cli --bin eval_mapping -- --dataset pet_ct_small --dump-details
+    cargo run -p refractive_swan_cli --bin eval_mapping -- --dataset pet_ct_small --dump-details
     ```
   - Runbook: `docs/runbook/mapping-eval-quickstart.md`; requirements trace: `MAP_ACCURACY` in `docs/system-design/clinical/ncit/requirements/ingestion-requirements.md`.
   - Dataset tiers: bronze/silver/gold splits (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) are documented in `lib/domain/meta/evaluation/data/eval/README.md`.
 
 
-# Crate: lib/app/servers/api — `dfps_api`
+# Crate: lib/app/servers/api — `refractive_swan_api`
 
 **Purpose**  
 Axum HTTP API for mapping requests and metrics.
 
 **Env & config**
-- Loads `app.web.api` via `dfps_configuration`.
-- `ApiServerConfig` (defaults): `DFPS_API_HOST=127.0.0.1`, `DFPS_API_PORT=8080`.
+- Loads `app.web.api` via `refractive_swan_configuration`.
+- `ApiServerConfig` (defaults): `refractive_swan_API_HOST=127.0.0.1`, `refractive_swan_API_PORT=8080`.
 - `init_logging()` bootstraps `env_logger` once.
 
 **Routes**
@@ -534,7 +534,7 @@ Axum HTTP API for mapping requests and metrics.
   - Accepts: **Bundle object**, **array**, or **NDJSON**.
   - For each bundle: `bundle_to_mapped_sr` → aggregate `flats`, `exploded_codes`, `mapping_results`, `dim_concepts`.
   - Dedupes concepts by `ncit_id`; updates global `PipelineMetrics`.
-- `GET /api/eval/summary?dataset=<name>` → `EvalSummary` (loads dataset via `DFPS_EVAL_DATA_ROOT`, reuses mapping harness).
+- `GET /api/eval/summary?dataset=<name>` → `EvalSummary` (loads dataset via `refractive_swan_EVAL_DATA_ROOT`, reuses mapping harness).
 
 **Errors**
 - `400 invalid_json`, `422 invalid_fhir`, `500 internal_error` — all include `request_id`.
@@ -542,15 +542,15 @@ Axum HTTP API for mapping requests and metrics.
 **Run**
 ```bash
 cd code
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 ```
 
 **Notes**
 - `parse_bundles` rejects empty/whitespace bodies; auto‑detects NDJSON.
-- Warns per `NoMatch` via `dfps_observability::log_no_match`.
+- Warns per `NoMatch` via `refractive_swan_observability::log_no_match`.
 
 
-# Crate: lib/app/servers/datamart — `dfps_datamart`
+# Crate: lib/platform/data/data-plane/mart — `refractive_swan_datamart`
 
 **Purpose**  
 Build a small star schema from `PipelineOutput` for analytics/UI rendering.
@@ -575,18 +575,18 @@ Build a small star schema from `PipelineOutput` for analytics/UI rendering.
 - Integrity + NO_MATCH sentinel coverage included.
 
 
-# Crate: lib/app/frontend/web — `dfps_web_frontend`
+# Crate: lib/app/frontend/web — `refractive_swan_web_frontend`
 
 **Purpose**  
 Actix‑Web UI (HTMX + Tailwind) that talks to the backend.
 
 **Env**
-- Loads `app.web.frontend` via `dfps_configuration`.
+- Loads `app.web.frontend` via `refractive_swan_configuration`.
 - `AppConfig`:
-  - `DFPS_FRONTEND_LISTEN_ADDR` (default `127.0.0.1:8090`)
-  - `DFPS_API_BASE_URL` (default `http://127.0.0.1:8080`)
-  - `DFPS_API_CLIENT_TIMEOUT_SECS` (default `15`)
-  - `DFPS_DOCS_URL` (optional `/docs` redirect)
+  - `refractive_swan_FRONTEND_LISTEN_ADDR` (default `127.0.0.1:8090`)
+  - `refractive_swan_API_BASE_URL` (default `http://127.0.0.1:8080`)
+  - `refractive_swan_API_CLIENT_TIMEOUT_SECS` (default `15`)
+  - `refractive_swan_DOCS_URL` (optional `/docs` redirect)
 
 **Backend client**
 - `GET /health` → `HealthResponse`
@@ -598,7 +598,7 @@ Actix‑Web UI (HTMX + Tailwind) that talks to the backend.
 - `GET /` — base page with health + metrics
 - `POST /map/paste` — parse JSON from textarea; HTMX fragment swap
 - `POST /map/upload` — multipart file read (UTF‑8 JSON only; **max 512 KiB**)
-- `GET /docs` — redirect to `DFPS_DOCS_URL` if present, else 404
+- `GET /docs` — redirect to `refractive_swan_DOCS_URL` if present, else 404
 
 **UI**
 - Results panel with `MappingResult` rows and state chips:
@@ -609,7 +609,7 @@ Actix‑Web UI (HTMX + Tailwind) that talks to the backend.
 **Run**
 ```bash
 cd code
-cargo run -p dfps_web_frontend --bin dfps_web_frontend
+cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 ```
 
 **Tests**
@@ -617,7 +617,7 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Template rendering assertions (metrics + NoMatch)
 
 
-# Crate: lib/domain/core - `dfps_core`
+# Crate: lib/domain/core - `refractive_swan_core`
 
 **Path:** `code/lib/domain/core`  
 **Purpose:** canonical domain/FHIR/staging/mapping/value types with `serde` support.  
@@ -648,22 +648,22 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Prefer deterministic seeds when using `#[cfg(feature = "dummy")]` generators.
 
 
-# Module: lib/domain/meta/evaluation/src/fake_data — `dfps_eval::fake_data`
+# Module: lib/domain/meta/evaluation/src/fake_data — `refractive_swan_eval::fake_data`
 
 **Path:** `code/lib/domain/meta/evaluation/src/fake_data`  
-**Depends on:** `dfps_core` (with `dummy`), `rand`, `fake`, `serde(_json)`, `once_cell`.
+**Depends on:** `refractive_swan_core` (with `dummy`), `rand`, `fake`, `serde(_json)`, `once_cell`.
 
 ## Responsibilities
 - Deterministic, **seeded** generators for domain + minimal FHIR aligned with evaluation data.
 - Checked-in fixtures + registries under `lib/domain/meta/evaluation/data/**` for regression/eval datasets.
-- CLI tools (now built from the `dfps_eval` crate) for emitting scenario/FHIR NDJSON for demos.
+- CLI tools (now built from the `refractive_swan_eval` crate) for emitting scenario/FHIR NDJSON for demos.
 
 ## Modules & bins
-- `value`, `patient`, `encounter`, `order`, `scenarios` — thin helpers that create domain types sharing ID/description logic with `dfps_core`.
+- `value`, `patient`, `encounter`, `order`, `scenarios` — thin helpers that create domain types sharing ID/description logic with `refractive_swan_core`.
 - `raw_fhir` — emits FHIR `Bundle`s + Patient/Encounter/ServiceRequest resources rooted in the same RNG helpers so CLI demos and tests stay reproducible.
 - `fixtures` — loads evaluation + regression JSON/NDJSON under `data/` via `Registry`.
 - `rng` — exposes `with_global_rng`, `rng_from_seed`, and `SeedSequence` so CLIs/tests share deterministic seeds.
-- `bin/generate_sample.rs` & `bin/generate_fhir_bundle.rs` — part of `dfps_eval`; emit domain scenarios or Bundle NDJSON (still read env via `dfps_configuration`).
+- `bin/generate_sample.rs` & `bin/generate_fhir_bundle.rs` — part of `refractive_swan_eval`; emit domain scenarios or Bundle NDJSON (still read env via `refractive_swan_configuration`).
 
 ## Conventions
 - Always provide `*_with_seed` and `*_with_rng` for determinism.
@@ -674,10 +674,10 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Keep RNG usage explicit in tests (`StdRng::seed_from_u64`).
 
 
-# Crate: lib/domain/ingestion - `dfps_ingestion`
+# Crate: lib/domain/ingestion - `refractive_swan_ingestion`
 
 **Path:** `code/lib/domain/ingestion`  
-**Depends on:** `dfps_core`, `serde(_json)`.
+**Depends on:** `refractive_swan_core`, `serde(_json)`.
 
 ## Responsibilities
 - Normalize **FHIR -> staging -> domain** (`ServiceRequest`) with clear, typed errors.
@@ -702,15 +702,15 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - FHIR behavior & requirements: `docs/system-design/fhir/**`
 
 
-# Crate: lib/domain/mapping — `dfps_mapping`
+# Crate: lib/domain/mapping — `refractive_swan_mapping`
 
 **Path:** `code/lib/domain/mapping`  
-**Depends on:** `dfps_core`, `dfps_terminology`, `serde(_json)`.
+**Depends on:** `refractive_swan_core`, `refractive_swan_terminology`, `serde(_json)`.
 
 ## Responsibilities
 - Map staging codes to **NCIt** concepts; keep logic **deterministic and local**.
 - Combine lexical + vector mock rankers with a rule re‑ranker; use **UMLS cross‑refs** where available.
-- Attach **license/source** metadata using `dfps_terminology`.
+- Attach **license/source** metadata using `refractive_swan_terminology`.
 
 ## Modules & data
 - `data.rs`
@@ -740,10 +740,10 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Terminology/registry semantics: `docs/reference-terminology/semantic-relationships.yaml`
 
 
-# Crate: lib/domain/meta/pipeline — `dfps_pipeline`
+# Crate: lib/domain/meta/pipeline — `refractive_swan_pipeline`
 
 **Path:** `code/lib/domain/meta/pipeline`  
-**Depends on:** `dfps_ingestion`, `dfps_mapping`, `dfps_core`, `dfps_observability` (logging), `serde(_json)`, `thiserror`, `log`, `env_logger`.
+**Depends on:** `refractive_swan_ingestion`, `refractive_swan_mapping`, `refractive_swan_core`, `refractive_swan_observability` (logging), `serde(_json)`, `thiserror`, `log`, `env_logger`.
 
 ## Responsibilities
 - Provide a **single façade** from FHIR `Bundle` → staging → mapping → NCIt dims.
@@ -752,7 +752,7 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 ## Public API
 - `bundle_to_mapped_sr(bundle: &Bundle) -> Result<PipelineOutput, PipelineError>`
   - Output: `{ flats, exploded_codes, mapping_results, dim_concepts }`
-  - Error: `PipelineError::Ingestion(dfps_ingestion::IngestionError)`
+  - Error: `PipelineError::Ingestion(refractive_swan_ingestion::IngestionError)`
 
 ## Cross‑links
 - FHIR quickstart & NCIt sequence: `docs/system-design/fhir/index.md`, `docs/system-design/ncit/behavior/sequence-servicerequest.md`
@@ -761,10 +761,10 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 - Add e2e tests as surfaces grow; today, lean on ingestion + mapping unit tests.
 
 
-# Crate: lib/domain/ontologies/terminology — `dfps_terminology`
+# Crate: lib/domain/ontologies/terminology — `refractive_swan_terminology`
 
 **Path:** `code/lib/domain/ontologies/terminology`  
-**Depends on:** `dfps_core`, `serde`.
+**Depends on:** `refractive_swan_core`, `serde`.
 
 ## Responsibilities
 - Normalize and classify **code systems**; provide lightweight **registry** and **OBO** metadata.
@@ -787,7 +787,7 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
   - `ValueSetMeta` records for PET imaging subsets combining CPT/SNOMED, LOINC/NCIt.
 
 ## How mapping uses this
-- `dfps_mapping` calls `EnrichedCode::from_staging(...)` to:
+- `refractive_swan_mapping` calls `EnrichedCode::from_staging(...)` to:
   - Classify by `CodeKind` for **summary** tallies.
   - Attach `license_tier`/`source_kind` into `MappingResult` for downstream filtering.
 
@@ -802,7 +802,7 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 
 
 
-# Crate: lib/platform/configuration — `dfps_configuration`
+# Crate: lib/platform/configuration — `refractive_swan_configuration`
 
 **Purpose**  
 Workspace‑wide env loader. Resolves a namespaced `.env` and loads it with `dotenvy`.
@@ -812,20 +812,20 @@ Workspace‑wide env loader. Resolves a namespaced `.env` and loads it with `dot
 pub fn load_env(namespace: &str) -> Result<EnvLoadOutcome, EnvLoadError>;
 ```
 - `namespace`: dotted path reflecting crate location (e.g., `app.web.api`).
-- `EnvLoadOutcome { namespace, profile, files }`, where `profile` = `DFPS_ENV` → `APP_ENV` → `"dev"`.
+- `EnvLoadOutcome { namespace, profile, files }`, where `profile` = `refractive_swan_ENV` → `APP_ENV` → `"dev"`.
 
 **Resolution rules**
-1. If `DFPS_ENV_FILE` is set → resolve relative to workspace root and load that file only.
+1. If `refractive_swan_ENV_FILE` is set → resolve relative to workspace root and load that file only.
 2. Else search directories (in order):
    - `<workspace>/data/environment`
    - `<workspace>`
 3. In each dir, try `.env.<namespace>.<profile>` then fallback `.env.<namespace>.local`.
 
 **Workspace root discovery**
-- `DFPS_WORKSPACE_ROOT` (if exists) or walk up from `current_dir()` until a `Cargo.lock` is found.
+- `refractive_swan_WORKSPACE_ROOT` (if exists) or walk up from `current_dir()` until a `Cargo.lock` is found.
 
 **Strict mode**
-- If nothing loads **and** `DFPS_ENV_STRICT` or `CI` is truthy, return:
+- If nothing loads **and** `refractive_swan_ENV_STRICT` or `CI` is truthy, return:
   `EnvLoadError::FileMissing { namespace, profile, attempted }`.
 
 **Error variants**
@@ -845,13 +845,13 @@ FileMissing { namespace, profile, attempted: Vec<PathBuf> }
 - `app.cli`, `app.web.api`, `app.web.frontend`
 
 
-# Crate: lib/platform/observability — `dfps_observability`
+# Crate: lib/platform/observability — `refractive_swan_observability`
 
 **Purpose**  
 Shared logging + metrics for the Bundle → NCIt mapping pipeline.
 
 **Env**
-- Loads `platform.observability` via `dfps_configuration::load_env("platform.observability")`.
+- Loads `platform.observability` via `refractive_swan_configuration::load_env("platform.observability")`.
 
 **Types & functions**
 ```rust
@@ -886,20 +886,20 @@ pub fn log_no_match(result: &MappingResult);
 ```
 
 **Logging targets**
-- `dfps_pipeline` (info): per‑bundle summary (flats, mappings, cumulative state counts).
-- `dfps_mapping` (warn): each `MappingState::NoMatch` with a reason.
+- `refractive_swan_pipeline` (info): per‑bundle summary (flats, mappings, cumulative state counts).
+- `refractive_swan_mapping` (warn): each `MappingState::NoMatch` with a reason.
 
 **Used by**
-- `dfps_cli`, `dfps_api`, tests in `dfps_test_suite`.
+- `refractive_swan_cli`, `refractive_swan_api`, tests in `refractive_swan_test_suite`.
 
 
-# Crate: lib/platform/test_suite — `dfps_test_suite`
+# Crate: lib/platform/test_suite — `refractive_swan_test_suite`
 
 **Purpose**  
 Reusable fixtures/assertions and a full test harness (unit, integration, E2E) spanning ingestion → mapping → datamart → web API.
 
 **Env**
-- Eagerly loads `platform.test_suite` via `dfps_configuration`.
+- Eagerly loads `platform.test_suite` via `refractive_swan_configuration`.
 - `ping()` returns `"test-suite-ready"` post‑init.
 
 **Exports**
@@ -944,15 +944,15 @@ Reusable fixtures/assertions and a full test harness (unit, integration, E2E) sp
 **Run**
 ```bash
 cd code
-cargo test -p dfps_test_suite
+cargo test -p refractive_swan_test_suite
 ```
 
-# Crate: lib/domain/meta/evaluation — `dfps_eval`
+# Crate: lib/domain/meta/evaluation — `refractive_swan_eval`
 
 **Purpose**  
 Owns the reusable evaluation types (`EvalCase`, `EvalSummary`, etc.) and dataset loaders.
 
 **Responsibilities**
-- Load NDJSON gold datasets from `DFPS_EVAL_DATA_ROOT` (default `lib/domain/meta/evaluation/data/eval`).
-- Provide stratified metric helpers (`StratifiedMetrics`) used by `dfps_eval::run_eval_with_mapper`.
+- Load NDJSON gold datasets from `refractive_swan_EVAL_DATA_ROOT` (default `lib/domain/meta/evaluation/data/eval`).
+- Provide stratified metric helpers (`StratifiedMetrics`) used by `refractive_swan_eval::run_eval_with_mapper`.
 - Surface `compute_metrics` for CLI/test consumers.

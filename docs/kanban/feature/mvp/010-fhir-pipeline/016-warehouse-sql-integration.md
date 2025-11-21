@@ -2,7 +2,7 @@
 
 **Theme:** Warehouse & analytics platform - DB schema, loaders, SQL integration  
 **Branch:** `feature/app/servers/warehouse-sql-integration`  
-**Goal:** Persist `dfps_datamart` dims/facts into a relational database (e.g., Postgres) with minimal migrations, loaders, and tests, turning the in-memory mart into a queryable warehouse.
+**Goal:** Persist `refractive_swan_datamart` dims/facts into a relational database (e.g., Postgres) with minimal migrations, loaders, and tests, turning the in-memory mart into a queryable warehouse.
 
 ### Columns
 * **TODO** – Not started yet  
@@ -26,7 +26,7 @@
 ### WH-SQL-01 – DB driver & schema definitions
 
 - [x] Add a DB library to the workspace (e.g., `sqlx` with `postgres` / `sqlite` feature) in `Cargo.toml`.
-- [x] Under `dfps_datamart`, create a `sql` module with:
+- [x] Under `refractive_swan_datamart`, create a `sql` module with:
 
   - [x] `CREATE TABLE` DDL strings for:
 
@@ -36,13 +36,13 @@
 
 - [x] Add env-driven config for DB connection:
 
-  - `DFPS_WAREHOUSE_URL`, `DFPS_WAREHOUSE_SCHEMA`, `DFPS_WAREHOUSE_MAX_CONNECTIONS`.
+  - `refractive_swan_WAREHOUSE_URL`, `refractive_swan_WAREHOUSE_SCHEMA`, `refractive_swan_WAREHOUSE_MAX_CONNECTIONS`.
 
 ### WH-SQL-02 – Migration & setup tooling
 
 - [x] Provide a minimal migration runner (module or new binary):
 
-  - `dfps_datamart::migrate()` or `dfps_cli warehouse-migrate` that:
+  - `refractive_swan_datamart::migrate()` or `refractive_swan_cli warehouse-migrate` that:
 
     - [x] Applies bundled migrations (offline) to the configured database.
     - [x] Is idempotent and safe to run on CI.
@@ -53,12 +53,12 @@
 
 - [x] Introduce a new loader API:
 
-  - `dfps_datamart::load_from_pipeline_output(conn, &PipelineOutput) -> Result<LoadSummary>`:
+  - `refractive_swan_datamart::load_from_pipeline_output(conn, &PipelineOutput) -> Result<LoadSummary>`:
 
     - [x] Upserts dims based on natural IDs (patient/encounter/code/ncit).
     - [x] Inserts corresponding `FactServiceRequest` rows.
 
-- [x] Add a `dfps_cli` subcommand:
+- [x] Add a `refractive_swan_cli` subcommand:
 
   - `load-datamart`:
 
@@ -67,7 +67,7 @@
 
 ### WH-SQL-04 – Tests & CI integration
 
-- [x] Add integration tests in `dfps_test_suite/tests/integration/warehouse.rs` that:
+- [x] Add integration tests in `refractive_swan_test_suite/tests/integration/warehouse.rs` that:
 
   - [x] Start an ephemeral DB (e.g., sqlite or Postgres in-memory/container).
   - [x] Run migrations.
@@ -93,7 +93,7 @@
 
   - [x] How to spin up a local DB.
   - [x] How to run migrations.
-  - [x] Example `dfps_cli load-datamart` pipeline.
+  - [x] Example `refractive_swan_cli load-datamart` pipeline.
 
 ---
 
@@ -110,7 +110,7 @@
   - Load the resulting mart into a DB.
   - Query `dim_*` and `fact_service_request` tables to reproduce the analytics ERD.
 - CI exercises migrations and basic load paths.
-- Warehouse schema stays aligned with `dfps_datamart` types and NCIt ERD docs.
+- Warehouse schema stays aligned with `refractive_swan_datamart` types and NCIt ERD docs.
 
 ## Out of Scope
 

@@ -31,7 +31,7 @@
 
 ### FHIR-CONF-01 – External validation model
 
-- [x] Add a small `external` module under `dfps_ingestion::validation` or a new crate `lib/domain/fhir_validation` (`dfps_fhir_validation`):
+- [x] Add a small `external` module under `refractive_swan_ingestion::validation` or a new crate `lib/domain/fhir_validation` (`refractive_swan_fhir_validation`):
 
   - [x] Represent a subset of FHIR `OperationOutcome`:
 
@@ -45,7 +45,7 @@
 
 ### FHIR-CONF-02 – HTTP client & configuration
 
-- [x] Expose an `ExternalValidator` port (no env/HTTP inside `dfps_ingestion`), plus a CLI adapter using `reqwest` + env config to hit `$validate`.
+- [x] Expose an `ExternalValidator` port (no env/HTTP inside `refractive_swan_ingestion`), plus a CLI adapter using `reqwest` + env config to hit `$validate`.
 
 - [x] Add `.env.domain.fhir_validation.dev/example` documenting these keys.
 
@@ -70,7 +70,7 @@
 
 ### FHIR-CONF-04 – CLI & developer ergonomics
 
-- [x] Add a new CLI in `dfps_cli`:
+- [x] Add a new CLI in `refractive_swan_cli`:
 
   - `validate-fhir`:
 
@@ -81,11 +81,11 @@
 - [x] Update `docs/system-design/clinical/fhir/index.md` with:
 
   - [x] A “Validation (external)” subsection.
-  - [x] Example `dfps_cli validate-fhir` commands.
+  - [x] Example `refractive_swan_cli validate-fhir` commands.
 
 ### FHIR-CONF-05 – Tests & mocks
 
-- [x] Add a test-only mock FHIR validator server in `dfps_test_suite`:
+- [x] Add a test-only mock FHIR validator server in `refractive_swan_test_suite`:
 
   - [x] Provides `/fhir/$validate` that returns canned `OperationOutcome` fixtures for:
 

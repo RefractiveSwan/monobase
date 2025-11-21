@@ -17,8 +17,8 @@ The block MUST follow this structure:
 
 - **Engineering Targets:** A1, A3, B
 - **Crates & Paths:**
-  - `lib/app/servers/vector_store` (`dfps_vector_store`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/app/servers/vector_store` (`refractive_swan_vector_store`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - Geometry: `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `geom_centroid_cos`
   - Mapping: `auto_mapped`, `needs_review`, `no_match`
@@ -29,12 +29,12 @@ The block MUST follow this structure:
   - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
   - `docs/kanban/research/math-proofs-and-geometry-docs.md`
 - **Experiments / CI Hooks:**
-  - `dfps_eval` capacity/geometry snapshot job
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_eval` capacity/geometry snapshot job
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
 - **Interfaces & Contracts:**
   - Traits: `VectorStore`
-  - CLIs: `dfps_cli build-vector-index`, `dfps_cli map-codes`
-  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_NAMESPACE`
+  - CLIs: `refractive_swan_cli build-vector-index`, `refractive_swan_cli map-codes`
+  - Env: `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_NAMESPACE`
 ````
 
 IMPORTANT RULES:
@@ -101,10 +101,10 @@ IMPORTANT RULES:
 
 5. For **Crates & Paths**, list the specific Rust crates and paths this card touches, using the form:
 
-   * `` `lib/app/servers/vector_store` (`dfps_vector_store`) ``
-   * `` `lib/domain/mapping` (`dfps_mapping`) ``
-   * `` `lib/app/frontend/cli` (`dfps_cli`) ``
-   * `` `lib/domain/eval` (`dfps_eval`) ``
+   * `` `lib/app/servers/vector_store` (`refractive_swan_vector_store`) ``
+   * `` `lib/domain/mapping` (`refractive_swan_mapping`) ``
+   * `` `lib/app/frontend/cli` (`refractive_swan_cli`) ``
+   * `` `lib/domain/eval` (`refractive_swan_eval`) ``
      etc.
 
 6. For **Docs & Kanbans Touched**, include the most relevant docs/kanban files this card interacts with. Use relative paths like:
@@ -117,15 +117,15 @@ IMPORTANT RULES:
 
 7. For **Experiments / CI Hooks**, briefly name:
 
-   * Which `dfps_eval` jobs or evaluation routines will be updated or created.
-   * Which `dfps_test_suite` tests will exercise this card (e.g., `tests/integration/vector_mapping.rs`).
+   * Which `refractive_swan_eval` jobs or evaluation routines will be updated or created.
+   * Which `refractive_swan_test_suite` tests will exercise this card (e.g., `tests/integration/vector_mapping.rs`).
    * Any specific CI job names if they are known, otherwise describe them generically.
 
 8. For **Interfaces & Contracts**, list:
 
    * Relevant traits (e.g., `VectorStore`, `CandidateRanker`).
-   * Relevant CLIs (e.g., `dfps_cli build-vector-index`, `dfps_cli map-codes`, `dfps_cli eval-mapping`).
-   * Relevant environment variables (e.g., `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`).
+   * Relevant CLIs (e.g., `refractive_swan_cli build-vector-index`, `refractive_swan_cli map-codes`, `refractive_swan_cli eval-mapping`).
+   * Relevant environment variables (e.g., `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_URL`, `refractive_swan_VECTOR_NAMESPACE`).
 
 9. The cross-cohesion block MUST be present for each VEC-XX section you edit. Sections you do not touch can remain without this block.
 

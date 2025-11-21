@@ -960,7 +960,7 @@ checksum = "ffe7ed1d93f4553003e20b629abe9085e1e81b1429520f897f8f8860bc6dfc21"
 name = "depth_forward_platonic_space_clinical_model"
 version = "0.1.0"
 dependencies = [
- "dfps_test_suite",
+ "refractive_swan_test_suite",
 ]
 
 [[package]]
@@ -1011,327 +1011,6 @@ name = "deunicode"
 version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abd57806937c9cc163efc8ea3910e00a62e2aeb0b8119f1793a978088f8f6b04"
-
-[[package]]
-name = "dfps_api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "chrono",
- "dfps_compliance",
- "dfps_configuration",
- "dfps_contracts",
- "dfps_core",
- "dfps_datamart",
- "dfps_eval",
- "dfps_mapping",
- "dfps_observability",
- "dfps_pipeline",
- "dfps_terminology",
- "dfps_vector_store",
- "dfps_web_dto",
- "env_logger",
- "log",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror 2.0.17",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "dfps_cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "dfps_compliance",
- "dfps_configuration",
- "dfps_contracts",
- "dfps_core",
- "dfps_datamart",
- "dfps_eval",
- "dfps_ingestion",
- "dfps_mapping",
- "dfps_observability",
- "dfps_pipeline",
- "dfps_vector_store",
- "env_logger",
- "log",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
-]
-
-[[package]]
-name = "dfps_compliance"
-version = "0.1.0"
-dependencies = [
- "dfps_configuration",
- "dfps_terminology",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror 2.0.17",
- "uuid",
-]
-
-[[package]]
-name = "dfps_configuration"
-version = "0.1.0"
-dependencies = [
- "dotenvy",
- "tempfile",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_contracts"
-version = "0.1.0"
-dependencies = [
- "dfps_core",
- "dfps_eval",
- "dfps_observability",
- "dfps_pipeline",
- "schemars",
- "serde",
- "serde_json",
- "tempfile",
- "uuid",
-]
-
-[[package]]
-name = "dfps_core"
-version = "0.1.0"
-dependencies = [
- "fake",
- "schemars",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "dfps_datamart"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "dfps_compliance",
- "dfps_configuration",
- "dfps_contracts",
- "dfps_core",
- "dfps_datamart_port",
- "dfps_pipeline",
- "dfps_terminology",
- "serde",
- "sqlx",
- "thiserror 2.0.17",
- "tokio",
-]
-
-[[package]]
-name = "dfps_datamart_port"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "dfps_compliance",
- "dfps_contracts",
- "serde",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_eval"
-version = "0.1.0"
-dependencies = [
- "clap",
- "criterion",
- "dfps_configuration",
- "dfps_core",
- "fake",
- "once_cell",
- "rand 0.9.2",
- "schemars",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_ingestion"
-version = "0.1.0"
-dependencies = [
- "dfps_core",
- "dfps_validation_port",
- "once_cell",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "dfps_mapping"
-version = "0.1.0"
-dependencies = [
- "dfps_compliance",
- "dfps_core",
- "dfps_eval",
- "dfps_observability",
- "dfps_terminology",
- "dfps_vector_port",
- "once_cell",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "dfps_observability"
-version = "0.1.0"
-dependencies = [
- "dfps_configuration",
- "dfps_core",
- "dfps_vector_port",
- "log",
- "once_cell",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "dfps_pipeline"
-version = "0.1.0"
-dependencies = [
- "dfps_core",
- "dfps_ingestion",
- "dfps_mapping",
- "dfps_observability",
- "dfps_test_suite",
- "dfps_vector_port",
- "log",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_terminology"
-version = "0.1.0"
-dependencies = [
- "dfps_core",
- "dfps_terminology_port",
- "once_cell",
- "reqwest",
- "serde",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "dfps_terminology_port"
-version = "0.1.0"
-dependencies = [
- "serde",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_test_suite"
-version = "0.1.0"
-dependencies = [
- "assert_cmd",
- "axum",
- "dfps_api",
- "dfps_compliance",
- "dfps_configuration",
- "dfps_contracts",
- "dfps_core",
- "dfps_datamart",
- "dfps_eval",
- "dfps_ingestion",
- "dfps_mapping",
- "dfps_observability",
- "dfps_pipeline",
- "dfps_terminology",
- "dfps_vector_store",
- "http-body-util",
- "once_cell",
- "proptest",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "tempfile",
- "tokio",
- "tower",
-]
-
-[[package]]
-name = "dfps_validation_port"
-version = "0.1.0"
-dependencies = [
- "dfps_core",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_vector_port"
-version = "0.1.0"
-dependencies = [
- "serde",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "dfps_vector_store"
-version = "0.1.0"
-dependencies = [
- "dfps_configuration",
- "dfps_vector_port",
- "pgvector",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "tokio",
- "tokio-postgres",
-]
-
-[[package]]
-name = "dfps_web_dto"
-version = "0.1.0"
-dependencies = [
- "dfps_contracts",
- "serde",
-]
-
-[[package]]
-name = "dfps_web_frontend"
-version = "0.1.0"
-dependencies = [
- "actix-files",
- "actix-multipart",
- "actix-web",
- "bytes",
- "dfps_configuration",
- "dfps_contracts",
- "dfps_core",
- "dfps_eval",
- "dfps_observability",
- "dfps_web_dto",
- "futures-util",
- "insta",
- "log",
- "maud",
- "reqwest",
- "serde",
- "serde_json",
- "thiserror 2.0.17",
- "wiremock",
-]
 
 [[package]]
 name = "difflib"
@@ -2916,6 +2595,360 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "refractive_swan_api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "env_logger",
+ "log",
+ "refractive_swan_compliance",
+ "refractive_swan_configuration",
+ "refractive_swan_contracts",
+ "refractive_swan_core",
+ "refractive_swan_datamart",
+ "refractive_swan_eval",
+ "refractive_swan_mapping",
+ "refractive_swan_mesh_dto",
+ "refractive_swan_mesh_node",
+ "refractive_swan_observability",
+ "refractive_swan_pipeline",
+ "refractive_swan_terminology",
+ "refractive_swan_web_dto",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 2.0.17",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "refractive_swan_cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "log",
+ "refractive_swan_cli_dto",
+ "refractive_swan_compliance",
+ "refractive_swan_configuration",
+ "refractive_swan_core",
+ "refractive_swan_datamart",
+ "refractive_swan_eval",
+ "refractive_swan_ingestion",
+ "refractive_swan_mapping",
+ "refractive_swan_observability",
+ "refractive_swan_pipeline",
+ "refractive_swan_vector_store",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
+name = "refractive_swan_cli_dto"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_contracts",
+]
+
+[[package]]
+name = "refractive_swan_compliance"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_configuration",
+ "refractive_swan_terminology",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 2.0.17",
+ "uuid",
+]
+
+[[package]]
+name = "refractive_swan_configuration"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "tempfile",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_contracts"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_core",
+ "refractive_swan_eval",
+ "refractive_swan_observability",
+ "refractive_swan_pipeline",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
+name = "refractive_swan_core"
+version = "0.1.0"
+dependencies = [
+ "fake",
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "refractive_swan_datamart"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "refractive_swan_compliance",
+ "refractive_swan_configuration",
+ "refractive_swan_contracts",
+ "refractive_swan_core",
+ "refractive_swan_datamart_port",
+ "refractive_swan_pipeline",
+ "refractive_swan_terminology",
+ "serde",
+ "sqlx",
+ "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
+name = "refractive_swan_datamart_port"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "refractive_swan_compliance",
+ "refractive_swan_contracts",
+ "serde",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_eval"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "criterion",
+ "fake",
+ "once_cell",
+ "rand 0.9.2",
+ "refractive_swan_configuration",
+ "refractive_swan_core",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_ingestion"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "refractive_swan_core",
+ "refractive_swan_validation_port",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "refractive_swan_mapping"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "refractive_swan_compliance",
+ "refractive_swan_core",
+ "refractive_swan_eval",
+ "refractive_swan_observability",
+ "refractive_swan_terminology",
+ "refractive_swan_vector_port",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "refractive_swan_mesh_dto"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_contracts",
+]
+
+[[package]]
+name = "refractive_swan_mesh_node"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_compliance",
+ "refractive_swan_configuration",
+ "refractive_swan_datamart",
+ "refractive_swan_datamart_port",
+ "refractive_swan_eval",
+ "refractive_swan_mesh_dto",
+ "refractive_swan_observability",
+ "refractive_swan_pipeline",
+ "refractive_swan_vector_port",
+ "refractive_swan_vector_store",
+ "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
+name = "refractive_swan_observability"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "once_cell",
+ "refractive_swan_configuration",
+ "refractive_swan_core",
+ "refractive_swan_vector_port",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "refractive_swan_pipeline"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "refractive_swan_core",
+ "refractive_swan_ingestion",
+ "refractive_swan_mapping",
+ "refractive_swan_observability",
+ "refractive_swan_test_suite",
+ "refractive_swan_vector_port",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_terminology"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "refractive_swan_core",
+ "refractive_swan_terminology_port",
+ "reqwest",
+ "serde",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "refractive_swan_terminology_port"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_test_suite"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "axum",
+ "http-body-util",
+ "once_cell",
+ "proptest",
+ "refractive_swan_api",
+ "refractive_swan_compliance",
+ "refractive_swan_configuration",
+ "refractive_swan_contracts",
+ "refractive_swan_core",
+ "refractive_swan_datamart",
+ "refractive_swan_eval",
+ "refractive_swan_ingestion",
+ "refractive_swan_mapping",
+ "refractive_swan_observability",
+ "refractive_swan_pipeline",
+ "refractive_swan_terminology",
+ "refractive_swan_vector_store",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tempfile",
+ "tokio",
+ "tower",
+]
+
+[[package]]
+name = "refractive_swan_validation_port"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_core",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_vector_port"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "refractive_swan_vector_store"
+version = "0.1.0"
+dependencies = [
+ "pgvector",
+ "refractive_swan_configuration",
+ "refractive_swan_vector_port",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "tokio",
+ "tokio-postgres",
+]
+
+[[package]]
+name = "refractive_swan_web_dto"
+version = "0.1.0"
+dependencies = [
+ "refractive_swan_contracts",
+ "serde",
+]
+
+[[package]]
+name = "refractive_swan_web_frontend"
+version = "0.1.0"
+dependencies = [
+ "actix-files",
+ "actix-multipart",
+ "actix-web",
+ "bytes",
+ "futures-util",
+ "insta",
+ "log",
+ "maud",
+ "refractive_swan_configuration",
+ "refractive_swan_contracts",
+ "refractive_swan_core",
+ "refractive_swan_eval",
+ "refractive_swan_observability",
+ "refractive_swan_web_dto",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "wiremock",
 ]
 
 [[package]]

@@ -10,17 +10,17 @@ This guide shows how to run the datamart migrations and load pipeline output int
 Set the warehouse env vars (see `data/environment/.env.domain.fhir_validation.example` for pattern):
 
 ```bash
-export DFPS_WAREHOUSE_URL=sqlite::memory:
-export DFPS_WAREHOUSE_SCHEMA=
-export DFPS_WAREHOUSE_MAX_CONNECTIONS=5
+export refractive_swan_WAREHOUSE_URL=sqlite::memory:
+export refractive_swan_WAREHOUSE_SCHEMA=
+export refractive_swan_WAREHOUSE_MAX_CONNECTIONS=5
 ```
 
 ## 2) Run migrations
 
 ```bash
-cargo test -p dfps_datamart -- --nocapture
+cargo test -p refractive_swan_datamart -- --nocapture
 # or programmatically:
-cargo test -p dfps_test_suite --test integration_tests warehouse
+cargo test -p refractive_swan_test_suite --test integration_tests warehouse
 ```
 
 ## 3) Load pipeline output
@@ -45,8 +45,8 @@ select count(*) from fact_service_request;
 ```
 
 ## 5) Analytics API persistence
-- Set `DFPS_WAREHOUSE_URL` before running `dfps_api` to persist analytics cohorts and NCIt summaries.
-- The API writes to `dim_*` + `fact_service_request` via `dfps_datamart` and exposes:
+- Set `refractive_swan_WAREHOUSE_URL` before running `refractive_swan_api` to persist analytics cohorts and NCIt summaries.
+- The API writes to `dim_*` + `fact_service_request` via `refractive_swan_datamart` and exposes:
   - `/analytics/ncit-summary` (aggregated counts)
   - `/analytics/cohort` (filtered fact rows)
 - See `docs/runbook/bi-integration-quickstart.md` for BI tool wiring tips.

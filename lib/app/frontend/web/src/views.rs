@@ -1,4 +1,4 @@
-use dfps_contracts::{PipelineMetrics, eval::EvalSummary, pipeline::MappingState};
+use refractive_swan_contracts::{PipelineMetrics, eval::EvalSummary, pipeline::MappingState};
 use maud::{DOCTYPE, Markup, PreEscaped, html};
 
 use crate::components::{
@@ -14,7 +14,7 @@ fn base_layout(content: Markup) -> Markup {
             head {
                 meta charset="utf-8";
                 meta name="viewport" content="width=device-width, initial-scale=1";
-                title { "DFPS Mapping Workbench" }
+                title { "refractive_swan Mapping Workbench" }
 
                 // Typography: Merriweather (Serif headings), Inter (Sans body), Roboto Mono (Code)
                 link rel="preconnect" href="https://fonts.googleapis.com";
@@ -93,7 +93,7 @@ fn base_layout(content: Markup) -> Markup {
                     div class="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between" {
                         div class="flex items-center gap-3" {
                             div class="h-8 w-8 rounded bg-gold-500 flex items-center justify-center text-navy-900 font-bold font-serif text-sm" { "D" }
-                            h1 class="text-xl font-serif font-bold tracking-wide" { "DFPS Workbench" }
+                            h1 class="text-xl font-serif font-bold tracking-wide" { "refractive_swan Workbench" }
                         }
                         nav class="flex items-center gap-6 text-sm font-medium" {
                             a href="/map" class="flex items-center gap-1.5 text-gray-300 hover:text-white hover:underline underline-offset-4 transition-all duration-200" {
@@ -126,7 +126,7 @@ fn base_layout(content: Markup) -> Markup {
                 footer class="bg-white border-t border-gray-200 mt-12" {
                     div class="mx-auto max-w-7xl px-6 py-8" {
                         p class="text-center text-xs text-gray-500 font-serif italic" {
-                            "DFPS Clinical Model • Project Hierophancy"
+                            "refractive_swan Clinical Model • Project Hierophancy"
                         }
                     }
                 }
@@ -655,7 +655,7 @@ fn render_eval_section(ctx: &PageContext) -> Markup {
     html! {
         (card(html! {
             (card_header("Evaluation", Some(html! {
-                span class="text-sm text-gray-500" { "DFPS mapping eval datasets" }
+                span class="text-sm text-gray-500" { "refractive_swan mapping eval datasets" }
             })))
             (card_body(html! {
                  form hx-post="/eval/run" hx-target="#eval-fragment" hx-swap="innerHTML" class="flex flex-wrap gap-3 items-center text-sm" {
@@ -828,7 +828,7 @@ mod tests {
         AnalyticsConceptTile, AnalyticsSummaryView, CohortRowView, CohortView, CountStat,
         MappingResultsView, MappingRowView, NoMatchRowView, PageContext, ServiceRequestSummary,
     };
-    use dfps_contracts::eval::DatasetManifest;
+    use refractive_swan_contracts::eval::DatasetManifest;
     use insta::assert_snapshot;
 
     fn sample_results_view() -> MappingResultsView {

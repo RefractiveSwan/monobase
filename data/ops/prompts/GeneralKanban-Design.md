@@ -1,6 +1,6 @@
 # Consortium Implementation Guide – General Feature Kanbans
 
-**Scope:** This document describes how the “consortium of minds” coordinates to turn any DFPS Kanban epic  
+**Scope:** This document describes how the “consortium of minds” coordinates to turn any refractive_swan Kanban epic  
 (e.g., `docs/kanban/feature/mvp/00X-*.md` or `docs/kanban/feature/manifold-clinical_ontology/001-base-skeleton.md`)  
 into concrete **code, tests, metrics, and docs**.
 
@@ -83,9 +83,9 @@ For any Kanban epic:
 2. For each card, explicitly name crate paths in a “Crates & Paths” or Cross-Cohesion section, e.g.:
 
 ```markdown
-   - `lib/domain/mapping` (`dfps_mapping`)
-   - `lib/app/frontend/cli` (`dfps_cli`)
-   - `lib/platform/observability` (`dfps_observability`)
+   - `lib/domain/mapping` (`refractive_swan_mapping`)
+   - `lib/app/frontend/cli` (`refractive_swan_cli`)
+   - `lib/platform/observability` (`refractive_swan_observability`)
 ```
 
 3. Link to relevant system-design and runbook docs in `docs/system-design/**` and `docs/runbook/**`.
@@ -175,7 +175,7 @@ For each card (e.g., `FP-01`, `MAP-03`, `APP-02`, `WH-SQL-03`, `DOCS-HOST-01`):
   * Design tests that demonstrate the card’s behavior:
 
     * Unit tests for pure logic.
-    * Integration tests in `dfps_test_suite` for cross-crate flows.
+    * Integration tests in `refractive_swan_test_suite` for cross-crate flows.
     * Fixtures (regression bundles, eval datasets, DB schemas).
 * **Cyberneticist**:
 
@@ -254,7 +254,7 @@ When it **is** relevant:
     
 * **Experimentalist & Cyberneticist**:
 
-  * Wire metrics into `dfps_eval`, `dfps_observability`, and CI.
+  * Wire metrics into `refractive_swan_eval`, `refractive_swan_observability`, and CI.
   * Define acceptable drift thresholds and gating behavior in the relevant Kanban (e.g., 013, 019, 022, 023, research/001).
 
 ---

@@ -1,12 +1,12 @@
 [package]
-name = "dfps_ingestion"
+name = "refractive_swan_ingestion"
 version.workspace = true
 edition.workspace = true
 
 
 [dependencies]
-dfps_core = { path = "../../core" }
-dfps_validation_port = { path = "../../ports/validation" }
+refractive_swan_core = { path = "../../core" }
+refractive_swan_validation_port = { path = "../../ports/validation" }
 once_cell.workspace = true
 serde.workspace = true
 serde_json.workspace = true

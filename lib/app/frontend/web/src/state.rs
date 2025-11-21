@@ -1,5 +1,5 @@
 use crate::{client::BackendClient, config::AppConfig};
-use dfps_observability::PipelineMetrics;
+use refractive_swan_observability::PipelineMetrics;
 use log::info;
 use std::sync::{Arc, Mutex};
 
@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 pub struct AppState {
     pub config: AppConfig,
     pub client: BackendClient,
-    pub dataset_store: Arc<dyn dfps_eval::DatasetStore + Send + Sync>,
+    pub dataset_store: Arc<dyn refractive_swan_eval::DatasetStore + Send + Sync>,
     pub analytics_metrics: Arc<Mutex<PipelineMetrics>>,
 }
 
@@ -15,7 +15,7 @@ impl AppState {
     pub fn new(
         config: AppConfig,
         client: BackendClient,
-        dataset_store: Arc<dyn dfps_eval::DatasetStore + Send + Sync>,
+        dataset_store: Arc<dyn refractive_swan_eval::DatasetStore + Send + Sync>,
     ) -> Self {
         Self {
             config,
@@ -37,7 +37,7 @@ impl AppState {
                 }
             }
             info!(
-                target: "dfps_web_frontend.analytics",
+                target: "refractive_swan_web_frontend.analytics",
                 "analytics_requests={} cohort_queries={} last_total={:?}",
                 metrics.analytics_requests,
                 metrics.cohort_queries,

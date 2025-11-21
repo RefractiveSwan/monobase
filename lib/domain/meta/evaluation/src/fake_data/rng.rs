@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use rand::{SeedableRng, rngs::StdRng};
 use std::sync::Mutex;
 
-/// Default seed (ASCII "DFPS") for deterministic fake data.
+/// Default seed (ASCII "refractive_swan") for deterministic fake data.
 pub const DEFAULT_SEED: u64 = 0x4446_5053;
 
 static GLOBAL_RNG: Lazy<Mutex<StdRng>> =
@@ -16,7 +16,7 @@ static GLOBAL_RNG: Lazy<Mutex<StdRng>> =
 pub fn with_global_rng<T>(f: impl FnOnce(&mut StdRng) -> T) -> T {
     let mut guard = GLOBAL_RNG
         .lock()
-        .expect("dfps_eval::fake_data global RNG lock poisoned");
+        .expect("refractive_swan_eval::fake_data global RNG lock poisoned");
     f(&mut guard)
 }
 

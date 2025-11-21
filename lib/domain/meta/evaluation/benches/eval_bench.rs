@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use dfps_core::mapping::{MappingResult, MappingState, MappingStrategy, MappingThresholds};
-use dfps_eval::{self, DEFAULT_CHUNK_SIZE, FileDatasetStore};
+use refractive_swan_core::mapping::{MappingResult, MappingState, MappingStrategy, MappingThresholds};
+use refractive_swan_eval::{self, DEFAULT_CHUNK_SIZE, FileDatasetStore};
 use std::io::BufReader;
 
 fn bench_dataset(c: &mut Criterion, store: &FileDatasetStore, dataset: &str) {
@@ -8,7 +8,7 @@ fn bench_dataset(c: &mut Criterion, store: &FileDatasetStore, dataset: &str) {
     let file = std::fs::File::open(&path).expect("open dataset");
     c.bench_function(&format!("eval_{dataset}"), |b| {
         b.iter(|| {
-            dfps_eval::run_eval_streaming_with_mapper(
+            refractive_swan_eval::run_eval_streaming_with_mapper(
                 BufReader::new(file.try_clone().expect("clone file")),
                 |rows| map_stub(rows),
                 DEFAULT_CHUNK_SIZE,
@@ -18,7 +18,7 @@ fn bench_dataset(c: &mut Criterion, store: &FileDatasetStore, dataset: &str) {
     });
 }
 
-fn map_stub(rows: Vec<dfps_core::staging::StgSrCodeExploded>) -> Vec<MappingResult> {
+fn map_stub(rows: Vec<refractive_swan_core::staging::StgSrCodeExploded>) -> Vec<MappingResult> {
     rows.into_iter()
         .map(|row| MappingResult {
             code_element_id: row.sr_id.clone(),
@@ -28,7 +28,7 @@ fn map_stub(rows: Vec<dfps_core::staging::StgSrCodeExploded>) -> Vec<MappingResu
             strategy: MappingStrategy::Lexical,
             state: MappingState::AutoMapped,
             thresholds: MappingThresholds::default(),
-            source_version: dfps_core::mapping::MappingSourceVersion::new("bench", "bench"),
+            source_version: refractive_swan_core::mapping::MappingSourceVersion::new("bench", "bench"),
             reason: None,
             license_tier: Some("bench".into()),
             source_kind: Some("bench".into()),
@@ -45,9 +45,9 @@ fn benchmarks(c: &mut Criterion) {
 
 fn bench_fingerprint(c: &mut Criterion, store: &FileDatasetStore, dataset: &str) {
     let cases = store.load_dataset(dataset).expect("load dataset");
-    let summary = dfps_eval::run_eval_with_mapper(&cases, |rows| map_stub(rows));
+    let summary = refractive_swan_eval::run_eval_with_mapper(&cases, |rows| map_stub(rows));
     c.bench_function(&format!("fingerprint_{dataset}"), |b| {
-        b.iter(|| dfps_eval::fingerprint_summary(&summary))
+        b.iter(|| refractive_swan_eval::fingerprint_summary(&summary))
     });
 }
 

@@ -1,7 +1,7 @@
 //! Deterministic fake-data generators plus checked-in fixtures that mirror the
-//! DFPS domain model (patients, encounters, ServiceRequests, eval corpora).
+//! refractive_swan domain model (patients, encounters, ServiceRequests, eval corpora).
 //!
-//! Merged from the standalone `dfps_fake_data` crate so evaluation + fixtures
+//! Merged from the standalone `refractive_swan_fake_data` crate so evaluation + fixtures
 //! now live under one home. See:
 //! - docs/system-design/base/directory-architecture.md
 //! - docs/system-design/clinical/ncit/architecture.md

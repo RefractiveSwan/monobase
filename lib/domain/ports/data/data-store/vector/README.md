@@ -1,4 +1,4 @@
-# dfps_vector_port
+# refractive_swan_vector_port
 
 **Path:** `code/lib/domain/vector_port`  
 **Scope:** Domain-level abstraction for vector similarity search
@@ -15,11 +15,11 @@ The vector subsystem follows a strict ports-and-adapters pattern with three laye
 
 | Layer | Crate | Responsibilities |
 |-------|-------|------------------|
-| **Domain** | `dfps_vector_port` | Traits, errors, embedding metadata |
-| **Store** | `dfps_vector_store` | Qdrant/PGVector configs &drug drivers (conceptual location: `platform/store/vector_store`) |
-| **Runtime** | `dfps_mesh_node` | Choose backend, build pool/context per node (current: `dfps_api::NodeDataPlane`) |
+| **Domain** | `refractive_swan_vector_port` | Traits, errors, embedding metadata |
+| **Store** | `refractive_swan_vector_store` | Qdrant/PGVector configs &drug drivers (conceptual location: `platform/store/vector_store`) |
+| **Runtime** | `refractive_swan_mesh_node` | Choose backend, build pool/context per node (current: `refractive_swan_api::NodeDataPlane`) |
 
-**Critical invariant**: No domain crate (`dfps_mapping`, `dfps_pipeline`, `dfps_observability`) may depend directly on `dfps_vector_store`. All domain code uses `dfps_vector_port` exclusively.
+**Critical invariant**: No domain crate (`refractive_swan_mapping`, `refractive_swan_pipeline`, `refractive_swan_observability`) may depend directly on `refractive_swan_vector_store`. All domain code uses `refractive_swan_vector_port` exclusively.
 
 ### Trait Surface
 
@@ -44,9 +44,9 @@ pub trait VectorStorePort: Send + Sync {
 ```
 
 **Expected by**:
-- `dfps_mapping::vector_ranker` – searches for candidate mappings
-- `dfps_pipeline::DefaultPipeline` – passes vector runtime to mapping engine
-- `dfps_observability::PipelineMetrics` – captures usage snapshots
+- `refractive_swan_mapping::vector_ranker` – searches for candidate mappings
+- `refractive_swan_pipeline::DefaultPipeline` – passes vector runtime to mapping engine
+- `refractive_swan_observability::PipelineMetrics` – captures usage snapshots
 
 #### Supporting Types
 
@@ -60,10 +60,10 @@ pub trait VectorStorePort: Send + Sync {
 
 ## Implementations
 
-### dfps_vector_store (Platform Store)
+### refractive_swan_vector_store (Platform Store)
 
-**Current location**: `lib/app/servers/vector_store`  
-**Conceptual location**: `lib/platform/store/vector_store` (MESH-025 target)
+**Current location**: `lib/platform/data/data-stores/vector_store`  
+**Conceptual location**: `lib/platform/store/vector_store`
 
 This crate provides concrete implementations of `VectorStorePort`:
 
@@ -78,7 +78,7 @@ The store crate contains:
 
 **Factory pattern (planned)**:
 ```rust
-// In dfps_vector_store (future)
+// In refractive_swan_vector_store (future)
 pub fn from_config(cfg: VectorStoreRuntimeConfig) -> Arc<dyn VectorStorePort> {
     match cfg.backend {
         VectorBackend::Qdrant => Arc::new(QdrantBackend::connect(cfg.qdrant_url)),
@@ -89,18 +89,18 @@ pub fn from_config(cfg: VectorStoreRuntimeConfig) -> Arc<dyn VectorStorePort> {
 
 ### NodeDataPlane Wiring
 
-**Current**: `dfps_api::server::NodeDataPlane` wires the vector runtime:
+**Current**: `refractive_swan_api::server::NodeDataPlane` wires the vector runtime:
 
 ```rust
 pub struct NodeDataPlane {
     pipeline: Arc<dyn PipelinePort>,
-    vector_runtime: Arc<dyn VectorStorePort>, // ← from dfps_vector_store
+    vector_runtime: Arc<dyn VectorStorePort>, // ← from refractive_swan_vector_store
     datamart: Arc<dyn DatamartSink>,
     // …
 }
 ```
 
-**Future**: `dfps_mesh_node::NodeDataPlane` will wire the same way, allowing:
+**Future**: `refractive_swan_mesh_node::NodeDataPlane` will wire the same way, allowing:
 - Per-node backend selection (Qdrant for node A, PGVector for node B)
 - Runtime configuration without changing domain code
 - Easier testing (mock implementations of `VectorStorePort`)
@@ -113,7 +113,7 @@ pub struct NodeDataPlane {
 
 If you're writing domain logic that needs vector search:
 
-1. **Depend on `dfps_vector_port` only**: Add `dfps_vector_port = { path = "../vector_port" }` to your domain crate's `Cargo.toml`.
+1. **Depend on `refractive_swan_vector_port` only**: Add `refractive_swan_vector_port = { path = "../vector_port" }` to your domain crate's `Cargo.toml`.
 2. **Accept the trait**: Take `Arc<dyn VectorStorePort>` as a dependency injection parameter.
 3. **Use domain errors**: Handle `VectorStoreError` (not Qdrant/PGVector errors).
 4. **Don't configure backends**: Configuration and backend selection lives in runtime/platform layers.
@@ -121,8 +121,8 @@ If you're writing domain logic that needs vector search:
 Example:
 
 ```rust
-// In dfps_mapping/src/vector_ranker.rs
-use dfps_vector_port::{VectorStorePort, EmbeddingQuery, VectorStoreError};
+// In refractive_swan_mapping/src/vector_ranker.rs
+use refractive_swan_vector_port::{VectorStorePort, EmbeddingQuery, VectorStoreError};
 
 pub async fn rank_candidates(
     query: &str,
@@ -137,7 +137,7 @@ pub async fn rank_candidates(
 
 If you're implementing a new vector store backend:
 
-1. **Implement `VectorStorePort`**: In `dfps_vector_store`, create a new backend struct.
+1. **Implement `VectorStorePort`**: In `refractive_swan_vector_store`, create a new backend struct.
 2. **Add configuration**: Define a backend-specific config struct.
 3. **Register in factory**: Update `from_config` to handle the new backend.
 4. **Test with domain code**: Verify mapping/pipeline tests pass with your backend.
@@ -151,7 +151,7 @@ If you're implementing a new vector store backend:
 Domain crates test vector logic with **mock implementations**:
 
 ```rust
-// In dfps_test_suite or inline test
+// In refractive_swan_test_suite or inline test
 struct MockVectorStore { /* … */ }
 
 impl VectorStorePort for MockVectorStore {
@@ -164,7 +164,7 @@ impl VectorStorePort for MockVectorStore {
 
 ### Integration Tests
 
-`dfps_vector_store` integration tests verify:
+`refractive_swan_vector_store` integration tests verify:
 - Real Qdrant/PGVector connectivity
 - Query translation accuracy
 - Error handling for unavailable backends
@@ -175,24 +175,24 @@ impl VectorStorePort for MockVectorStore {
 
 As part of the mesh-first architecture refactoring:
 
-- **`dfps_vector_port`**: Stays in `lib/domain/vector_port` (no changes).
-- **`dfps_vector_store`**:  
-  - **Current**: `lib/app/servers/vector_store`  
-  - **Target**: `lib/platform/store/vector_store`  
+- **`refractive_swan_vector_port`**: Stays in `lib/domain/vector_port` (no changes).
+- **`refractive_swan_vector_store`**:  
+  - **Current**: `lib/platform/data/data-stores/vector_store`  
+  - **Target**: `lib/platform/store/vector_store`
   - Will be moved in Phase 3 of MESH-025 migration.
 
-- **`dfps_mesh_node`**:  
-  - Current `NodeDataPlane` in `dfps_api` will be extracted into `lib/platform/mesh/node`.  
+- **`refractive_swan_mesh_node`**:  
+  - Current `NodeDataPlane` in `refractive_swan_api` will be extracted into `lib/platform/mesh/node`.  
   - Vector runtime wiring will remain identical.
 
 ### No Domain Changes Required
 
-Because domain code depends only on `dfps_vector_port`, the migration is **transparent** to:
-- `dfps_mapping`
-- `dfps_pipeline`
-- `dfps_observability`
+Because domain code depends only on `refractive_swan_vector_port`, the migration is **transparent** to:
+- `refractive_swan_mapping`
+- `refractive_swan_pipeline`
+- `refractive_swan_observability`
 
-Only runtime/platform code (currently `dfps_api`) needs updates.
+Only runtime/platform code (currently `refractive_swan_api`) needs updates.
 
 ---
 

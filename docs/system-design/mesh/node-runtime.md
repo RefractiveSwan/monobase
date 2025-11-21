@@ -1,10 +1,10 @@
 # Node Runtime Design
 
 **Path:** `code/docs/system-design/mesh/node-runtime.md`  
-**Scope:** `dfps_mesh_node` architecture and `NodeDataPlane` design  
+**Scope:** `refractive_swan_mesh_node` architecture and `NodeDataPlane` design  
 **Tracking:** MESH-025 (feature/mesh-data-plane)
 
-This document describes the design of the **mesh node runtime** (`dfps_mesh_node`), the core component that wires together the domain, platform/data, and platform/store layers into a cohesive node deployment.
+This document describes the design of the **mesh node runtime** (`refractive_swan_mesh_node`), the core component that wires together the domain, platform/data, and platform/store layers into a cohesive node deployment. The `NodeDataPlane` type now lives in `lib/platform/mesh/node/src/plane.rs` so HTTP adapters can depend on it directly.
 
 ---
 
@@ -12,13 +12,17 @@ This document describes the design of the **mesh node runtime** (`dfps_mesh_node
 
 A **mesh node** is a sovereign deployment unit that:
 
-1. **Runs the mapping pipeline** (`dfps_pipeline`)
-2. **Persists results** to a node-local warehouse (`dfps_datamart`)
+1. **Runs the mapping pipeline** (`refractive_swan_pipeline`)
+2. **Persists results** to a node-local warehouse (`refractive_swan_datamart`)
 3. **Exposes HTTP APIs** for mapping jobs, analytics, and eval
-4. **Enforces governance policies** (`dfps_compliance`, `dfps_mesh_governance`)
+4. **Enforces governance policies** (`refractive_swan_compliance`, `refractive_swan_mesh_governance`)
 5. **Reports capabilities** to the mesh hub (if part of a federated deployment)
 
 The `NodeDataPlane` struct is the central orchestration point that binds these components.
+
+> Mesh-specific DTOs (node IDs, job descriptors/results) come from the
+> `refractive_swan_mesh_dto` veneer so node/hub runtimes depend on a curated surface rather
+> than the entire contracts crate.
 
 ---
 
@@ -29,14 +33,14 @@ The `NodeDataPlane` struct is the central orchestration point that binds these c
 ```rust
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use dfps_pipeline::PipelinePort;
-use dfps_datamart::DatamartSink;
-use dfps_relational_store::RelationalConfig;
-use dfps_vector_port::VectorStore;
-use dfps_compliance::Policy;
-use dfps_eval::DatasetStore;
-use dfps_observability::PipelineMetrics;
-use dfps_contracts::mesh::MeshNodeId;
+use refractive_swan_pipeline::PipelinePort;
+use refractive_swan_datamart::DatamartSink;
+use refractive_swan_relational_store::RelationalConfig;
+use refractive_swan_vector_port::VectorStore;
+use refractive_swan_compliance::Policy;
+use refractive_swan_eval::DatasetStore;
+use refractive_swan_observability::PipelineMetrics;
+use refractive_swan_mesh_dto::MeshNodeId;
 
 pub struct NodeDataPlane {
     /// Node identity
@@ -51,7 +55,7 @@ pub struct NodeDataPlane {
     /// Relational store configuration
     pub relational_cfg: RelationalConfig,
     
-    /// Vector runtime (implements dfps_vector_port::VectorStore)
+    /// Vector runtime (implements refractive_swan_vector_port::VectorStore)
     pub vector_runtime: Arc<dyn VectorStore + Send + Sync>,
     
     /// Compliance policy (DP, export licensing, etc.)
@@ -130,7 +134,7 @@ impl NodeDataPlane {
 ```
 
 **Inputs**: Analytics query descriptor  
-**Outputs**: JSON response (from `dfps_contracts::analytics`)
+**Outputs**: JSON response (from `refractive_swan_contracts::analytics`)
 
 ### 3. Run Eval Jobs
 
@@ -140,7 +144,7 @@ impl NodeDataPlane {
         &self,
         request: EvalRunRequest,
     ) -> Result<EvalRunResponse, NodeError> {
-        use dfps_eval::run_eval_with_mapper;
+        use refractive_swan_eval::run_eval_with_mapper;
         
         // Load dataset
         let dataset = self.dataset_store.load(&request.dataset_name).await?;
@@ -172,7 +176,7 @@ impl NodeDataPlane {
         &self,
         job: &MeshJobDescriptor,
     ) -> Result<MeshJobResult, NodeError> {
-        use dfps_mesh_governance::GovernanceEngine;
+        use refractive_swan_mesh_governance::GovernanceEngine;
         
         // Check if job is allowed
         let decision = self.governance.evaluate(job, &self.compliance_policy)?;
@@ -219,37 +223,37 @@ impl NodeDataPlane {
 
 ### Domain Layer
 
-- **dfps_pipeline**: Orchestrates ingestion → mapping → eval
-- **dfps_vector_port**: Abstract vector search interface
-- **dfps_contracts**: Canonical DTOs (`PipelineOutput`, `MeshJobDescriptor`, etc.)
+- **refractive_swan_pipeline**: Orchestrates ingestion → mapping → eval
+- **refractive_swan_vector_port**: Abstract vector search interface
+- **refractive_swan_contracts**: Canonical DTOs (`PipelineOutput`, `MeshJobDescriptor`, etc.)
 
 ### Platform Data Layer
 
-- **dfps_datamart**: Implements `DatamartSink` for node-local warehouse
-- **dfps_datawarehouse** (future): Abstract warehouse traits
-- **dfps_datalake** (future): Export snapshots with DP noise
+- **refractive_swan_datamart**: Implements `DatamartSink` for node-local warehouse
+- **refractive_swan_datawarehouse** (future): Abstract warehouse traits
+- **refractive_swan_datalake** (future): Export snapshots with DP noise
 
 ### Platform Store Layer
 
-- **dfps_relational_store**: Connection pooling for warehouse
-- **dfps_vector_store**: Concrete vector backend (Qdrant/PGVector)
-- **dfps_cache_store** (future): Analytics query caching
+- **refractive_swan_relational_store**: Connection pooling for warehouse
+- **refractive_swan_vector_store**: Concrete vector backend (Qdrant/PGVector)
+- **refractive_swan_cache_store** (future): Analytics query caching
 
 ### Platform Mesh Layer
 
-- **dfps_mesh_governance**: Policy evaluation for job requests
-- **dfps_mesh_hub** (future): Orchestrates cross-node jobs
+- **refractive_swan_mesh_governance**: Policy evaluation for job requests
+- **refractive_swan_mesh_hub** (future): Orchestrates cross-node jobs
 
 ---
 
 ## Current vs Future
 
-### Current Reality (`dfps_api`)
+### Current Reality (`refractive_swan_api`)
 
 Today, `lib/app/servers/api/src/server.rs` contains a proto-`NodeDataPlane`:
 
 ```rust
-// In dfps_api::server
+// In refractive_swan_api::server
 pub struct NodeDataPlane {
     pipeline: Arc<dyn PipelinePort>,
     datamart: Arc<dyn DatamartSink>,
@@ -265,7 +269,7 @@ pub struct NodeDataPlane {
 - No mesh coordination (no `MeshNodeId`, no governance integration)
 - No hub communication
 
-### Future (`dfps_mesh_node`)
+### Future (`refractive_swan_mesh_node`)
 
 **Location**: `lib/platform/mesh/node`
 
@@ -273,7 +277,7 @@ pub struct NodeDataPlane {
 - **Decoupled**: `NodeDataPlane` is pure business logic, HTTP handlers are thin wrappers
 - **Mesh-aware**: Exposes `MeshNodeId`, implements `NodeCapabilities` reporting
 - **Governance-integrated**: Evaluates policies before executing jobs
-- **Hub-ready**: Can register with `dfps_mesh_hub` for federated deployments
+- **Hub-ready**: Can register with `refractive_swan_mesh_hub` for federated deployments
 
 ---
 
@@ -298,16 +302,16 @@ pub struct NodeConfig {
 ```rust
 impl NodeConfig {
     pub fn from_env(profile: &str) -> Result<Self, ConfigError> {
-        dfps_configuration::load_env(&format!("mesh.node.{}", profile))?;
+        refractive_swan_configuration::load_env(&format!("mesh.node.{}", profile))?;
         
         Ok(Self {
-            node_id: std::env::var("DFPS_NODE_ID").ok().map(MeshNodeId::from_string),
+            node_id: std::env::var("refractive_swan_NODE_ID").ok().map(MeshNodeId::from_string),
             pipeline_config: PipelineConfig::from_env()?,
             relational_config: RelationalConfig::from_env()?,
             vector_config: VectorStoreRuntimeConfig::from_env()?,
             compliance_config: ComplianceConfig::from_env()?,
-            dataset_root: std::env::var("DFPS_DATASET_ROOT")?.into(),
-            hub_url: std::env::var("DFPS_HUB_URL").ok(),
+            dataset_root: std::env::var("refractive_swan_DATASET_ROOT")?.into(),
+            hub_url: std::env::var("refractive_swan_HUB_URL").ok(),
         })
     }
 }
@@ -317,7 +321,7 @@ impl NodeConfig {
 
 ## HTTP API Surface
 
-The node exposes HTTP endpoints (currently in `dfps_api`, future in thin HTTP adapter):
+The node exposes HTTP endpoints (currently in `refractive_swan_api`, future in thin HTTP adapter):
 
 ### Mapping Endpoints
 
@@ -367,23 +371,23 @@ The node exposes HTTP endpoints (currently in `dfps_api`, future in thin HTTP ad
 ### Phase 1: Conceptual Design (current)
 
 - This document describes the target architecture
-- `dfps_api` remains current proto-node
+- `refractive_swan_api` remains current proto-node
 
 ### Phase 2: Extract NodeDataPlane
 
 - Create `lib/platform/mesh/node/src/data_plane.rs`
-- Move business logic from `dfps_api::server` to `NodeDataPlane`
-- `dfps_api` becomes a thin HTTP adapter
+- Move business logic from `refractive_swan_api::server` to `NodeDataPlane`
+- `refractive_swan_api` becomes a thin HTTP adapter
 
 ### Phase 3: Add Mesh Coordination
 
 - Implement `MeshNodeId`, `NodeCapabilities`
-- Add governance integration (`dfps_mesh_governance`)
+- Add governance integration (`refractive_swan_mesh_governance`)
 - Support hub registration (optional)
 
-### Phase 4: Deprecate dfps_api
+### Phase 4: Deprecate refractive_swan_api
 
-- Create `dfps_api` shim that wraps `dfps_mesh_node`
+- Create `refractive_swan_api` shim that wraps `refractive_swan_mesh_node`
 - Document migration path for existing deployments
 
 ---

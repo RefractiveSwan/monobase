@@ -7,7 +7,7 @@ use crate::{
     view_model::{DEFAULT_EVAL_DATASET, EvalContext, PageContext},
     views,
 };
-use dfps_eval::report;
+use refractive_swan_eval::report;
 
 /// Registers evaluation routes (page + HTMX fragments).
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -92,10 +92,10 @@ pub async fn eval_run(
     }
 }
 
-/// Builds the eval report fragment via dfps_eval helpers.
+/// Builds the eval report fragment via refractive_swan_eval helpers.
 pub(crate) async fn render_eval_report_fragment(
     client: &BackendClient,
-    store: &(dyn dfps_eval::DatasetStore + Send + Sync),
+    store: &(dyn refractive_swan_eval::DatasetStore + Send + Sync),
     dataset: &str,
 ) -> Result<String, String> {
     let summary = client

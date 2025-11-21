@@ -1,6 +1,6 @@
-# DFPS Documentation
+# refractive_swan Documentation
 
-Welcome! This book gathers runbooks, feature kanbans, and how-tos for the DFPS workspace.
+Welcome! This book gathers runbooks, feature kanbans, and how-tos for the refractive_swan workspace.
 
 - Use the **Runbooks** section for step-by-step guides.
 - Use **Kanban (Feature)** to see the engineering tracks and their status.

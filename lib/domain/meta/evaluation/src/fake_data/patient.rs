@@ -1,5 +1,5 @@
 use crate::fake_data::{rng, value::fake_patient_id_with_rng};
-use dfps_core::patient::Patient;
+use refractive_swan_core::patient::Patient;
 use rand::Rng;
 
 pub fn fake_patient() -> Patient {

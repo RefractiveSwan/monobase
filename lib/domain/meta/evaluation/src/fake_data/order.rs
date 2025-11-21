@@ -5,7 +5,7 @@ use crate::fake_data::{
         fake_service_request_intent_with_rng, fake_service_request_status_with_rng,
     },
 };
-use dfps_core::{
+use refractive_swan_core::{
     order::{ServiceRequest, ServiceRequestIntent, ServiceRequestStatus},
     value::{EncounterId, PatientId},
 };

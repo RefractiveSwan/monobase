@@ -1,7 +1,7 @@
 //! Validation integration tests for FHIR requirements (REFR-05).
 
-use dfps_ingestion::validation::validate_bundle;
-use dfps_test_suite::regression;
+use refractive_swan_ingestion::validation::validate_bundle;
+use refractive_swan_test_suite::regression;
 
 #[test]
 fn baseline_bundle_has_no_validation_issues() {

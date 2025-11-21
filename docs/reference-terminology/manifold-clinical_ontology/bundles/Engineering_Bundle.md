@@ -1,7 +1,7 @@
 
 # Engineering Bundle - Vectorized Ontology & Manifold Geometry
 **Date:** 2025-11-15  
-**Audience:** Backend/data/infra engineers implementing DFPS features.
+**Audience:** Backend/data/infra engineers implementing refractive_swan features.
 
 ## What to build (overview)
 - **Geometry probes**: compute (R_M, D_M, rho_CC, alpha_mf, alpha_sim) on every mapping batch; emit to logs + reports.
@@ -9,7 +9,7 @@
 - **Graph health**: run Leiden; block disconnected communities in sampling; enforce CI checks.
 - **Mapping states**: AutoMapped / NeedsReview / NoMatch tied to geometry signals.
 
-## DFPS Integration Points
+## refractive_swan Integration Points
 - `lib/domain/mapping/src/lib.rs`: hook a `geometry_probe()` after candidates are ranked; attach `reason` tags e.g., `capacity_low`, `centroid_corr_high`.
 - `lib/domain/meta/evaluation/src/lib.rs` & `report.rs`: extend `EvalSummary` with `geometry: Option<GeometryStats>`.
 - `lib/domain/ontologies/terminology`: add Leiden pass and connectivity audit before embedding updates.
@@ -41,7 +41,7 @@ pub fn geometry_probe(samples: &HashMap<ConceptId, Vec<Vec<f32>>>) -> GeometrySt
 - Centroid projection: remove top-k centroid PCs to lower rho_CC, improving alpha 10-15% with no recall loss.
 
 
-**System flow (DFPS + geometry taps)**
+**System flow (refractive_swan + geometry taps)**
 ```mermaid
 flowchart LR
   A[Staged Codes] --> B[Candidate Generation]

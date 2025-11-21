@@ -1,4 +1,4 @@
-# dfps_datalake
+# refractive_swan_datalake
 
 **Conceptual location:** `lib/platform/data/lake`  
 **Current physical location:** Not yet implemented  
@@ -10,12 +10,12 @@ This directory will host the **data lake abstraction** for exporting node-local 
 
 ## Purpose
 
-`dfps_datalake` provides:
+`refractive_swan_datalake` provides:
 
 1. **LakeConfig**: Path, file format, retention, partition columns
 2. **LakeWriter**: Export warehouse snapshots (Parquet/Delta)
 3. **LakeReader**: Read partitioned datasets for hub ingestion
-4. **DP integration**: Apply DP noise before export (via `dfps_compliance`)
+4. **DP integration**: Apply DP noise before export (via `refractive_swan_compliance`)
 
 **Goal**: Enable secure node → hub data sharing while preserving privacy.
 
@@ -167,11 +167,11 @@ pub enum LakeError {
 Nodes periodically export warehouse snapshots with DP noise:
 
 ```rust
-// In dfps_mesh_node
+// In refractive_swan_mesh_node
 pub async fn export_daily_snapshot(
     &self,
     lake_writer: &dyn LakeWriter,
-    policy: &dfps_compliance::Policy,
+    policy: &refractive_swan_compliance::Policy,
 ) -> Result<WriteSummary, NodeError> {
     // Query warehouse for today's facts
     let fact_rows = self.datamart.query_fact_range(today()).await?;
@@ -201,11 +201,11 @@ pub async fn export_daily_snapshot(
 Hub reads node snapshots and ingests into reporting warehouse:
 
 ```rust
-// In dfps_mesh_hub
+// In refractive_swan_mesh_hub
 pub async fn ingest_node_snapshots(
     &self,
     lake_reader: &dyn LakeReader,
-    governance: &dfps_mesh_governance::GovernancePolicy,
+    governance: &refractive_swan_mesh_governance::GovernancePolicy,
 ) -> Result<IngestSummary, HubError> {
     let filters = SnapshotFilters {
         node_ids: None, // All nodes
@@ -279,7 +279,7 @@ data_lake/
 Before writing snapshots, nodes apply DP noise:
 
 ```rust
-use dfps_compliance::Policy;
+use refractive_swan_compliance::Policy;
 
 pub async fn write_dp_snapshot(
     &self,
@@ -332,7 +332,7 @@ pub async fn write_dp_snapshot(
 
 ### Phase 3: DP Integration
 
-- Wire `dfps_compliance` for noise application
+- Wire `refractive_swan_compliance` for noise application
 - Add governance checks before hub ingestion
 
 ### Phase 4: Delta Lake Support

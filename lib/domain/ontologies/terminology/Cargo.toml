@@ -1,5 +1,5 @@
 [package]
-name = "dfps_terminology"
+name = "refractive_swan_terminology"
 version.workspace = true
 edition.workspace = true
 
@@ -12,8 +12,8 @@ obo-graph = []
 
 [dependencies]
 serde.workspace = true
-dfps_core = { path = "../../core" }
-dfps_terminology_port = { path = "../../ports/terminology" }
+refractive_swan_core = { path = "../../core" }
+refractive_swan_terminology_port = { path = "../../ports/terminology" }
 thiserror = "1.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
 once_cell = { workspace = true }

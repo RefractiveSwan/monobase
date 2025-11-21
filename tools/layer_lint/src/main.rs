@@ -92,19 +92,19 @@ fn classify_by_path(path: &Utf8Path) -> Option<Layer> {
 
 fn layer_override(name: &str) -> Option<Layer> {
     match name {
-        "dfps_vector_store" => Some(Layer::Platform),
-        "dfps_datamart" => Some(Layer::App),
+        "refractive_swan_vector_store" => Some(Layer::Platform),
+        "refractive_swan_datamart" => Some(Layer::App),
         _ => None,
     }
 }
 
 fn should_skip_package(name: &str) -> bool {
-    matches!(name, "dfps_test_suite")
+    matches!(name, "refractive_swan_test_suite")
 }
 
 const EDGE_ALLOWLIST: [(&str, &str); 2] = [
-    ("dfps_compliance", "dfps_terminology"),
-    ("dfps_observability", "dfps_core"),
+    ("refractive_swan_compliance", "refractive_swan_terminology"),
+    ("refractive_swan_observability", "refractive_swan_core"),
 ];
 
 fn violates_layers(source_name: &str, target_name: &str, source: Layer, target: Layer) -> bool {

@@ -25,8 +25,8 @@ erDiagram
 
 ## Implementation notes
 
-- The mart is materialized by `lib/app/servers/datamart` (`dfps_datamart`). Its
-  `from_pipeline_output` helper ingests `dfps_pipeline::PipelineOutput` and
+- The mart is materialized by `lib/platform/data/data-plane/mart` (`refractive_swan_datamart`). Its
+  `from_pipeline_output` helper ingests `refractive_swan_pipeline::PipelineOutput` and
   produces `(Dims, Vec<FactServiceRequest>)`.
 - Each dimension uses deterministic surrogate keys derived from natural
   identifiers (`patient_id`, `encounter_id`, `code_element_id`, `ncit_id`) so the
@@ -36,7 +36,7 @@ erDiagram
   engine reports `MappingState::NoMatch`, the mart links the fact to a shared
   sentinel `DimNCIT` row (`ncit_id = "NO_MATCH"`) instead of leaving `ncit_key`
   empty, keeping downstream joins simple.
-- The SQL layout in `dfps_datamart::sql` mirrors these dims/facts:
+- The SQL layout in `refractive_swan_datamart::sql` mirrors these dims/facts:
   - `dim_patient(patient_key, patient_id)`
   - `dim_encounter(encounter_key, encounter_id, patient_key)`
   - `dim_code(code_key, code_element_id, system, code, display)`

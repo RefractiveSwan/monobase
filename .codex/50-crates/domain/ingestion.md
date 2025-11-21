@@ -1,7 +1,7 @@
-# Crate: lib/domain/ingestion - `dfps_ingestion`
+# Crate: lib/domain/ingestion - `refractive_swan_ingestion`
 
 **Path:** `code/lib/domain/ingestion`  
-**Depends on:** `dfps_core`, `serde(_json)`.
+**Depends on:** `refractive_swan_core`, `serde(_json)`.
 
 ## Responsibilities
 - Normalize **FHIR -> staging -> domain** (`ServiceRequest`) with clear, typed errors.

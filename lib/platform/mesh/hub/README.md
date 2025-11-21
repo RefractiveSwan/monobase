@@ -1,4 +1,4 @@
-# dfps_mesh_hub
+# refractive_swan_mesh_hub
 
 **Conceptual location:** `lib/platform/mesh/hub`  
 **Current physical location:** Not yet implemented  
@@ -10,7 +10,7 @@ This directory will host the **mesh hub runtime** that orchestrates jobs across 
 
 ## Purpose
 
-`dfps_mesh_hub` provides:
+`refractive_swan_mesh_hub` provides (via mesh DTOs from `refractive_swan_mesh_dto`):
 
 1. **HubConfig**: List of node URLs/IDs, auth, timeouts
 2. **NodeRegistry**: NodeId → NodeMetadata mapping
@@ -51,7 +51,7 @@ pub struct HubConfig {
 ### NodeRegistry
 
 ```rust
-use dfps_contracts::mesh::{MeshNodeId, NodeCapabilities};
+use refractive_swan_mesh_dto::{MeshNodeId, NodeCapabilities};
 
 #[derive(Clone, Debug)]
 pub struct NodeMetadata {
@@ -93,7 +93,7 @@ impl NodeRegistry {
 ### JobQueue
 
 ```rust
-use dfps_contracts::mesh::{MeshJobDescriptor, MeshJobResult};
+use refractive_swan_mesh_dto::{MeshJobDescriptor, MeshJobResult};
 
 pub struct JobQueue {
     registry: Arc<RwLock<NodeRegistry>>,
@@ -282,7 +282,7 @@ pub async fn health_check_nodes(
 
 ## How Hub Calls Node APIs
 
-The hub uses existing node HTTP endpoints (from `dfps_api`, future `dfps_mesh_node`):
+The hub uses existing node HTTP endpoints (from `refractive_swan_api`, future `refractive_swan_mesh_node`):
 
 ### Existing Endpoints (Reused)
 

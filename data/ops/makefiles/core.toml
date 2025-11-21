@@ -36,17 +36,17 @@ command = "cargo"
 args = [
     "test",
     "-p",
-    "dfps_api",
+    "refractive_swan_api",
     "-p",
-    "dfps_core",
+    "refractive_swan_core",
     "-p",
-    "dfps_datamart",
+    "refractive_swan_datamart",
     "-p",
-    "dfps_ingestion",
+    "refractive_swan_ingestion",
     "-p",
-    "dfps_mapping",
+    "refractive_swan_mapping",
     "-p",
-    "dfps_web_frontend",
+    "refractive_swan_web_frontend",
     "--lib",
 ]
 
@@ -55,7 +55,7 @@ command = "cargo"
 args = [
     "test",
     "-p",
-    "dfps_test_suite",
+    "refractive_swan_test_suite",
     "--test",
     "e2e_tests",
     "--test",
@@ -67,7 +67,7 @@ args = [
 [tasks.test-docs]
 description = "Run doc tests only for crates that actually host them"
 script = [
-    "cargo test -p dfps_core --doc",
+    "cargo test -p refractive_swan_core --doc",
 ]
 
 [tasks.ci]
@@ -97,6 +97,6 @@ args = [
 ]
 
 [tasks.contracts-check]
-description = "Verify dfps_contracts schema snapshots are current"
+description = "Verify refractive_swan_contracts schema snapshots are current"
 command = "cargo"
-args = ["run", "-p", "dfps_contracts", "--bin", "contracts-schema", "--", "--check"]
+args = ["run", "-p", "refractive_swan_contracts", "--bin", "contracts-schema", "--", "--check"]

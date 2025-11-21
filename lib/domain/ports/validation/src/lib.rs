@@ -1,6 +1,6 @@
 //! External validation port for FHIR bundles.
 
-use dfps_core::fhir::Bundle;
+use refractive_swan_core::fhir::Bundle;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

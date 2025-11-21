@@ -1,33 +1,33 @@
 //! Platform vector-store adapters (Qdrant, PGVector, mocks).
-//! Traits + config live in `dfps_vector_port`; this crate wires env/config
+//! Traits + config live in `refractive_swan_vector_port`; this crate wires env/config
 //! parsing plus concrete backends.
 use std::env;
 
-use dfps_configuration::EnvValueError;
-pub use dfps_vector_port::*;
+use refractive_swan_configuration::EnvValueError;
+pub use refractive_swan_vector_port::*;
 
 /// Load a `VectorStoreConfig` from environment variables.
 pub fn config_from_env() -> Result<VectorStoreConfig, VectorStoreConfigError> {
     const DEFAULT_POOL_MAX: u32 = 5;
     const DEFAULT_HEALTH_TIMEOUT_MS: u64 = 500;
 
-    let _ = dfps_configuration::load_env("platform.vector_store");
+    let _ = refractive_swan_configuration::load_env("platform.vector_store");
 
-    let enabled = dfps_configuration::bool_var("DFPS_VECTOR_ENABLED")
+    let enabled = refractive_swan_configuration::bool_var("refractive_swan_VECTOR_ENABLED")
         .map_err(env_err)?
         .unwrap_or(false);
-    let backend = dfps_configuration::string_var("DFPS_VECTOR_BACKEND")
+    let backend = refractive_swan_configuration::string_var("refractive_swan_VECTOR_BACKEND")
         .map_err(env_err)?
         .and_then(|value| value.parse().ok())
         .unwrap_or(VectorBackend::Mock);
-    let url = dfps_configuration::string_var("DFPS_VECTOR_URL")
+    let url = refractive_swan_configuration::string_var("refractive_swan_VECTOR_URL")
         .map_err(env_err)?
         .filter(|value| !value.is_empty());
-    let namespace = env::var("DFPS_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
-    let pool_max = dfps_configuration::u32_var("DFPS_VECTOR_POOL_MAX")
+    let namespace = env::var("refractive_swan_VECTOR_NAMESPACE").unwrap_or_else(|_| "default".into());
+    let pool_max = refractive_swan_configuration::u32_var("refractive_swan_VECTOR_POOL_MAX")
         .map_err(env_err)?
         .unwrap_or(DEFAULT_POOL_MAX);
-    let health_timeout_ms = dfps_configuration::u64_var("DFPS_VECTOR_HEALTH_TIMEOUT_MS")
+    let health_timeout_ms = refractive_swan_configuration::u64_var("refractive_swan_VECTOR_HEALTH_TIMEOUT_MS")
         .map_err(env_err)?
         .unwrap_or(DEFAULT_HEALTH_TIMEOUT_MS);
 
@@ -66,12 +66,12 @@ mod tests {
 
     fn reset_env() {
         for key in [
-            "DFPS_VECTOR_ENABLED",
-            "DFPS_VECTOR_BACKEND",
-            "DFPS_VECTOR_URL",
-            "DFPS_VECTOR_NAMESPACE",
-            "DFPS_VECTOR_POOL_MAX",
-            "DFPS_VECTOR_HEALTH_TIMEOUT_MS",
+            "refractive_swan_VECTOR_ENABLED",
+            "refractive_swan_VECTOR_BACKEND",
+            "refractive_swan_VECTOR_URL",
+            "refractive_swan_VECTOR_NAMESPACE",
+            "refractive_swan_VECTOR_POOL_MAX",
+            "refractive_swan_VECTOR_HEALTH_TIMEOUT_MS",
         ] {
             unsafe {
                 env::remove_var(key);
@@ -84,7 +84,7 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("refractive_swan_VECTOR_NAMESPACE", "ncit_dev");
         }
         let config = config_from_env().expect("config");
         assert_eq!(config.backend, VectorBackend::Mock);
@@ -97,9 +97,9 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_VECTOR_ENABLED", "true");
-            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
-            env::set_var("DFPS_VECTOR_POOL_MAX", "0");
+            env::set_var("refractive_swan_VECTOR_ENABLED", "true");
+            env::set_var("refractive_swan_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("refractive_swan_VECTOR_POOL_MAX", "0");
         }
         let err = config_from_env().unwrap_err();
         assert_eq!(err, VectorStoreConfigError::InvalidPoolMax);
@@ -110,9 +110,9 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_VECTOR_ENABLED", "true");
-            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
-            env::set_var("DFPS_VECTOR_HEALTH_TIMEOUT_MS", "0");
+            env::set_var("refractive_swan_VECTOR_ENABLED", "true");
+            env::set_var("refractive_swan_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("refractive_swan_VECTOR_HEALTH_TIMEOUT_MS", "0");
         }
         let err = config_from_env().unwrap_err();
         assert_eq!(err, VectorStoreConfigError::InvalidTimeout);
@@ -123,8 +123,8 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_VECTOR_ENABLED", "true");
-            env::set_var("DFPS_VECTOR_NAMESPACE", "   ");
+            env::set_var("refractive_swan_VECTOR_ENABLED", "true");
+            env::set_var("refractive_swan_VECTOR_NAMESPACE", "   ");
         }
         let err = config_from_env().unwrap_err();
         assert_eq!(err, VectorStoreConfigError::MissingNamespace);
@@ -135,9 +135,9 @@ mod tests {
         let _guard = ENV_GUARD.lock().unwrap();
         reset_env();
         unsafe {
-            env::set_var("DFPS_VECTOR_ENABLED", "true");
-            env::set_var("DFPS_VECTOR_NAMESPACE", "ncit_dev");
-            env::set_var("DFPS_VECTOR_BACKEND", "qdrant");
+            env::set_var("refractive_swan_VECTOR_ENABLED", "true");
+            env::set_var("refractive_swan_VECTOR_NAMESPACE", "ncit_dev");
+            env::set_var("refractive_swan_VECTOR_BACKEND", "qdrant");
         }
         let err = config_from_env().unwrap_err();
         assert_eq!(err, VectorStoreConfigError::MissingUrl);

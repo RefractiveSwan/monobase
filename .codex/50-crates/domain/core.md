@@ -1,4 +1,4 @@
-# Crate: lib/domain/core - `dfps_core`
+# Crate: lib/domain/core - `refractive_swan_core`
 
 **Path:** `code/lib/domain/core`  
 **Purpose:** canonical domain/FHIR/staging/mapping/value types with `serde` support.  

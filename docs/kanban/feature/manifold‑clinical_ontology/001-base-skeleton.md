@@ -19,7 +19,7 @@
 
 ### Doing
 
-* [ ] **GEO‑01‑A | DFPS capacity evaluator** — add `geometry_probe()` producing `(R_M, D_M, ρ_CC, α_mf, α_sim)`; integrate with `EvalSummary` and pipeline reports. (Wire to `lib/domain/meta/evaluation` and `lib/domain/mapping`.)
+* [ ] **GEO‑01‑A | refractive_swan capacity evaluator** — add `geometry_probe()` producing `(R_M, D_M, ρ_CC, α_mf, α_sim)`; integrate with `EvalSummary` and pipeline reports. (Wire to `lib/domain/meta/evaluation` and `lib/domain/mapping`.)
 * [ ] **GRAPH‑01‑A | Leiden in pipeline** — CLI to run γ‑grid, fail build on disconnected/badly connected communities ≠ 0.
 
 ### Review
@@ -37,12 +37,12 @@
 
 ## I. Executive Summary (≤300 words)
 
-We connect **manifold capacity theory** to **vectorized ontologies** (NCIt/OBO) and deliver DFPS‑ready methods to **measure**, **shape**, and **govern** representation geometry. Capacity ( \alpha ) is the critical load (P/N) enabling linear separability of (P) manifolds in (N) dimensions. Mean‑field theory expresses ( \alpha^{-1} ) as an expectation of a support‑function optimization; **anchor points** induced by KKT conditions define **effective radius** (R_M) and **effective dimension** (D_M); the combined scale (R_M\sqrt{D_M}) (width) limits capacity. Empirical and theoretical work show layerwise improvements in separability track decreases in (D_M), (R_M), and centroid correlations ( \rho_{CC} ). We operationalize this with:
+We connect **manifold capacity theory** to **vectorized ontologies** (NCIt/OBO) and deliver refractive_swan‑ready methods to **measure**, **shape**, and **govern** representation geometry. Capacity ( \alpha ) is the critical load (P/N) enabling linear separability of (P) manifolds in (N) dimensions. Mean‑field theory expresses ( \alpha^{-1} ) as an expectation of a support‑function optimization; **anchor points** induced by KKT conditions define **effective radius** (R_M) and **effective dimension** (D_M); the combined scale (R_M\sqrt{D_M}) (width) limits capacity. Empirical and theoretical work show layerwise improvements in separability track decreases in (D_M), (R_M), and centroid correlations ( \rho_{CC} ). We operationalize this with:
 **(A)** capacity estimators ((R_M, D_M, \rho_{CC}, \alpha_{mf}, \alpha_{sim})) with bootstrap CIs and JSON logs;
 **(B)** hierarchy‑aware flattening (centroid low‑rank removal + within‑class whitening; MMCR‑style objective) to reduce (R_M, D_M, \rho_{CC});
 **(C)** **Leiden** community detection to guarantee well‑connected ontology graph communities pre‑embedding; and
 **(D)** an evaluation harness with **counterexamples** and **algebraic probes** (vanishing ideals) to catch collapsed class manifolds.
-These mechanisms plug directly into DFPS crates (`dfps_mapping`, `dfps_eval`, `dfps_pipeline`, `dfps_terminology`) and enforce safety with alerts when (|\alpha_{sim}-\alpha_{mf}|/\alpha_{sim} > 0.2), ( \rho_{CC}) spikes, or (R_M\sqrt{D_M}) inflates. ([PMC][1])
+These mechanisms plug directly into refractive_swan crates (`refractive_swan_mapping`, `refractive_swan_eval`, `refractive_swan_pipeline`, `refractive_swan_terminology`) and enforce safety with alerts when (|\alpha_{sim}-\alpha_{mf}|/\alpha_{sim} > 0.2), ( \rho_{CC}) spikes, or (R_M\sqrt{D_M}) inflates. ([PMC][1])
 
 ---
 
@@ -82,7 +82,7 @@ with **anchors** (\tilde S(T)\in \mathrm{conv}(\mathcal{M}_\mu)) emerging from K
 
 ## IV. Algorithms (pseudocode, complexity, expected effect)
 
-### A) Capacity estimation from embeddings (DFPS evaluator)
+### A) Capacity estimation from embeddings (refractive_swan evaluator)
 
 **Goal.** Estimate (R_M, D_M, \rho_{CC}, \alpha_{mf}, \alpha_{sim}) per concept and globally; emit JSON.
 
@@ -214,7 +214,7 @@ def capacity_metrics(X: np.ndarray, y: np.ndarray, m_list=[32,128,512], B=1000):
 
 ---
 
-## VIII. Roadmap & Integration (DFPS crates/docs; metrics; CI)
+## VIII. Roadmap & Integration (refractive_swan crates/docs; metrics; CI)
 
 **30 days (A & C).**
 
@@ -225,11 +225,11 @@ def capacity_metrics(X: np.ndarray, y: np.ndarray, m_list=[32,128,512], B=1000):
 **60 days (A2 & B).**
 
 * Ship **flattening adapter** (centroid projection + whitening + MMCR‑style loss) as optional pre‑ranker stage; A/B on NCIt slices.
-* Wire **counterexample** generators into `dfps_eval` to validate gating rules. ([PMC][1])
+* Wire **counterexample** generators into `refractive_swan_eval` to validate gating rules. ([PMC][1])
 
 **90 days (D).**
 
-* **Algebraic probes** (vanishing‑ideal alarms) in `dfps_eval`; policy to block deployments on collapse alerts.
+* **Algebraic probes** (vanishing‑ideal alarms) in `refractive_swan_eval`; policy to block deployments on collapse alerts.
 
 **Crate touch‑points.**
 
@@ -255,13 +255,13 @@ def capacity_metrics(X: np.ndarray, y: np.ndarray, m_list=[32,128,512], B=1000):
 
 ---
 
-### Appendix—DFPS Capacity Estimation Plan (concise cut‑sheet)
+### Appendix—refractive_swan Capacity Estimation Plan (concise cut‑sheet)
 
 * **Inputs:** embeddings (X\in\mathbb{R}^{N\times D}), labels (concept IDs).
 * **Compute:** per‑class ( \mu_c, \Sigma_c\Rightarrow R_c, PR_c\ (D_{M,c}),) pairwise centroid cosines; global (R_M=\mathrm{mean},R_c), (D_M=\mathrm{median},PR_c), ( \rho_{CC}=\mathrm{mean,cos}).
 * **Capacity:** ( \alpha_{mf}=\alpha_{\text{ball}}(R_M,D_M)); ( \alpha_{sim}(m)) from projected linear separability curves.
 * **CIs:** bootstrap per‑class and global metrics (B=1000).
-* **Emit JSON:** keyed by concept + global summary; wire to `dfps_eval` and dashboards. ([PMC][1])
+* **Emit JSON:** keyed by concept + global summary; wire to `refractive_swan_eval` and dashboards. ([PMC][1])
 
 ### Appendix—Graph Community Tuning (reproducible steps)
 

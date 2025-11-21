@@ -1,6 +1,6 @@
 # Initial Setup Quickstart
 
-This guide walks you through setting up the DFPS development environment from scratch.
+This guide walks you through setting up the refractive_swan development environment from scratch.
 
 ## Prerequisites
 
@@ -61,7 +61,7 @@ bash data/ops/scripts/install_rust_tooling.sh
 
 ### 2. Configure Environment Files
 
-DFPS uses namespace-based `.env` files for configuration. The `setup-env` wizard creates these from example templates:
+refractive_swan uses namespace-based `.env` files for configuration. The `setup-env` wizard creates these from example templates:
 
 ```bash
 cargo make setup-env
@@ -93,7 +93,7 @@ cargo make validate-env
 
 **Expected output:**
 ```
-Validating DFPS environment files...
+Validating refractive_swan environment files...
   ✓ Found: data/environment/.env.app.web.api.dev
   ✓ Found: data/environment/.env.app.web.frontend.dev
   ✓ Found: data/environment/.env.app.cli.dev
@@ -183,7 +183,7 @@ Install Git for Windows (includes Git Bash) or use WSL.
 By default, tasks use the `dev` profile. To use a different profile:
 
 ```bash
-export DFPS_ENV=prod
+export refractive_swan_ENV=prod
 cargo make validate-env
 ```
 

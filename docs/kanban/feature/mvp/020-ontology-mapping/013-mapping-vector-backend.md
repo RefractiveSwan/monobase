@@ -3,7 +3,7 @@
 **Branch:** `feature/VEC-013-mapping-vector-backend` | **Target version:** `v0.1.0`  
 **Status:** DOING | **Introduced:** `v0.1.0` | **Last updated:** `v0.1.0`  
 **Theme:** External infra & heavy services — real vector DB / vector search  
-**Goal:** Pluggable vector‑store backed ranker for `dfps_mapping` (pgvector/Qdrant/Milvus), wired into `MappingEngine` and CLIs, with clean fallbacks when the backend is unavailable.
+**Goal:** Pluggable vector‑store backed ranker for `refractive_swan_mapping` (pgvector/Qdrant/Milvus), wired into `MappingEngine` and CLIs, with clean fallbacks when the backend is unavailable.
 
 ## Executive Summary
 - Add a `VectorStore` trait + feature‑flagged implementations (pgvector, Qdrant; optional Milvus). FOSS‑only.
@@ -15,7 +15,7 @@
 flowchart LR
   Stg[stg_sr_code_exploded] --> ME[MappingEngine]
   ME --> Lex[Lexical ranker]
-  ME -->|if DFPS_VECTOR_ENABLED| Vec[VectorStore backend]
+  ME -->|if refractive_swan_VECTOR_ENABLED| Vec[VectorStore backend]
   Vec --> Cand[Top‑k candidates]
   Lex --> Cand
   Cand --> Thresh[Thresholds & rules]
@@ -44,9 +44,9 @@ flowchart LR
 ### VEC-01 – VectorStore abstraction & wiring
 Define the shared VectorStore crate/config so vector search can be toggled on without breaking offline determinism; expose capacity hooks to watch geometry health (Targets A1/A3/B).
 - Implementation
-  - [x] Create `dfps_vector_store` under `lib/app/servers/vector_store` with FOSS-only deps; add `VectorStore` trait (`health`, `index_items`, `search`) and optional `EmbeddingProvider`, all `Send + Sync` and namespace-required.
-  - [x] Ship `VectorStoreConfig` (`DFPS_VECTOR_URL`, `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_POOL_MAX`, `DFPS_VECTOR_HEALTH_TIMEOUT_MS`, `DFPS_VECTOR_ENABLED`) plus validation for backend/namespace combinations and pool/timeout bounds.
-  - [x] Add `VectorRankerBackend` in `dfps_mapping` implementing `CandidateRanker` via `VectorStore::search`; deterministic ordering on ties and explicit namespace resolution per code.
+  - [x] Create `refractive_swan_vector_store` under `lib/app/servers/vector_store` with FOSS-only deps; add `VectorStore` trait (`health`, `index_items`, `search`) and optional `EmbeddingProvider`, all `Send + Sync` and namespace-required.
+  - [x] Ship `VectorStoreConfig` (`refractive_swan_VECTOR_URL`, `refractive_swan_VECTOR_NAMESPACE`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_POOL_MAX`, `refractive_swan_VECTOR_HEALTH_TIMEOUT_MS`, `refractive_swan_VECTOR_ENABLED`) plus validation for backend/namespace combinations and pool/timeout bounds.
+  - [x] Add `VectorRankerBackend` in `refractive_swan_mapping` implementing `CandidateRanker` via `VectorStore::search`; deterministic ordering on ties and explicit namespace resolution per code.
 - Metrics/tests/docs
   - [x] Provide embedding hook metadata (`embedding_version`, dim) and deterministic embedding fn to bridge staging codes to vectors; thread through `MappingResult` source version as needed.
   - [x] Expose capacity/correlation proxies per namespace (`geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`, `cap_alpha_sim`) through the trait; document deterministic embedding complexity and GPLv3/FOSS-only posture
@@ -58,8 +58,8 @@ Define the shared VectorStore crate/config so vector search can be toggled on wi
 
 - **Engineering Targets:** A1, A3, B
 - **Crates & Paths:**
-  - `lib/app/servers/vector_store` (`dfps_vector_store`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/app/servers/vector_store` (`refractive_swan_vector_store`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`
   - `vector_queries`, `vector_hits`, `vector_fallbacks`
@@ -67,11 +67,11 @@ Define the shared VectorStore crate/config so vector search can be toggled on wi
   - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
   - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
 - **Experiments / CI Hooks:**
-  - `dfps_test_suite/tests/integration/vector_mapping.rs`
-  - `dfps_cli map-codes` offline vs vector-enabled smoke tests
+  - `refractive_swan_test_suite/tests/integration/vector_mapping.rs`
+  - `refractive_swan_cli map-codes` offline vs vector-enabled smoke tests
 - **Interfaces & Contracts:**
   - Traits: `VectorStore`, `CandidateRanker`
-  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_NAMESPACE`
+  - Env: `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_NAMESPACE`
 
 ### VEC-02 – First concrete backend (Qdrant)
 Implement and harden the first FOSS backend (Qdrant) behind a feature flag with namespace isolation, health probes, and drift checks (Targets A1/A2/B/C).
@@ -87,8 +87,8 @@ Implement and harden the first FOSS backend (Qdrant) behind a feature flag with 
 
 - **Engineering Targets:** A1, A2, B
 - **Crates & Paths:**
-  - `lib/app/servers/vector_store` (`dfps_vector_store`)
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/app/servers/vector_store` (`refractive_swan_vector_store`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `geom_rm_sqrt_dm`
   - `vector_latency_ms_p50`, `vector_latency_ms_p95`, `vector_fallbacks`
@@ -96,17 +96,17 @@ Implement and harden the first FOSS backend (Qdrant) behind a feature flag with 
   - `docs/runbook/vector-store-quickstart.md`
   - `docs/system-design/clinical/ncit/architecture/system-architecture.md`
 - **Experiments / CI Hooks:**
-  - Backend smoke in `dfps_test_suite/tests/integration/vector_mapping.rs` with feature flags
+  - Backend smoke in `refractive_swan_test_suite/tests/integration/vector_mapping.rs` with feature flags
   - Capacity drift snapshot per namespace during CI
 - **Interfaces & Contracts:**
   - Traits: `VectorStore`
-  - CLIs: `dfps_cli build-vector-index`
-  - Env: `DFPS_VECTOR_URL`, `DFPS_VECTOR_BACKEND`, `DFPS_VECTOR_NAMESPACE`
+  - CLIs: `refractive_swan_cli build-vector-index`
+  - Env: `refractive_swan_VECTOR_URL`, `refractive_swan_VECTOR_BACKEND`, `refractive_swan_VECTOR_NAMESPACE`
 
 ### VEC-03 – Reference index builder
 Provide a deterministic index builder CLI that loads NCIt/UMLS references, generates embeddings, and (re)builds the backend namespace safely (Targets A1/A3/D).
 - Implementation
-  - [x] Add `dfps_cli build-vector-index` (or `map-codes --build-index`) to bulk-index embeddings with namespace guardrails and reject dimension mismatches.
+  - [x] Add `refractive_swan_cli build-vector-index` (or `map-codes --build-index`) to bulk-index embeddings with namespace guardrails and reject dimension mismatches.
   - [x] Pin `embedding_version`, allow seed/dim caps (`--embedding-version`, `--max-dim`), and enforce idempotent rebuild (truncate/upsert per backend).
   - [x] Emit summary stats (count, mean/median norm, participation ratio) to stdout and structured logs; store metadata alongside index.
 - Tests/docs
@@ -117,8 +117,8 @@ Provide a deterministic index builder CLI that loads NCIt/UMLS references, gener
 
 - **Engineering Targets:** A1, A3, D
 - **Crates & Paths:**
-  - `lib/app/frontend/cli` (`dfps_cli`)
-  - `lib/app/servers/vector_store` (`dfps_vector_store`)
+  - `lib/app/frontend/cli` (`refractive_swan_cli`)
+  - `lib/app/servers/vector_store` (`refractive_swan_vector_store`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `geom_centroid_cos`
   - `vector_queries`, `vector_fallbacks`
@@ -126,28 +126,28 @@ Provide a deterministic index builder CLI that loads NCIt/UMLS references, gener
   - `docs/runbook/vector-store-quickstart.md`
   - `docs/system-design/clinical/ncit/concepts/vector-layer.md`
 - **Experiments / CI Hooks:**
-  - `dfps_cli build-vector-index` dry-run + idempotency check in CI
+  - `refractive_swan_cli build-vector-index` dry-run + idempotency check in CI
   - Snapshot of embedding norms and participation ratio for capacity drift
 - **Interfaces & Contracts:**
-  - CLIs: `dfps_cli build-vector-index`
-  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_NAMESPACE`
+  - CLIs: `refractive_swan_cli build-vector-index`
+  - Env: `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_NAMESPACE`
 
 ### VEC-04 – MappingEngine integration & feature flags
 Wire the optional backend ranker into `MappingEngine` with feature flags, deterministic fallback, and score-fusion hooks (Targets B/D with A3 observability).
 - Implementation
-  - [x] Accept `VectorRankerBackend` alongside `VectorRankerMock`; keep `default_engine()` offline-only and provide `vector_engine(store)` when `DFPS_VECTOR_ENABLED=true`.
+  - [x] Accept `VectorRankerBackend` alongside `VectorRankerMock`; keep `default_engine()` offline-only and provide `vector_engine(store)` when `refractive_swan_VECTOR_ENABLED=true`.
   - [x] In `map_staging_codes_with_summary`, route to backend when healthy else fall back to lexical+mock deterministically; log vector vs lexical score gaps and centroid similarity to avoid false merges.
   - [x] Add weighted fusion/reranker hook with configurable weights and guardrails on slowdown vs lexical-only.
 - Tests/docs
   - [x] Unit/integration tests: offline path parity with baseline; vector-enabled path shows recall/precision uplift on PET/CT fixture with deterministic seeds.
-  - [x] Env toggle tests proving `DFPS_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`; document latency budget and acceptable slowdown in `dfps_mapping` docs.
+  - [x] Env toggle tests proving `refractive_swan_VECTOR_ENABLED=false` bypasses network calls and increments `vector_fallbacks`; document latency budget and acceptable slowdown in `refractive_swan_mapping` docs.
 
 #### Cross-Cohesion
 
 - **Engineering Targets:** A3, B, D
 - **Crates & Paths:**
-  - `lib/domain/mapping` (`dfps_mapping`)
-  - `lib/app/servers/vector_store` (`dfps_vector_store`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
+  - `lib/app/servers/vector_store` (`refractive_swan_vector_store`)
 - **Shared Metrics & Signals:**
   - `auto_mapped`, `needs_review`, `no_match`
   - `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`
@@ -155,20 +155,20 @@ Wire the optional backend ranker into `MappingEngine` with feature flags, determ
   - `docs/system-design/clinical/ncit/behavior/sequence-servicerequest.md`
   - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
 - **Experiments / CI Hooks:**
-  - Regression suites comparing lexical vs vector-enabled mapping in `dfps_test_suite`
+  - Regression suites comparing lexical vs vector-enabled mapping in `refractive_swan_test_suite`
   - CI alert when mapping recall drops or latency exceeds budget
 - **Interfaces & Contracts:**
   - Traits: `CandidateRanker`
-  - CLIs: `dfps_cli map-codes`, `dfps_cli map-bundles`
-  - Env: `DFPS_VECTOR_ENABLED`
+  - CLIs: `refractive_swan_cli map-codes`, `refractive_swan_cli map-bundles`
+  - Env: `refractive_swan_VECTOR_ENABLED`
 
 ### VEC-05 – Tests & observability
 Add integration coverage, capacity drift checks, and metrics so vector mode is observable and gated (Targets A3/B/D).
 - Tests
-  - [x] `dfps_test_suite/tests/integration/vector_mapping.rs` with Docker backend and test double; assert uplift vs mock and deterministic offline path.
+  - [x] `refractive_swan_test_suite/tests/integration/vector_mapping.rs` with Docker backend and test double; assert uplift vs mock and deterministic offline path.
   - [x] Capacity proxy test (norm/participation ratio) stable for same seed; hit@k histogram expectations captured in fixture.
 - Metrics/CI
-  - [x] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `dfps_observability`; structured logs for connectivity/index events with namespace/backend/duration.
+  - [x] Metrics: `vector_queries`, `vector_hits`, `vector_fallbacks`, latency (mean/p95) exposed via `refractive_swan_observability`; structured logs for connectivity/index events with namespace/backend/duration.
   - [x] CI gate fails if vector-enabled recall drops >X% vs baseline or latency exceeds budget; include error/timeout codes in logs and Prometheus-friendly exports.
 
 #### Cross-Cohesion
@@ -176,7 +176,7 @@ Add integration coverage, capacity drift checks, and metrics so vector mode is o
 - **Engineering Targets:** A3, B, D
 - **Crates & Paths:**
   - `lib/platform/test_suite/tests/integration/vector_mapping.rs`
-  - `lib/domain/mapping` (`dfps_mapping`)
+  - `lib/domain/mapping` (`refractive_swan_mapping`)
 - **Shared Metrics & Signals:**
   - `geom_rm`, `geom_dm`, `cap_alpha_sim`
   - `vector_queries`, `vector_hits`, `vector_fallbacks`, `vector_latency_ms_p95`
@@ -188,7 +188,7 @@ Add integration coverage, capacity drift checks, and metrics so vector mode is o
   - Drift checks that fail when recall or capacity proxy regresses
 - **Interfaces & Contracts:**
   - Traits: `VectorStore`
-  - Env: `DFPS_VECTOR_ENABLED`, `DFPS_VECTOR_BACKEND`
+  - Env: `refractive_swan_VECTOR_ENABLED`, `refractive_swan_VECTOR_BACKEND`
 
 ### VEC-06 – Docs & runbooks
 Document the vector layer concept and operational runbook, including capacity checklist and fallback steps (Targets A1/A3/B/D/C).
@@ -212,23 +212,23 @@ Document the vector layer concept and operational runbook, including capacity ch
   - `docs/kanban/feature/mvp/013-mapping-vector-backend.md`
   - `docs/system-design/clinical/ncit/architecture/system-architecture.md`
 - **Experiments / CI Hooks:**
-  - Reference paths for `dfps_eval` comparisons of vector-enabled vs mock runs
-  - Guidance for `dfps_test_suite/tests/integration/vector_mapping.rs` expectations
+  - Reference paths for `refractive_swan_eval` comparisons of vector-enabled vs mock runs
+  - Guidance for `refractive_swan_test_suite/tests/integration/vector_mapping.rs` expectations
 - **Interfaces & Contracts:**
-  - CLIs: `dfps_cli build-vector-index`, `dfps_cli map-codes`
-  - Env: `DFPS_VECTOR_NAMESPACE`, `DFPS_VECTOR_ENABLED`
+  - CLIs: `refractive_swan_cli build-vector-index`, `refractive_swan_cli map-codes`
+  - Env: `refractive_swan_VECTOR_NAMESPACE`, `refractive_swan_VECTOR_ENABLED`
 
 ----
 
 ## Configuration
 | Variable | Example | Purpose |
 | ------------------------------- | ---------------------------------------------------------------------- | -------------------------- |
-| `DFPS_VECTOR_ENABLED` | `true` | Toggle real vector backend |
-| `DFPS_VECTOR_BACKEND` | `pgvector` / `qdrant` / `milvus` / `mock` | Select backend |
-| `DFPS_VECTOR_URL` | `postgres://...` or `http://localhost:6333` or `tcp://localhost:19530` | Endpoint |
-| `DFPS_VECTOR_NAMESPACE` | `ncit_dev` | Index namespace |
-| `DFPS_VECTOR_POOL_MAX` | `10` | Pool size |
-| `DFPS_VECTOR_HEALTH_TIMEOUT_MS` | `500` | Health probe budget |
+| `refractive_swan_VECTOR_ENABLED` | `true` | Toggle real vector backend |
+| `refractive_swan_VECTOR_BACKEND` | `pgvector` / `qdrant` / `milvus` / `mock` | Select backend |
+| `refractive_swan_VECTOR_URL` | `postgres://...` or `http://localhost:6333` or `tcp://localhost:19530` | Endpoint |
+| `refractive_swan_VECTOR_NAMESPACE` | `ncit_dev` | Index namespace |
+| `refractive_swan_VECTOR_POOL_MAX` | `10` | Pool size |
+| `refractive_swan_VECTOR_HEALTH_TIMEOUT_MS` | `500` | Health probe budget |
 
 ## Rust API & Types (pseudocode)
 ```rust
@@ -287,30 +287,30 @@ CREATE INDEX IF NOT EXISTS idx_ncit_vectors_embedding
 - Build index (idempotent):
 ```bash
 cd code
-DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=pgvector DFPS_VECTOR_NAMESPACE=ncit_dev \
-  DFPS_VECTOR_URL=postgres://vector:vector@localhost:5432/vector \
-  cargo run -p dfps_cli -- build-vector-index --force-rebuild
+refractive_swan_VECTOR_ENABLED=true refractive_swan_VECTOR_BACKEND=pgvector refractive_swan_VECTOR_NAMESPACE=ncit_dev \
+  refractive_swan_VECTOR_URL=postgres://vector:vector@localhost:5432/vector \
+  cargo run -p refractive_swan_cli -- build-vector-index --force-rebuild
 ```
 - Map codes with vector backend:
 ```bash
 cd code
-DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=qdrant DFPS_VECTOR_URL=http://localhost:6333 \
-  DFPS_VECTOR_NAMESPACE=ncit_dev \
-  cargo run -p dfps_cli -- map-codes --explain-top 5 ./codes.ndjson
+refractive_swan_VECTOR_ENABLED=true refractive_swan_VECTOR_BACKEND=qdrant refractive_swan_VECTOR_URL=http://localhost:6333 \
+  refractive_swan_VECTOR_NAMESPACE=ncit_dev \
+  cargo run -p refractive_swan_cli -- map-codes --explain-top 5 ./codes.ndjson
 ```
 - Idempotency: pgvector path may truncate then bulk insert; Qdrant path uses upsert with collection reset flag; controlled via `--force-rebuild`.
 
 ## Fallback Behavior
 | Condition | Behavior | Metrics | User note |
 | --------------------------- | ----------------- | -------------------- | -------------------- |
-| `DFPS_VECTOR_ENABLED=false` | Use mock only | `vector_fallbacks++` | “vector disabled” |
+| `refractive_swan_VECTOR_ENABLED=false` | Use mock only | `vector_fallbacks++` | “vector disabled” |
 | Health probe fails | Warn; mock | `vector_fallbacks++` | “vector unavailable” |
 | Search timeout | One retry → mock | `vector_fallbacks++` | include error code |
 | Index missing | Log; lexical+mock | `vector_fallbacks++` | “index missing” |
 
 ## Tests & Observability
-- Integration: `dfps_test_suite/tests/integration/vector_mapping.rs` boots Docker pgvector/Qdrant or test double; asserts higher recall than mock and deterministic output when disabled.
-- Metrics: add `vector_queries`, `vector_hits`, `vector_fallbacks`, mean/p95 latency; exposed via `dfps_observability`.
+- Integration: `refractive_swan_test_suite/tests/integration/vector_mapping.rs` boots Docker pgvector/Qdrant or test double; asserts higher recall than mock and deterministic output when disabled.
+- Metrics: add `vector_queries`, `vector_hits`, `vector_fallbacks`, mean/p95 latency; exposed via `refractive_swan_observability`.
 - Logs: connectivity failures, index build start/finish, per-namespace counts; structured with namespace/backend tags.
 
 ## Runbooks & Cross‑References
@@ -320,7 +320,7 @@ DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=qdrant DFPS_VECTOR_URL=http://local
 - Runbook (new): `../../runbook/vector-store-quickstart.md`
 
 ## Risk Log & Mitigations
-- Backend unavailability → deterministic fallback + metrics + CI smoke with `DFPS_VECTOR_ENABLED=false`.
+- Backend unavailability → deterministic fallback + metrics + CI smoke with `refractive_swan_VECTOR_ENABLED=false`.
 - Embedding drift → pin `embedding_version` in index metadata; rebuild on version change.
 - Namespace collisions → PK `(namespace, ref_id)`; CLI validates namespace and refuses empty.
 
@@ -330,7 +330,7 @@ DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=qdrant DFPS_VECTOR_URL=http://local
 - Rollout: dev → CI → staging; enable flag after quickstart passes on clean machine.
 
 ## Acceptance Criteria
-- `dfps_mapping` can run in two modes:
+- `refractive_swan_mapping` can run in two modes:
   - **Offline**: pure Rust, no external services (current behavior).
   - **Vector-enabled**: leverages a real vector DB for candidate ranking.
 - CLIs (`map_codes`, `map_bundles`) expose a clear UX for enabling/disabling vector search.
@@ -343,6 +343,6 @@ DFPS_VECTOR_ENABLED=true DFPS_VECTOR_BACKEND=qdrant DFPS_VECTOR_URL=http://local
 - Multi-tenant / sharded vector clusters beyond a single-namespace MVP.
 
 ## Definition of Done
-- Tests under `dfps_test_suite` pass.
+- Tests under `refractive_swan_test_suite` pass.
 - CLIs show clear UX flags.
 - New docs exist and link correctly.

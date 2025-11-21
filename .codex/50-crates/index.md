@@ -8,23 +8,23 @@ This index summarizes every crate documented under `50-crates/` and links to the
 ## Quick Nav
 
 - *Domain*
-  - [`dfps_core`](domain/core.md)
-  - [`dfps_fake_data`](domain/fake_data.md)
-  - [`dfps_ingestion`](domain/ingestion.md)
-  - [`dfps_mapping`](domain/mapping.md)
-  - [`dfps_pipeline`](domain/pipeline.md)
-  - [`dfps_terminology`](domain/terminology.md)
+  - [`refractive_swan_core`](domain/core.md)
+  - [`refractive_swan_fake_data`](domain/fake_data.md)
+  - [`refractive_swan_ingestion`](domain/ingestion.md)
+  - [`refractive_swan_mapping`](domain/mapping.md)
+  - [`refractive_swan_pipeline`](domain/pipeline.md)
+  - [`refractive_swan_terminology`](domain/terminology.md)
 - *App*
-  - [`dfps_cli`](app/cli.md)
+  - [`refractive_swan_cli`](app/cli.md)
   - *Web*
     - *Backend*
-        - [`dfps_api`](app/servers/api.md)
-        - [`dfps_datamart`](app/servers/datamart.md)
-  - [`dfps_web_frontend`](app/web/frontend.md)
+        - [`refractive_swan_api`](app/servers/api.md)
+        - [`refractive_swan_datamart`](app/servers/datamart.md)
+  - [`refractive_swan_web_frontend`](app/web/frontend.md)
 - *Platform*
-  - [`dfps_configuration`](platform/configuration.md)
-  - [`dfps_observability`](platform/observability.md)
-  - [`dfps_test_suite`](platform/test_suite.md)
+  - [`refractive_swan_configuration`](platform/configuration.md)
+  - [`refractive_swan_observability`](platform/observability.md)
+  - [`refractive_swan_test_suite`](platform/test_suite.md)
 
 ---
 
@@ -32,103 +32,103 @@ This index summarizes every crate documented under `50-crates/` and links to the
 
 ```raw
                        ┌────────────────────┐
-                       │     dfps_core      │
+                       │     refractive_swan_core      │
                        └─────────┬──────────┘
                                  │
         ┌────────────────────────┼────────────────────────┐
         │                        │                        │
  ┌──────▼──────┐          ┌──────▼──────┐          ┌──────▼──────────┐
- │ dfps_ingest │          │ dfps_mapping│          │ dfps_terminology│
+ │ refractive_swan_ingest │          │ refractive_swan_mapping│          │ refractive_swan_terminology│
  └──────┬──────┘          └──────┬──────┘          └─────────────────┘
         │                        │
         └──────────┬─────────────┘
                    ▼
             ┌──────────────┐
-            │ dfps_pipeline│
+            │ refractive_swan_pipeline│
             └──────┬───────┘
                    │
      ┌─────────────┼───────────────┐
      │             │               │
 ┌────▼────┐  ┌─────▼─────┐   ┌─────▼────────┐
-│ dfps_cli│  │  dfps_api │   │ dfps_datamart│
+│ refractive_swan_cli│  │  refractive_swan_api │   │ refractive_swan_datamart│
 └─────────┘  └─────┬─────┘   └─────┬────────┘
                     │               │
                     │         (analytics dims/facts)
                     │
                ┌────▼──────────────┐
-               │ dfps_web_frontend │
+               │ refractive_swan_web_frontend │
                └───────────────────┘
 
 Platform services used across the stack:
-- dfps_configuration  (env loading)
-- dfps_observability  (logging + metrics)
-- dfps_test_suite     (fixtures/assertions/tests)
+- refractive_swan_configuration  (env loading)
+- refractive_swan_observability  (logging + metrics)
+- refractive_swan_test_suite     (fixtures/assertions/tests)
 ```
 
 ---
 
 ## Domain Layer
 
-### [`dfps_core`](domain/core.md)
+### [`refractive_swan_core`](domain/core.md)
 Canonical domain/FHIR/staging/mapping/value types with `serde` support. Foundation for all other crates.
 
-### [`dfps_fake_data`](domain/fake_data.md)
+### [`refractive_swan_fake_data`](domain/fake_data.md)
 Deterministic generators (with seeds) for domain entities and minimal FHIR Bundles; used by tests and demos.
 
-### [`dfps_ingestion`](domain/ingestion.md)
+### [`refractive_swan_ingestion`](domain/ingestion.md)
 FHIR -> staging -> domain normalization + validation. Clear, typed errors and strict/lenient validation modes.
 
-### [`dfps_mapping`](domain/mapping.md)
+### [`refractive_swan_mapping`](domain/mapping.md)
 Deterministic NCIt mapping engine (lexical + mock vector + rules), UMLS xref shortcuts, and summary tallies.
 
-### [`dfps_pipeline`](domain/pipeline.md)
+### [`refractive_swan_pipeline`](domain/pipeline.md)
 Thin façade that wires *ingestion + mapping* and returns `{ flats, exploded_codes, mapping_results, dim_concepts }`.
 
-### [`dfps_terminology`](domain/terminology.md)
+### [`refractive_swan_terminology`](domain/terminology.md)
 Code‑system registry/normalization and license/source classification; OBO hints for NCIt.
 
 ---
 
 ## App Layer
 
-### [`dfps_cli`](app/cli.md)
+### [`refractive_swan_cli`](app/cli.md)
 Shell‑friendly tools:
 - `map_bundles`: ingest + map Bundles; emits NDJSON records (including `metrics_summary`).
 - `map_codes`: map `StgSrCodeExploded` rows; optional explanation output.
 
-### [`dfps_api`](app/servers/api.md)
+### [`refractive_swan_api`](app/servers/api.md)
 Axum HTTP gateway:
 - `POST /api/map-bundles` (Bundle object/array/NDJSON)
 - `GET /metrics/summary`
 - `GET /health`
 Maintains global `PipelineMetrics`.
 
-### [`dfps_datamart`](app/servers/datamart.md)
+### [`refractive_swan_datamart`](app/servers/datamart.md)
 Builds a small star schema (Dims + Facts) from `PipelineOutput`, including a `NO_MATCH` sentinel concept.
 
-### [`dfps_web_frontend`](app/web/frontend.md)
+### [`refractive_swan_web_frontend`](app/web/frontend.md)
 Actix + Maud + HTMX UI:
 - Paste/upload Bundle -> show `MappingResult` rows
 - Metrics dashboard
 - “NoMatch explorer”
-Proxies to `dfps_api`.
+Proxies to `refractive_swan_api`.
 
 ---
 
 ## Platform Layer
 
-### [`dfps_configuration`](platform/configuration.md)
+### [`refractive_swan_configuration`](platform/configuration.md)
 Workspace‑aware, namespaced env loader (`.env.<namespace>.<profile>`), strict mode, and root discovery.
 
-### [`dfps_observability`](platform/observability.md)
+### [`refractive_swan_observability`](platform/observability.md)
 Shared logging hooks and `PipelineMetrics` counters; emits per‑bundle summaries and warns on `NoMatch`.
 
-### [`dfps_test_suite`](platform/test_suite.md)
+### [`refractive_swan_test_suite`](platform/test_suite.md)
 Fixtures, assertions, property tests, plus E2E/Integration suites covering ingestion, mapping, datamart, and web API.
 
 ---
 
-## Environment Namespaces (via `dfps_configuration`)
+## Environment Namespaces (via `refractive_swan_configuration`)
 
 | Crate / Component          | Namespace               |
 |---------------------------|-------------------------|
@@ -138,21 +138,21 @@ Fixtures, assertions, property tests, plus E2E/Integration suites covering inges
 | Observability             | `platform.observability`|
 | Test Suite                | `platform.test_suite`   |
 
-> Files are resolved as `.env.<namespace>.<profile>` with `profile = DFPS_ENV || APP_ENV || "dev"`.
+> Files are resolved as `.env.<namespace>.<profile>` with `profile = refractive_swan_ENV || APP_ENV || "dev"`.
 
 ---
 
 ## Change Impact Cheatsheet
 
-- *`dfps_core`* -> ripples to *everything*.
-- *`dfps_ingestion`* -> affects pipeline, CLI `map_bundles`, API, and tests.
-- *`dfps_mapping`* -> affects pipeline, CLI `map_codes`, API, datamart facts, and tests; update thresholds and summaries accordingly.
-- *`dfps_pipeline`* -> affects CLI/API outputs and datamart transformation.
-- *`dfps_terminology`* -> impacts mapping result metadata (license/source).
-- *`dfps_configuration`* -> env filenames/dirs; update app READMEs and CI.
-- *`dfps_observability`* -> metrics schema; update API/Frontend dashboards and tests.
-- *`dfps_datamart`* -> schema changes require test and consumer updates.
-- *`dfps_web_frontend`* ↔ *`dfps_api`* -> keep `MapBundlesResponse` and UI renderers in sync.
+- *`refractive_swan_core`* -> ripples to *everything*.
+- *`refractive_swan_ingestion`* -> affects pipeline, CLI `map_bundles`, API, and tests.
+- *`refractive_swan_mapping`* -> affects pipeline, CLI `map_codes`, API, datamart facts, and tests; update thresholds and summaries accordingly.
+- *`refractive_swan_pipeline`* -> affects CLI/API outputs and datamart transformation.
+- *`refractive_swan_terminology`* -> impacts mapping result metadata (license/source).
+- *`refractive_swan_configuration`* -> env filenames/dirs; update app READMEs and CI.
+- *`refractive_swan_observability`* -> metrics schema; update API/Frontend dashboards and tests.
+- *`refractive_swan_datamart`* -> schema changes require test and consumer updates.
+- *`refractive_swan_web_frontend`* ↔ *`refractive_swan_api`* -> keep `MapBundlesResponse` and UI renderers in sync.
 
 ---
 
@@ -160,17 +160,17 @@ Fixtures, assertions, property tests, plus E2E/Integration suites covering inges
 
 ```bash
 # CLI
-cargo run -p dfps_cli --bin map_bundles -- ./bundles.ndjson
-cargo run -p dfps_cli --bin map_codes -- --explain --explain-top 5 < codes.ndjson
+cargo run -p refractive_swan_cli --bin map_bundles -- ./bundles.ndjson
+cargo run -p refractive_swan_cli --bin map_codes -- --explain --explain-top 5 < codes.ndjson
 
 # Backend API
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 
 # Frontend
-cargo run -p dfps_web_frontend --bin dfps_web_frontend
+cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 
 # Test suite
-cargo test -p dfps_test_suite
+cargo test -p refractive_swan_test_suite
 ```
 ---
 

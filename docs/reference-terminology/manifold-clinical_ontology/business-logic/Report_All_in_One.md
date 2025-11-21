@@ -8,7 +8,7 @@ Operationally, we: (A) build hybrid text+graph embeddings and estimate α via si
 
 **Key levers** (and expected measurable effects): (1) hierarchy‑aware **flattening** (R_M↓, D_M↓ → α↑); (2) removal of low‑rank centroid components (ρ_CC↓ → α↑); (3) community quality via Leiden (connected communities → more stable manifold statistics); and (4) MMCR‑style pretraining that aligns embeddings with task geometry (R_M√D_M ↓). [S7, A2, A1]
 
-We provide formal notes, algorithms with complexity, experiment plans, risk analyses, and a 30/60/90‑day roadmap wired to the DFPS codebase (eval/mapping/pipeline crates). All recommendations include **measurable, testable** criteria and alerts for **capacity drift**, **correlation spikes**, and **community fragmentation**.
+We provide formal notes, algorithms with complexity, experiment plans, risk analyses, and a 30/60/90‑day roadmap wired to the refractive_swan codebase (eval/mapping/pipeline crates). All recommendations include **measurable, testable** criteria and alerts for **capacity drift**, **correlation spikes**, and **community fragmentation**.
 
 
 # II. Claims Matrix
@@ -151,14 +151,14 @@ use P_leiden to define neighborhood sampling for graph encoder
 
 ## Statistical tests
 - Paired t‑tests (or Wilcoxon) on \(R_M\), \(D_M\), \(\alpha\) deltas per concept.
-- Bootstrap 95% CIs for mapping precision/recall (already available via `dfps_eval` advanced feature).
+- Bootstrap 95% CIs for mapping precision/recall (already available via `refractive_swan_eval` advanced feature).
 
 
 \
 # VI. Graph/Ontology Actions
 
 1. **Prefer Leiden over Louvain** for community detection when defining graph neighborhoods for embedding context. Leiden **guarantees connected communities** and converges under iteration; Louvain can output disconnected/badly connected sets that distort manifold statistics. (S4)
-2. **Prune and normalize**: drop dangling/isolated nodes; normalize code‑system URLs to canonical forms before graph construction (see `dfps_terminology::bridge`).
+2. **Prune and normalize**: drop dangling/isolated nodes; normalize code‑system URLs to canonical forms before graph construction (see `refractive_swan_terminology::bridge`).
 3. **Synonym expansion**: treat synonyms/definitions as samples on each concept manifold; gate low‑quality entries with lexical/semantic filters.
 4. **Hierarchy handling**: sample ancestor/child prompts to provide hierarchy‑aware context; measure effect on centroid correlations.
 5. **Community‑aware sampling**: when training the graph encoder, sample neighbors within **connected** communities; forbid cross‑community leakage unless edges are explicit “xref/related_to”.
@@ -171,16 +171,16 @@ use P_leiden to define neighborhood sampling for graph encoder
 - **Synonym noise.** Noisy paraphrases inflate \(R_M\). *Mitigation:* synonym quality scoring; roll back if \(R_M\sqrt{D_M}\) ↑ by >20% after update.
 - **Graph fragmentation.** Louvain partitions with disconnected communities inflate \(D_M\)/\(R_M\). *Mitigation:* enforce Leiden; audit disconnectedness.
 - **Over‑flattening.** Excess flattening collapses class topology. *Mitigation:* add reconstruction/topology terms (as in S7); monitor triplet‑loss violations.
-- **License constraints.** Licensed code systems (e.g., CPT) restrict redistribution. *Mitigation:* track license tiers via `dfps_terminology` and mask artifacts accordingly.
+- **License constraints.** Licensed code systems (e.g., CPT) restrict redistribution. *Mitigation:* track license tiers via `refractive_swan_terminology` and mask artifacts accordingly.
 
 
 \
-# VIII. Roadmap & Integration (DFPS crates)
+# VIII. Roadmap & Integration (refractive_swan crates)
 
 **30 days**
-- Implement estimators (`dfps_mapping` or a new `dfps_geometry` crate):
+- Implement estimators (`refractive_swan_mapping` or a new `refractive_swan_geometry` crate):
   - Anchor solver, \(R_M\), \(D_M\), \(\alpha_{\text{mf}}\); \(\alpha_{\text{sim}}\) via subspace‑search + SVM.
-  - Expose metrics to `dfps_observability` and render via `dfps_eval::report`.
+  - Expose metrics to `refractive_swan_observability` and render via `refractive_swan_eval::report`.
 - Graph health: add Leiden pre‑processing before training embeddings.
 
 **60 days**

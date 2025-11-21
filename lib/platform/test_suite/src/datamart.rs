@@ -1,4 +1,4 @@
-use dfps_datamart::{SqliteDatamart, WarehouseConfig};
+use refractive_swan_datamart::{SqliteDatamart, WarehouseConfig};
 use std::fs::File;
 use tempfile::TempDir;
 

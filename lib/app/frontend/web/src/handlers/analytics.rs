@@ -49,7 +49,7 @@ pub async fn analytics_dashboard(
 #[cfg(test)]
 mod tests {
     use actix_web::{App, test, web};
-    use dfps_observability::PipelineMetrics;
+    use refractive_swan_observability::PipelineMetrics;
     use std::{sync::Arc, time::Duration};
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
@@ -132,7 +132,7 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let dataset_store = Arc::new(dfps_eval::FileDatasetStore::default());
+        let dataset_store = Arc::new(refractive_swan_eval::FileDatasetStore::default());
         let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(
             App::new()
@@ -190,7 +190,7 @@ mod tests {
             docs_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
-        let dataset_store = Arc::new(dfps_eval::FileDatasetStore::default());
+        let dataset_store = Arc::new(refractive_swan_eval::FileDatasetStore::default());
         let state = web::Data::new(AppState::new(config.clone(), client, dataset_store));
         let app = test::init_service(
             App::new()

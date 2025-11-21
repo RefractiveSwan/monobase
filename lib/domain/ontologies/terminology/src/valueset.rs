@@ -25,14 +25,14 @@ impl ValueSetMeta {
 
 static VALUE_SETS: [ValueSetMeta; 2] = [
     ValueSetMeta::new(
-        "http://terminology.dfps/ValueSet/pet-imaging-procedures",
-        "DFPS PET Imaging Procedures",
+        "http://terminology.refractive_swan/ValueSet/pet-imaging-procedures",
+        "refractive_swan PET Imaging Procedures",
         "Subset of CPT and SNOMED codes relevant to PET/CT workflows.",
         &["http://www.ama-assn.org/go/cpt", "http://snomed.info/sct"],
     ),
     ValueSetMeta::new(
-        "http://terminology.dfps/ValueSet/imaging-ordering",
-        "DFPS Imaging Ordering",
+        "http://terminology.refractive_swan/ValueSet/imaging-ordering",
+        "refractive_swan Imaging Ordering",
         "LOINC observations and NCIt OBO concepts used for ordering context.",
         &["http://loinc.org", "http://purl.obolibrary.org/obo/NCIT"],
     ),

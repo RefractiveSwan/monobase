@@ -1,8 +1,8 @@
-//! Outbound adapter for dfps_web_frontend. Wraps reqwest so routes/views only
+//! Outbound adapter for refractive_swan_web_frontend. Wraps reqwest so routes/views only
 //! talk to contracts/DTOs instead of domain crates. Ports documented in
 //! docs/system-design/base/dependency-seams.md.
 
-use dfps_web_dto::{ErrorCode, ErrorKind, PipelineOutput};
+use refractive_swan_web_dto::{ErrorCode, ErrorKind, PipelineOutput};
 use log::{error, warn};
 use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -10,7 +10,7 @@ use thiserror::Error;
 
 use crate::config::AppConfig;
 
-pub use dfps_web_dto::{
+pub use refractive_swan_web_dto::{
     AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetManifest,
     EvalRunResponse, EvalSummary, PipelineMetrics,
 };
@@ -125,7 +125,7 @@ impl BackendClient {
             Ok(resp) => Ok(resp),
             Err(err) => {
                 error!(
-                    target: "dfps_web_frontend.client",
+                    target: "refractive_swan_web_frontend.client",
                     "backend request failed: {err}"
                 );
                 Err(ClientError::Http(err))
@@ -184,19 +184,19 @@ impl ClientError {
         match self {
             ClientError::Backend(err) => {
                 warn!(
-                    target: "dfps_web_frontend.client",
+                    target: "refractive_swan_web_frontend.client",
                     "backend error: {err}"
                 );
             }
             ClientError::Http(err) => {
                 error!(
-                    target: "dfps_web_frontend.client",
+                    target: "refractive_swan_web_frontend.client",
                     "http client error: {err}"
                 );
             }
             other => {
                 warn!(
-                    target: "dfps_web_frontend.client",
+                    target: "refractive_swan_web_frontend.client",
                     "client error: {other}"
                 );
             }

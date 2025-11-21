@@ -8,4 +8,4 @@ Operationally, we: (A) build hybrid text+graph embeddings and estimate α via si
 
 **Key levers** (and expected measurable effects): (1) hierarchy‑aware **flattening** (R_M↓, D_M↓ → α↑); (2) removal of low‑rank centroid components (ρ_CC↓ → α↑); (3) community quality via Leiden (connected communities → more stable manifold statistics); and (4) MMCR‑style pretraining that aligns embeddings with task geometry (R_M√D_M ↓). [S7, A2, A1]
 
-We provide formal notes, algorithms with complexity, experiment plans, risk analyses, and a 30/60/90‑day roadmap wired to the DFPS codebase (eval/mapping/pipeline crates). All recommendations include **measurable, testable** criteria and alerts for **capacity drift**, **correlation spikes**, and **community fragmentation**.
+We provide formal notes, algorithms with complexity, experiment plans, risk analyses, and a 30/60/90‑day roadmap wired to the refractive_swan codebase (eval/mapping/pipeline crates). All recommendations include **measurable, testable** criteria and alerts for **capacity drift**, **correlation spikes**, and **community fragmentation**.

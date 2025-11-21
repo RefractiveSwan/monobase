@@ -1,6 +1,6 @@
-# dfps_mapping – Mapping engine and NCIt integration
+# refractive_swan_mapping – Mapping engine and NCIt integration
 
-`dfps_mapping` provides a deterministic mapping engine that combines lexical and vector rankers with rule tweaks to produce `MappingResult`s backed by NCIt/UMLS data. Compliance/policy, terminology clients, and vector stores are injected via traits/config so the crate stays pure and testable.
+`refractive_swan_mapping` provides a deterministic mapping engine that combines lexical and vector rankers with rule tweaks to produce `MappingResult`s backed by NCIt/UMLS data. Compliance/policy, terminology clients, and vector stores are injected via traits/config so the crate stays pure and testable.
 
 ## System-design links
 - docs/system-design/clinical/ncit/architecture.md
@@ -13,9 +13,9 @@
 - `CandidateRanker` impls – `LexicalRanker`, `VectorRankerBackend` (trait-based over `VectorStore`/`EmbeddingProvider`), `VectorRankerMock`.
 - `MappingConfig` – injects `Policy`, threshold defaults, and source versions (no env reads). Helpers accept an explicit policy or use `Policy::default_for_mode(Internal)`.
 - Data loaders – embedded NCIt/UMLS snapshots (`load_ncit_concepts`, `load_umls_xrefs`) with version constants.
-- Eval helpers – thin wrappers over `dfps_eval` (deprecated `run_eval` kept for compatibility).
+- Eval helpers – thin wrappers over `refractive_swan_eval` (deprecated `run_eval` kept for compatibility).
 
 ## Usage notes
 - Prefer `map_staging_codes_with_summary_and_policy`/`map_staging_codes_with_vector_and_policy` to pass an explicit `Policy`; env access has been removed.
-- Mapping thresholds and source versions reuse `dfps_core` types via `MappingConfig`.
+- Mapping thresholds and source versions reuse `refractive_swan_core` types via `MappingConfig`.
 - Vector wiring is trait-based; backends (Qdrant/pgvector) remain outside this crate.

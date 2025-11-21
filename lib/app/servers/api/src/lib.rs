@@ -1,4 +1,4 @@
-//! HTTP API gateway for the DFPS pipeline.
+//! HTTP API gateway for the refractive_swan pipeline.
 //!
 //! The crate exposes a `run` function so integration tests (and eventual
 //! binaries) can spin up the server in-process without binding to a global
@@ -8,7 +8,7 @@ pub mod config;
 pub mod dto;
 pub mod server;
 
-pub use config::{ApiConfig, DataPlaneConfig};
+pub use config::ApiConfig;
 pub use server::{ApiServerConfig, ApiState, ServerError, router, run};
 
 use env_logger::{Builder, Env};

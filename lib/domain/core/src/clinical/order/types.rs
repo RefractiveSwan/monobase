@@ -6,7 +6,7 @@ use crate::primitives::value::{EncounterId, PatientId, ServiceRequestId};
 #[cfg(feature = "dummy")]
 use fake::Dummy;
 
-/// Core "order" aggregate in DFPS, similar to a FHIR ServiceRequest.
+/// Core "order" aggregate in refractive_swan, similar to a FHIR ServiceRequest.
 #[cfg_attr(feature = "dummy", derive(Dummy))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServiceRequest {

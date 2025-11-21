@@ -1,11 +1,11 @@
 //! Datamart adapter smoke tests (REFR-16).
 
-use dfps_datamart::from_pipeline_output;
-use dfps_pipeline::bundle_to_mapped_sr;
+use refractive_swan_datamart::from_pipeline_output;
+use refractive_swan_pipeline::bundle_to_mapped_sr;
 
 #[test]
 fn baseline_bundle_maps_into_datamart() {
-    let bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let bundle = refractive_swan_test_suite::regression::baseline_fhir_bundle();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline output");
     let (dims, facts) = from_pipeline_output(&output);
 
@@ -24,7 +24,7 @@ fn baseline_bundle_maps_into_datamart() {
 
 #[test]
 fn unknown_code_creates_no_match_dim() {
-    let bundle = dfps_test_suite::regression::fhir_bundle_unknown_code();
+    let bundle = refractive_swan_test_suite::regression::fhir_bundle_unknown_code();
     let output = bundle_to_mapped_sr(&bundle).expect("pipeline output");
     let (dims, facts) = from_pipeline_output(&output);
     assert_eq!(facts.len(), 1);

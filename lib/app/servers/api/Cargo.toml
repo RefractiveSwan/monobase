@@ -1,10 +1,10 @@
 [package]
-name = "dfps_api"
+name = "refractive_swan_api"
 version.workspace = true
 edition.workspace = true
 
 [lib]
-name = "dfps_api"
+name = "refractive_swan_api"
 path = "src/lib.rs"
 
 [dependencies]
@@ -18,15 +18,16 @@ serde_json.workspace = true
 uuid.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "sqlite"] }
-dfps_core = { path = "../../../domain/core" }
-dfps_pipeline = { path = "../../../domain/meta/pipeline" }
-dfps_observability = { path = "../../../platform/meta/observability" }
-dfps_configuration = { path = "../../../platform/meta/configuration" }
-dfps_mapping = { path = "../../../domain/ontologies/mapping" }
-dfps_eval = { path = "../../../domain/meta/evaluation" }
-dfps_datamart = { path = "../datamart" }
-dfps_compliance = { path = "../../../platform/meta/compliance" }
-dfps_terminology = { path = "../../../domain/ontologies/terminology" }
-dfps_vector_store = { path = "../vector_store" }
-dfps_contracts = { path = "../../../domain/meta/contracts" }
-dfps_web_dto = { path = "../../../dto/web" }
+refractive_swan_core = { path = "../../../domain/core" }
+refractive_swan_pipeline = { path = "../../../domain/meta/pipeline" }
+refractive_swan_observability = { path = "../../../platform/meta/observability" }
+refractive_swan_configuration = { path = "../../../platform/meta/configuration" }
+refractive_swan_mapping = { path = "../../../domain/ontologies/mapping" }
+refractive_swan_eval = { path = "../../../domain/meta/evaluation" }
+refractive_swan_datamart = { workspace = true }
+refractive_swan_compliance = { path = "../../../platform/meta/compliance" }
+refractive_swan_terminology = { path = "../../../domain/ontologies/terminology" }
+refractive_swan_mesh_node = { path = "../../../platform/mesh/node" }
+refractive_swan_mesh_dto = { path = "../../../dto/mesh" }
+refractive_swan_contracts = { path = "../../../domain/meta/contracts" }
+refractive_swan_web_dto = { path = "../../../dto/web" }

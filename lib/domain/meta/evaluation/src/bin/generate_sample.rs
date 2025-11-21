@@ -1,4 +1,4 @@
-use dfps_eval::fake_data::{
+use refractive_swan_eval::fake_data::{
     config::FakeDataConfig,
     scenarios::{
         ServiceRequestScenario, fake_service_request_scenario,
@@ -9,8 +9,8 @@ use serde_json::to_string;
 use std::env;
 
 fn main() {
-    if let Err(err) = dfps_configuration::load_env("domain.fake_data") {
-        eprintln!("dfps_eval::fake_data env error: {err}");
+    if let Err(err) = refractive_swan_configuration::load_env("domain.fake_data") {
+        eprintln!("refractive_swan_eval::fake_data env error: {err}");
         std::process::exit(1);
     }
     let config = FakeDataConfig::from_env().unwrap_or_default();

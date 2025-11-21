@@ -1,4 +1,4 @@
-use dfps_configuration::{self as config, EnvValueError};
+use refractive_swan_configuration::{self as config, EnvValueError};
 use std::{fmt, time::Duration};
 
 #[derive(Debug, Clone)]
@@ -11,21 +11,21 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn from_env() -> Result<Self, ConfigError> {
-        let listen_addr = config::string_var("DFPS_FRONTEND_LISTEN_ADDR")
+        let listen_addr = config::string_var("refractive_swan_FRONTEND_LISTEN_ADDR")
             .map_err(ConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| "127.0.0.1:8090".into());
-        let backend_base_url = config::string_var("DFPS_API_BASE_URL")
+        let backend_base_url = config::string_var("refractive_swan_API_BASE_URL")
             .map_err(ConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty())
             .unwrap_or_else(|| "http://127.0.0.1:8080".into());
-        let timeout_secs = config::u64_var("DFPS_API_CLIENT_TIMEOUT_SECS")
+        let timeout_secs = config::u64_var("refractive_swan_API_CLIENT_TIMEOUT_SECS")
             .map_err(ConfigError::Env)?
             .unwrap_or(15)
             .max(1);
-        let docs_url = config::string_var("DFPS_DOCS_URL")
+        let docs_url = config::string_var("refractive_swan_DOCS_URL")
             .map_err(ConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());

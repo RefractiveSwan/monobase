@@ -11,7 +11,7 @@ timeline
   title Capacity & Geometry in Practice
   Week 1 : Intuition, Functions-as-Vectors, alpha via simulation
   Week 2 : MFTMA, anchors, *H
-  Week 3 : Graph health (Leiden), DFPS lab
+  Week 3 : Graph health (Leiden), refractive_swan lab
 ```
 
 Terms: 

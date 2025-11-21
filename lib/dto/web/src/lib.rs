@@ -1,10 +1,10 @@
-//! Shared DTOs for the DFPS web surfaces (frontend + API).
+//! Shared DTOs for the refractive_swan web surfaces (frontend + API).
 //! Re-exports the canonical contracts used by HTTP handlers and clients so
 //! both sides stay in sync.
 
-pub use dfps_contracts::{
+pub use refractive_swan_contracts::{
     AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetManifest,
     EvalRunResponse, EvalSummary, PipelineMetrics, PipelineOutput,
 };
 
-pub use dfps_contracts::errors::{ErrorCode, ErrorKind};
+pub use refractive_swan_contracts::errors::{ErrorCode, ErrorKind};

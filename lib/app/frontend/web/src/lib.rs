@@ -14,9 +14,9 @@ use state::AppState;
 use std::sync::Arc;
 
 pub async fn run() -> std::io::Result<()> {
-    if let Err(err) = dfps_configuration::load_env("app.web.frontend") {
+    if let Err(err) = refractive_swan_configuration::load_env("app.web.frontend") {
         return Err(std::io::Error::other(format!(
-            "dfps_web_frontend env error: {err}"
+            "refractive_swan_web_frontend env error: {err}"
         )));
     }
     let config = AppConfig::from_env()
@@ -37,12 +37,12 @@ pub async fn run() -> std::io::Result<()> {
     .await
 }
 
-fn dataset_store_from_env() -> Arc<dyn dfps_eval::DatasetStore + Send + Sync> {
-    match dfps_eval::config::EvalDatasetConfig::from_env() {
+fn dataset_store_from_env() -> Arc<dyn refractive_swan_eval::DatasetStore + Send + Sync> {
+    match refractive_swan_eval::config::EvalDatasetConfig::from_env() {
         Ok(cfg) => Arc::new(cfg.dataset_store()),
         Err(err) => {
-            log::warn!("dfps_web_frontend dataset config error ({err}); using bundled fixtures");
-            Arc::new(dfps_eval::FileDatasetStore::default())
+            log::warn!("refractive_swan_web_frontend dataset config error ({err}); using bundled fixtures");
+            Arc::new(refractive_swan_eval::FileDatasetStore::default())
         }
     }
 }

@@ -1,4 +1,4 @@
-use dfps_core::{fhir, staging::StgSrCodeExploded};
+use refractive_swan_core::{fhir, staging::StgSrCodeExploded};
 
 use crate::transforms::errors::IngestionError;
 use crate::transforms::service_request::{sr_to_domain, sr_to_staging};
@@ -8,7 +8,7 @@ use crate::validation::{
 };
 
 type StagingRows = (
-    Vec<dfps_core::staging::StgServiceRequestFlat>,
+    Vec<refractive_swan_core::staging::StgServiceRequestFlat>,
     Vec<StgSrCodeExploded>,
 );
 
@@ -92,7 +92,7 @@ fn bundle_to_staging_inner(bundle: &fhir::Bundle) -> Result<StagingRows, Ingesti
 /// Convert a bundle into domain ServiceRequest aggregates.
 pub fn bundle_to_domain(
     bundle: &fhir::Bundle,
-) -> Result<Vec<dfps_core::order::ServiceRequest>, IngestionError> {
+) -> Result<Vec<refractive_swan_core::order::ServiceRequest>, IngestionError> {
     bundle_to_domain_with_validation(
         bundle,
         ValidationMode::default(),
@@ -106,7 +106,7 @@ pub fn bundle_to_domain_with_validation(
     bundle: &fhir::Bundle,
     mode: ValidationMode,
     external: ExternalValidationContext<'_>,
-) -> Result<Validated<Vec<dfps_core::order::ServiceRequest>>, IngestionError> {
+) -> Result<Validated<Vec<refractive_swan_core::order::ServiceRequest>>, IngestionError> {
     let report = run_validation(bundle, mode, external)?;
     let output = bundle_to_domain_inner(bundle)?;
     Ok(Validated::new(output, report))
@@ -115,14 +115,14 @@ pub fn bundle_to_domain_with_validation(
 /// Convert a previously validated bundle into domain ServiceRequests.
 pub fn bundle_to_domain_from_validated(
     bundle: &ValidatedBundle,
-) -> Result<Validated<Vec<dfps_core::order::ServiceRequest>>, IngestionError> {
+) -> Result<Validated<Vec<refractive_swan_core::order::ServiceRequest>>, IngestionError> {
     let output = bundle_to_domain_inner(bundle.bundle())?;
     Ok(Validated::new(output, bundle.report().clone()))
 }
 
 fn bundle_to_domain_inner(
     bundle: &fhir::Bundle,
-) -> Result<Vec<dfps_core::order::ServiceRequest>, IngestionError> {
+) -> Result<Vec<refractive_swan_core::order::ServiceRequest>, IngestionError> {
     let mut output = Vec::new();
     for entry in bundle.iter_servicerequests() {
         let sr = entry?;

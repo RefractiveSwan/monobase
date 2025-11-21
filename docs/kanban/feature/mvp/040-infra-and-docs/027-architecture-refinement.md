@@ -4,7 +4,7 @@
 **Branch:** `feature/meta/REFR-027-architecture-refinement`  
 **Goal:** Produce a neater, easier-to-navigate architecture plan so every crate knows its home and migration steps from the current layout to the mesh-ready structure are unambiguous.
 
-> Status: **TODO**  
+> Status: **INPROGRESS**  
 > Branch target version: `Unreleased`  
 > Introduced in: `v0.1.0`  
 > Last updated in: `Unreleased`
@@ -13,7 +13,7 @@
 
 ## Background
 
-REFR-024 delivered baseline documentation for `lib/app`, `lib/domain`, and `lib/platform`. MESH-025 sketches the end-state (`platform/{mesh,data,store}`) but the current repository still mixes runtime adapters (`dfps_api`, `dfps_datamart`, `dfps_vector_store`) with domain crates, and only the web DTOs have their own bucket.
+REFR-024 delivered baseline documentation for `lib/app`, `lib/domain`, and `lib/platform`. MESH-025 sketches the end-state (`platform/{mesh,data,store}`) but the current repository still mixes runtime adapters (`refractive_swan_api`, `refractive_swan_datamart`, `refractive_swan_vector_store`) with domain crates, and only the web DTOs have their own bucket.
 
 REFR-027 crystallizes the “next hop” architecture so future migrations are incremental instead of ad hoc. It also introduces a dedicated **ports shelf** so domain-level contracts (vector, terminology, datamart sinks, external validators) have one discoverable home before adapters wire them.
 
@@ -23,7 +23,7 @@ REFR-027 crystallizes the “next hop” architecture so future migrations are i
 
 1. **Ports scattered inside feature crates.** `vector_port` lives next to `ontologies` while other outbound ports (`DatamartPort`, `ExternalValidator`, `TerminologyClient`) sit inside their feature crates. New contributors cannot find all “hex ports” in one place.
 2. **App vs platform boundary is fuzzy.** `lib/app/servers/{api,datamart,vector_store}` include adapters that conceptually belong to `platform/{mesh,data,store}` but moving them lacks a concrete roadmap.
-3. **DTO veneers incomplete.** Only the web layer enjoys a dedicated `lib/dto/web`. CLI and mesh-control planes still import `dfps_contracts` directly, so schema drift is likely.
+3. **DTO veneers incomplete.** Only the web layer enjoys a dedicated `lib/dto/web`. CLI and mesh-control planes still import `refractive_swan_contracts` directly, so schema drift is likely.
 4. **Kanban split between REFR-024 and MESH-025 is unclear.** REFR-024 focuses on docs, MESH-025 on mesh layout, but the mid-term architecture (before mesh) is not written down.
 
 ---
@@ -34,8 +34,8 @@ REFR-027 crystallizes the “next hop” architecture so future migrations are i
 lib/
   app/
     frontends/
-      cli/            (dfps_cli binaries)
-      web/            (dfps_web_frontend)
+      cli/            (refractive_swan_cli binaries)
+      web/            (refractive_swan_web_frontend)
       desktop/        (reserved)
     servers/
       api/            (HTTP ingress; thin adapters only)
@@ -91,8 +91,8 @@ lib/
 
 ### Directory notes
 
-- `domain/ports/data/dto/*` – crates such as `dfps_web_dto`, upcoming `dfps_cli_dto`, and future `dfps_mesh_dto`.
-- `domain/ports/data/data-store/vector` – replacement home for `dfps_vector_port` traits and helpers.
+- `domain/ports/data/dto/*` – crates such as `refractive_swan_web_dto`, `refractive_swan_cli_dto`, and the new `refractive_swan_mesh_dto`.
+- `domain/ports/data/data-store/vector` – replacement home for `refractive_swan_vector_port` traits and helpers.
 - `domain/ports/data/data-plane/datamart` – defines sinks/ports for analytics persistence consumed by platform data-plane adapters.
 - `domain/ports/terminology` – shared `TerminologyClient` traits/configs used by mapping + ingestion flows.
 - `domain/ports/validation` – `ExternalValidator` and similar invariants for ingestion.
@@ -109,23 +109,31 @@ lib/
 - [x] Record the target tree inside `docs/kanban/feature/mvp/040-infra-and-docs/025-mesh-data-plane.md` so both kanbans align.
 
 ### Phase 1 – Domain ports consolidation
-- [x] Create `lib/domain/ports/` and move `dfps_vector_port` there (pure rename; no code change besides path updates).
+- [x] Create `lib/domain/ports/` and move `refractive_swan_vector_port` there (pure rename; no code change besides path updates).
 - [x] Extract `TerminologyClient`, `ExternalValidator`, and `DatamartSinkPort` traits into sibling crates/modules under `domain/ports`.
 - [x] Update feature crates to depend on these ports via the new path.
 
 ### Phase 2 – Domain layout alignment
-- [x] Move `dfps_ingestion` and `dfps_eval` under `domain/meta/{ingestion,evaluation}` to reflect the plan.
+- [x] Move `refractive_swan_ingestion` and `refractive_swan_eval` under `domain/meta/{ingestion,evaluation}` to reflect the plan.
 - [x] Introduce `domain/semantics` module that groups mapping + analytics helpers (without breaking crate boundaries yet) and document the intent.
 - [x] Update `directory-architecture.md` + crate READMEs to reflect the new naming.
 
 ### Phase 3 – DTO veneers
 - [x] Add `lib/dto/cli` for NDJSON/CLI payload wrappers (map_bundles/map_codes) and update CLI bins to consume it.
-- [ ] Draft `lib/dto/mesh` for node governance/control-plane payloads needed by the upcoming mesh server.
+- [x] Draft `lib/dto/mesh` (`refractive_swan_mesh_dto`) so mesh node/hub runtimes import governance/control-plane DTOs from a veneer instead of `refractive_swan_contracts` directly.
 
 ### Phase 4 – Platform moves (ties into MESH-025)
-- [ ] Relocate `lib/app/servers/vector_store` → `lib/platform/store/vector_store`.
-- [ ] Relocate `lib/app/servers/datamart` → `lib/platform/data/mart`.
-- [ ] Extract `NodeDataPlane` orchestration from `dfps_api` into `lib/platform/mesh/node`.
+- [x] Relocate `lib/app/servers/vector_store` → `lib/platform/store/vector_store`.
+  - [x] Introduce an alias crate (Phase 2 safety) so downstream crates can switch paths before the physical move.
+  - [x] Update all workspace members (`refractive_swan_api`, `refractive_swan_pipeline`, `refractive_swan_vector_port` tests, CLIs) to depend on the `platform/store/vector_store` path.
+  - [x] Refresh docs (`directory-architecture.md`, store README) to note the new physical location.
+- [x] Relocate `lib/app/servers/datamart` → `lib/platform/data/mart`.
+  - [x] Follow the same alias → move pattern, ensuring loaders/tests use the platform path.
+  - [x] Update DTO + dependency seams docs to reflect the new adapter home.
+- [ ] Extract `NodeDataPlane` orchestration from `refractive_swan_api` into `lib/platform/mesh/node`.
+  - [x] Create the crate skeleton with `refractive_swan_mesh_dto` as the mesh DTO dependency.
+  - [x] Move business logic (`NodeDataPlane`, dataset/analytics/eval wiring) while keeping `refractive_swan_api` as the HTTP shim.
+  - [x] Update node/hub/governance READMEs and configs to import mesh DTOs via the veneer and track hub/governance hooks.
 
 Each phase must keep CI green (run `cargo make fmt`, `clippy`, `test`) and update docs/kanban entries plus `CHANGELOG.md`.
 
@@ -149,8 +157,8 @@ Each phase must keep CI green (run `cargo make fmt`, `clippy`, `test`) and updat
 - **Risk:** Docs fall out of sync.  
   **Mitigation:** Require updates to `directory-architecture.md`, `dependency-seams.md`, and the relevant kanban card in every architecture PR.
 
-- **Risk:** Tests coupling to old paths (e.g., fixtures referencing `dfps_vector_port`).  
-  **Mitigation:** Export compatibility re-exports (`pub use dfps_domain_ports::vector::*;`) during the migration window.
+- **Risk:** Tests coupling to old paths (e.g., fixtures referencing `refractive_swan_vector_port`).  
+  **Mitigation:** Export compatibility re-exports (`pub use refractive_swan_domain_ports::vector::*;`) during the migration window.
 
 ---
 

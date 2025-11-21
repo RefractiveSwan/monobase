@@ -1,10 +1,10 @@
-# dfps_datamart
+# refractive_swan_datamart
 
 **Conceptual location:** `lib/platform/data/mart`  
-**Current physical location:** `lib/app/servers/datamart`  
+**Current physical location:** `lib/platform/data/data-plane/mart` (migrated from `lib/app/servers/datamart`)  
 **Scope:** Dimensional modeling and fact tables for node-local analytics
 
-This directory represents the **conceptual home** for the datamart component. The actual implementation currently lives at `lib/app/servers/datamart` and will be moved here during Phase 3 of the MESH-025 migration.
+This directory represents the **conceptual home** for the datamart component. The implementation now lives here after the Phase 3 migration from `lib/app/servers/datamart`.
 
 ---
 
@@ -21,7 +21,7 @@ The datamart is the **operational warehouse** within a mesh node. It provides:
 
 ## Current Implementation
 
-**Location**: `lib/app/servers/datamart`
+**Location**: `lib/platform/data/data-plane/mart`
 
 ### Schema Structure
 
@@ -70,9 +70,9 @@ pub trait DatamartSink: Send + Sync {
 ```
 
 **Used by**:
-- `dfps_api::NodeDataPlane` – wires datamart for persistence
-- `dfps_cli` – standalone analytics
-- `dfps_web_frontend` – dashboard queries
+- `refractive_swan_api::NodeDataPlane` – wires datamart for persistence
+- `refractive_swan_cli` – standalone analytics
+- `refractive_swan_web_frontend` – dashboard queries
 
 ---
 
@@ -80,14 +80,14 @@ pub trait DatamartSink: Send + Sync {
 
 | Concern | Crate | Location |
 |---------|-------|----------|
-| **Mart schema & queries** | `dfps_datamart` | `platform/data/mart` (conceptual) |
-| **Warehouse traits** | `dfps_datawarehouse` | `platform/data/warehouse` (future) |
-| **Relational driver** | `dfps_relational_store` | `platform/store/relational_store` |
+| **Mart schema & queries** | `refractive_swan_datamart` | `platform/data/mart` (conceptual) |
+| **Warehouse traits** | `refractive_swan_datawarehouse` | `platform/data/warehouse` (future) |
+| **Relational driver** | `refractive_swan_relational_store` | `platform/store/relational_store` |
 
 **Analogy**:
-- `dfps_datamart` = "star schema + business metrics"
-- `dfps_datawarehouse` = "abstract warehouse interface (WarehouseLoader, WarehouseAnalytics)"
-- `dfps_relational_store` = "SQLx connection pools"
+- `refractive_swan_datamart` = "star schema + business metrics"
+- `refractive_swan_datawarehouse` = "abstract warehouse interface (WarehouseLoader, WarehouseAnalytics)"
+- `refractive_swan_relational_store` = "SQLx connection pools"
 
 ---
 
@@ -96,7 +96,7 @@ pub trait DatamartSink: Send + Sync {
 The mart **consumes** domain contracts:
 
 ```rust
-// From dfps_contracts::pipeline
+// From refractive_swan_contracts::pipeline
 pub struct PipelineOutput {
     pub request_id: String,
     pub source_code: String,
@@ -112,7 +112,7 @@ pub struct PipelineOutput {
 The mart transforms this into warehouse rows:
 
 ```rust
-// In dfps_datamart/src/fact.rs
+// In refractive_swan_datamart/src/fact.rs
 impl From<&PipelineOutput> for FactServiceRequest {
     fn from(output: &PipelineOutput) -> Self {
         Self {
@@ -182,48 +182,47 @@ WHERE d.category = ? AND f.confidence_score > ?;
 
 ## Migration Plan (MESH-025)
 
-### Phase 1: Conceptual Only (current)
+### Phase 1: Conceptual Only (complete)
 
-- This README documents the **target** location
-- Code stays at `lib/app/servers/datamart`
+- Target location documented
+- Code stayed at `lib/app/servers/datamart`
 - No code changes
 
-### Phase 2: Extract Warehouse Traits
+### Phase 2: Extract Warehouse Traits (in progress)
 
-- Create `dfps_datawarehouse` with `WarehouseLoader`, `WarehouseAnalytics` traits
-- `dfps_datamart` implements these traits
+- Create `refractive_swan_datawarehouse` with `WarehouseLoader`, `WarehouseAnalytics` traits
+- `refractive_swan_datamart` implements these traits
 - Existing code still works (minimal refactoring)
 
-### Phase 3: Physical Move
+### Phase 3: Physical Move (complete)
 
-- Move `lib/app/servers/datamart/*` → `lib/platform/data/mart/*`
-- Update `Cargo.toml` workspace members
-- Verify all tests pass
+- `refractive_swan_datamart` now lives under `lib/platform/data/data-plane/mart`
+- Workspace members + docs updated; downstream crates depend on the platform path
 
 ### Phase 4: Mesh Node Wiring
 
-- `dfps_mesh_node::NodeDataPlane` wires:
-  - `RelationalPool` from `dfps_relational_store`
-  - `DatamartSink` from `dfps_datamart`
+- `refractive_swan_mesh_node::NodeDataPlane` wires:
+  - `RelationalPool` from `refractive_swan_relational_store`
+  - `DatamartSink` from `refractive_swan_datamart`
 - Node config selects relational backend
 
 ---
 
 ## Testing
 
-### Unit Tests (in `dfps_datamart`)
+### Unit Tests (in `refractive_swan_datamart`)
 
 - Dim/fact row mapping from `PipelineOutput`
 - SQL query construction
 - Error handling (disabled datamart, missing fields)
 
-### Integration Tests (in `dfps_datamart`)
+### Integration Tests (in `refractive_swan_datamart`)
 
 - Real SQLite connectivity (in-memory)
 - Schema migrations
 - Analytics queries with realistic data
 
-### End-to-End Tests (in `dfps_api` or future `dfps_mesh_node`)
+### End-to-End Tests (in `refractive_swan_api` or future `refractive_swan_mesh_node`)
 
 - Pipeline → datamart → analytics flow
 - Verify NCIt summary on real mapping outputs

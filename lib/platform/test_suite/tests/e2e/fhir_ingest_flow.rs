@@ -1,7 +1,7 @@
 //! FHIR ingestion → staging → domain flow (REFR-05).
 
-use dfps_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario;
-use dfps_ingestion::{bundle_to_domain, bundle_to_staging};
+use refractive_swan_eval::fake_data::raw_fhir::fake_fhir_bundle_scenario;
+use refractive_swan_ingestion::{bundle_to_domain, bundle_to_staging};
 
 #[test]
 fn bundle_to_staging_counts_match_codings() {

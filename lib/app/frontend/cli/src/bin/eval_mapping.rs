@@ -3,12 +3,12 @@ use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use dfps_cli::cli_core::{
+use refractive_swan_cli::cli_core::{
     CliError, CliResult, dataset_store_from_env, init_cli_env, parse_json_file, read_to_string,
     run_bin, write_record,
 };
-use dfps_cli_dto::{DatasetManifest, EvalRunResponse, EvalSummary};
-use dfps_mapping::map_staging_codes;
+use refractive_swan_cli_dto::{DatasetManifest, EvalRunResponse, EvalSummary};
+use refractive_swan_mapping::map_staging_codes;
 use serde::Deserialize;
 
 #[derive(Parser)]
@@ -20,11 +20,11 @@ struct Args {
     /// NDJSON gold file with EvalCase rows
     #[arg(long, value_name = "PATH", conflicts_with = "dataset")]
     input: Option<PathBuf>,
-    /// Named dataset under DFPS_EVAL_DATA_ROOT (e.g., pet_ct_small)
+    /// Named dataset under refractive_swan_EVAL_DATA_ROOT (e.g., pet_ct_small)
     #[arg(long, value_name = "NAME", conflicts_with = "input")]
     dataset: Option<String>,
     /// Stream chunk size when reading NDJSON
-    #[arg(long, value_name = "N", default_value_t = dfps_eval::DEFAULT_CHUNK_SIZE as u32)]
+    #[arg(long, value_name = "N", default_value_t = refractive_swan_eval::DEFAULT_CHUNK_SIZE as u32)]
     chunk_size: u32,
     /// Directory for machine-readable artifacts (summary/results)
     #[arg(long, value_name = "DIR")]
@@ -90,7 +90,7 @@ fn run() -> CliResult<()> {
             ))
         })?;
         let reader = BufReader::new(file);
-        let summary = dfps_eval::run_eval_streaming_with_mapper(
+        let summary = refractive_swan_eval::run_eval_streaming_with_mapper(
             reader,
             |rows| map_staging_codes(rows).0,
             chunk_size,
@@ -101,7 +101,7 @@ fn run() -> CliResult<()> {
         let file = File::open(path)
             .map_err(|err| CliError::io(format!("failed to open {}: {err}", path.display())))?;
         let reader = BufReader::new(file);
-        let summary = dfps_eval::run_eval_streaming_with_mapper(
+        let summary = refractive_swan_eval::run_eval_streaming_with_mapper(
             reader,
             |rows| map_staging_codes(rows).0,
             chunk_size,
@@ -163,7 +163,7 @@ fn run() -> CliResult<()> {
 
     if let Some(path) = &args.compare_to {
         let baseline_str = read_to_string(path.as_path())?;
-        let baseline: dfps_eval::report::BaselineSnapshot = serde_json::from_str(&baseline_str)
+        let baseline: refractive_swan_eval::report::BaselineSnapshot = serde_json::from_str(&baseline_str)
             .map_err(|err| {
                 CliError::invalid(format!(
                     "failed to parse baseline {}: {err}",
@@ -176,7 +176,7 @@ fn run() -> CliResult<()> {
     }
 
     if let Some(path) = &args.deterministic {
-        let fingerprint = dfps_eval::fingerprint_summary(&summary);
+        let fingerprint = refractive_swan_eval::fingerprint_summary(&summary);
         if path.exists() {
             let baseline = read_to_string(path.as_path())?;
             let baseline = baseline.trim();
@@ -203,7 +203,7 @@ fn persist_artifacts(
     base_dir: &Path,
     args: &Args,
     response: &EvalRunResponse,
-    results: &[dfps_eval::EvalResult],
+    results: &[refractive_swan_eval::EvalResult],
 ) -> CliResult<()> {
     create_dir_all(base_dir)
         .map_err(|err| CliError::io(format!("failed to create {}: {err}", base_dir.display())))?;
@@ -237,12 +237,12 @@ fn write_report(
     report_path: &Path,
     summary: &EvalSummary,
     dataset: Option<&str>,
-    store: &impl dfps_eval::DatasetStore,
+    store: &impl refractive_swan_eval::DatasetStore,
 ) -> CliResult<()> {
     let baseline = dataset.and_then(|name| {
-        dfps_eval::report::load_baseline_snapshot_from(store.data_root(), name).ok()
+        refractive_swan_eval::report::load_baseline_snapshot_from(store.data_root(), name).ok()
     });
-    let html = dfps_eval::report::render_html(summary, baseline.as_ref().map(|snap| &snap.summary));
+    let html = refractive_swan_eval::report::render_html(summary, baseline.as_ref().map(|snap| &snap.summary));
     let mut file = File::create(report_path).map_err(|err| {
         CliError::io(format!("failed to create {}: {err}", report_path.display()))
     })?;
@@ -252,7 +252,7 @@ fn write_report(
 }
 
 fn enforce_thresholds(
-    summary: &dfps_eval::EvalSummary,
+    summary: &refractive_swan_eval::EvalSummary,
     cfg: &ThresholdConfig,
 ) -> Result<(), String> {
     if let Some(min) = cfg.min_precision {
@@ -324,8 +324,8 @@ fn enforce_thresholds(
 }
 
 fn ensure_not_regressed(
-    summary: &dfps_eval::EvalSummary,
-    baseline: &dfps_eval::EvalSummary,
+    summary: &refractive_swan_eval::EvalSummary,
+    baseline: &refractive_swan_eval::EvalSummary,
 ) -> Result<(), String> {
     if summary.top1_accuracy + f32::EPSILON < baseline.top1_accuracy {
         return Err(format!(

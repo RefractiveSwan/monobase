@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use dfps_terminology::CodeKind;
+use refractive_swan_terminology::CodeKind;
 
 pub const DEFAULT_VECTOR_TOP_K: usize = 5;
 

@@ -38,7 +38,7 @@ cd code
 
 ## 3) Environment Configuration
 
-The configuration loader automatically reads namespace‑specific dotenv files from `data/environment/` based on `DFPS_ENV` (default: `dev`). Do **not** commit real secrets-only the `.example` templates.
+The configuration loader automatically reads namespace‑specific dotenv files from `data/environment/` based on `refractive_swan_ENV` (default: `dev`). Do **not** commit real secrets-only the `.example` templates.
 
 1. Copy templates:
 
@@ -50,7 +50,7 @@ The configuration loader automatically reads namespace‑specific dotenv files f
    ```
 2. Adjust ports, URLs, and log levels as needed.
 
-**Tip:** The loader finds the workspace root by walking up to the directory that contains `Cargo.lock`. Run `cargo build` once from `code/` to generate it, or set `DFPS_WORKSPACE_ROOT` explicitly.
+**Tip:** The loader finds the workspace root by walking up to the directory that contains `Cargo.lock`. Run `cargo build` once from `code/` to generate it, or set `refractive_swan_WORKSPACE_ROOT` explicitly.
 
 ---
 
@@ -65,16 +65,16 @@ cargo build
 ### Run the Backend
 
 ```bash
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 # Expected: server listening on 127.0.0.1:8080
 ```
 
 ### Run the Frontend
 
 ```bash
-DFPS_API_BASE_URL=http://127.0.0.1:8080 \
-DFPS_FRONTEND_LISTEN_ADDR=127.0.0.1:8090 \
-cargo run -p dfps_web_frontend --bin dfps_web_frontend
+refractive_swan_API_BASE_URL=http://127.0.0.1:8080 \
+refractive_swan_FRONTEND_LISTEN_ADDR=127.0.0.1:8090 \
+cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 # Visit http://127.0.0.1:8090
 ```
 
@@ -82,17 +82,17 @@ cargo run -p dfps_web_frontend --bin dfps_web_frontend
 
 ```bash
 # Map a Bundle from file or stdin
-cargo run -p dfps_cli --bin map_bundles -- docs/samples/sample-bundle.json
+cargo run -p refractive_swan_cli --bin map_bundles -- docs/samples/sample-bundle.json
 
 # Map codes with optional explanations
-cargo run -p dfps_cli --bin map_codes -- --explain --explain-top 5 < codes.ndjson
+cargo run -p refractive_swan_cli --bin map_codes -- --explain --explain-top 5 < codes.ndjson
 ```
 
 ### Tests (unit, integration, property, and e2e)
 
 ```bash
 # Ensure test profile env is set; the test suite expects it
-export DFPS_ENV=test
+export refractive_swan_ENV=test
 cargo test --workspace
 ```
 

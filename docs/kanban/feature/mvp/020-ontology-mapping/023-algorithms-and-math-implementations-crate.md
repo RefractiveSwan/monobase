@@ -1,12 +1,12 @@
 # Kanban — feature/algorithms-and-math-implementations-crate (023)
-**Summary:** Plan a Rust `dfps_math` / `dfps_algorithms` crate delivering FOSS/GPLv3-compatible primitives for embeddings, dimensionality reduction, geometry metrics, and capacity estimators that support mapping/vector workflows.
+**Summary:** Plan a Rust `refractive_swan_math` / `refractive_swan_algorithms` crate delivering FOSS/GPLv3-compatible primitives for embeddings, dimensionality reduction, geometry metrics, and capacity estimators that support mapping/vector workflows.
 
 ## Scope & Non-Goals
 - In scope: crate scaffolding; linear algebra via FOSS crates; PCA/MDS/random projections; manifold metrics (`R_M`, `D_M`, centroid/axis correlations); capacity estimators (`α_sim` via linear SVM/perceptron proxy, `α_mf` mean-field); CSV export helpers; optional UMAP via FOSS.
 - Out of scope: training deep models; proprietary toolchains; GPU-specific backends beyond FOSS crates; non-FOSS dependencies.
 
 ## Kanban
-### ALG-01 — Crate scaffolding (`dfps_math`/`dfps_algorithms`)
+### ALG-01 — Crate scaffolding (`refractive_swan_math`/`refractive_swan_algorithms`)
 - [ ] Create crate with GPLv3-compatible license, feature flags for optional algos (e.g., `umap`).
 - [ ] Module layout: `linalg`, `dimred`, `geometry`, `capacity`, `viz`, `bench`.
 - [ ] Documentation header linking vector layer and geometry Kanban.

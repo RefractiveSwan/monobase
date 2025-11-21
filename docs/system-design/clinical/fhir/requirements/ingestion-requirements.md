@@ -37,7 +37,7 @@ requirementDiagram
 
 ## Verification linkage
 
-The `dfps_ingestion::validation` module enforces these requirements via the
+The `refractive_swan_ingestion::validation` module enforces these requirements via the
 `validate_sr` helper:
 
 - `RequirementRef::RSubject` -> `VAL_SR_SUBJECT_*` issues ensure every ServiceRequest carries a `Patient/<id>` subject reference.
@@ -50,7 +50,7 @@ tie failures directly to the diagram IDs above.
 
 ## Profile mapping
 
-DFPS embeds lightweight `StructureDefinition` snapshots via `dfps_ingestion::profiles` and ties
+refractive_swan embeds lightweight `StructureDefinition` snapshots via `refractive_swan_ingestion::profiles` and ties
 ingestion requirements to explicit profile paths:
 
 - `R_Subject` → `ServiceRequest.subject`

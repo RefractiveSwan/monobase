@@ -1,6 +1,6 @@
 use std::{fmt, process};
 
-use dfps_pipeline::PipelineError;
+use refractive_swan_pipeline::PipelineError;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ExitCode {

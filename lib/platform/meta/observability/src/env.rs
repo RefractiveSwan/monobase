@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use std::sync::Mutex;
+use std::{env, path::PathBuf, sync::Mutex};
 
 #[derive(Default)]
 struct ObservabilityEnvState {
@@ -9,24 +9,35 @@ struct ObservabilityEnvState {
 static OBS_ENV_STATE: Lazy<Mutex<ObservabilityEnvState>> =
     Lazy::new(|| Mutex::new(ObservabilityEnvState::default()));
 
-pub(crate) fn ensure_env() -> Result<(), dfps_configuration::EnvLoadError> {
+pub(crate) fn ensure_env() -> Result<(), refractive_swan_configuration::EnvLoadError> {
     let mut state = OBS_ENV_STATE
         .lock()
         .expect("observability env state mutex poisoned");
     if state.loaded {
         return Ok(());
     }
-    match dfps_configuration::load_env("platform.observability") {
-        Ok(_) => {}
-        Err(dfps_configuration::EnvLoadError::FileMissing { .. }) => {}
-        Err(err) => return Err(err),
+    let explicit_env_file = env::var("refractive_swan_ENV_FILE").ok();
+    match refractive_swan_configuration::load_env("platform.observability") {
+        Ok(outcome) => {
+            if outcome.files.is_empty() {
+                if let Some(file) = explicit_env_file {
+                    return Err(refractive_swan_configuration::EnvLoadError::FileMissing {
+                        namespace: outcome.namespace,
+                        profile: outcome.profile,
+                        attempted: vec![PathBuf::from(file)],
+                    });
+                }
+            }
+            state.loaded = true;
+            Ok(())
+        }
+        Err(refractive_swan_configuration::EnvLoadError::FileMissing { .. }) => Ok(()),
+        Err(err) => Err(err),
     }
-    state.loaded = true;
-    Ok(())
 }
 
 /// Allow callers to eagerly load environment files.
-pub fn init_environment() -> Result<(), dfps_configuration::EnvLoadError> {
+pub fn init_environment() -> Result<(), refractive_swan_configuration::EnvLoadError> {
     ensure_env()
 }
 
@@ -57,7 +68,7 @@ mod tests {
         let _lock = env_guard().lock().unwrap();
         reset_env_state_for_tests();
         unsafe {
-            env::remove_var("DFPS_ENV_FILE");
+            env::remove_var("refractive_swan_ENV_FILE");
         }
         init_environment().expect("observability env loads without panic");
         init_environment().expect("second init succeeds");
@@ -68,12 +79,12 @@ mod tests {
         let _lock = env_guard().lock().unwrap();
         reset_env_state_for_tests();
         unsafe {
-            env::set_var("DFPS_ENV_FILE", "missing.observability.env");
+            env::set_var("refractive_swan_ENV_FILE", "missing.observability.env");
         }
         let err = ensure_env().expect_err("invalid env file should error");
-        matches!(err, dfps_configuration::EnvLoadError::DotEnv { .. });
+        matches!(err, refractive_swan_configuration::EnvLoadError::DotEnv { .. });
         unsafe {
-            env::remove_var("DFPS_ENV_FILE");
+            env::remove_var("refractive_swan_ENV_FILE");
         }
     }
 }

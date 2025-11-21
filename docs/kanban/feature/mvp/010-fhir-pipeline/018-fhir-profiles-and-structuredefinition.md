@@ -33,7 +33,7 @@
 
 ### FHIR-PROF-01 – Profiles crate & data model
 
-- [x] Introduce embedded profile module under `dfps_ingestion::profiles` (replaces standalone `dfps_fhir_profiles` crate):
+- [x] Introduce embedded profile module under `refractive_swan_ingestion::profiles` (replaces standalone `refractive_swan_fhir_profiles` crate):
 
   - [x] Types mirroring a subset of FHIR `StructureDefinition`:
 
@@ -46,7 +46,7 @@
 
   - [x] `load_profile(url: &str) -> Option<FhirProfile>` from embedded JSON (`include_str!`) for:
 
-    - `Patient`, `Encounter`, `ServiceRequest` profiles used by DFPS.
+    - `Patient`, `Encounter`, `ServiceRequest` profiles used by refractive_swan.
 
 ### FHIR-PROF-02 – Linking requirements to profile constraints
 
@@ -62,7 +62,7 @@
 
 ### FHIR-PROF-03 – Structural validation helpers
 
-- [x] Under `dfps_ingestion::validation`, add functions that use `dfps_ingestion::profiles`:
+- [x] Under `refractive_swan_ingestion::validation`, add functions that use `refractive_swan_ingestion::profiles`:
 
   - [x] `validate_sr_profile(sr, profile: &FhirProfile) -> Vec<ValidationIssue>` checking:
 
@@ -77,12 +77,12 @@
 
 - [x] Add example `StructureDefinition` JSON files for the relevant profiles under `data/fhir/profiles/`.
 
-- [x] Tests in `dfps_ingestion::profiles`:
+- [x] Tests in `refractive_swan_ingestion::profiles`:
 
   - [x] Parse embedded profiles.
   - [x] Validate that key paths (`ServiceRequest.subject`, `status`, etc.) are present and mapped to `RequirementRef`.
 
-- [x] Tests in `dfps_test_suite`:
+- [x] Tests in `refractive_swan_test_suite`:
 
   - [x] A “profile-violating” bundle that passes basic validation but fails profile-based rules (min/max, unsupported elements).
   - [x] Confirm `validate_bundle` surfaces these as distinct `ValidationIssue`s.
@@ -93,7 +93,7 @@
 
   - [x] A “Profiles & conformance” markdown section summarizing:
 
-    - Which profiles DFPS understands.
+    - Which profiles refractive_swan understands.
     - How they are enforced.
 
 - [x] Add a short runbook `docs/runbook/fhir-profiles-quickstart.md` for:
@@ -112,4 +112,4 @@
 ## Out of Scope
 
 - Modeling or enforcing the entire FHIR specification.
-- Implementing a generic profile engine for arbitrary FHIR resources beyond DFPS’s narrow slice.
+- Implementing a generic profile engine for arbitrary FHIR resources beyond refractive_swan’s narrow slice.

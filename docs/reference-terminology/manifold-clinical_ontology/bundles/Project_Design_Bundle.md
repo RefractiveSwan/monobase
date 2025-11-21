@@ -3,7 +3,7 @@
 **Date:** 2025-11-15
 
 ## Deliverables
-1. Geometry probes with DFPS integration and dashboards.
+1. Geometry probes with refractive_swan integration and dashboards.
 2. Vectorized Ontology Layer (graph+text unification; synonym gates).
 3. Graph health with Leiden; CI checks.
 4. Evaluation harness (synthetic + ontology).

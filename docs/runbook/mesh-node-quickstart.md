@@ -4,7 +4,7 @@
 **Scope:** Standalone node deployment (no hub)  
 **Audience:** DevOps, developers
 
-This runbook describes how to deploy a **standalone mesh node** using the current crates (`dfps_api`, `dfps_datamart`, `dfps_vector_store`). Once `dfps_mesh_node` is extracted (Phase 4 of MESH-025), this runbook will be updated.
+This runbook describes how to deploy a **standalone mesh node** using the current crates (`refractive_swan_api`, `refractive_swan_datamart`, `refractive_swan_vector_store`). Once `refractive_swan_mesh_node` is extracted (Phase 4 of MESH-025), this runbook will be updated.
 
 ---
 
@@ -19,7 +19,7 @@ This runbook describes how to deploy a **standalone mesh node** using the curren
 
 ## Environment Profiles
 
-The node uses `dfps_configuration` to load environment-specific settings. Profiles:
+The node uses `refractive_swan_configuration` to load environment-specific settings. Profiles:
 
 - **dev**: SQLite + in-memory vector store
 - **test**: SQLite + mock vector store
@@ -35,8 +35,8 @@ The node uses `dfps_configuration` to load environment-specific settings. Profil
 Create `.env.domain.datamart.dev`:
 
 ```bash
-DFPS_WAREHOUSE_URL=sqlite:./data/warehouse.db
-DFPS_WAREHOUSE_MAX_CONNECTIONS=5
+refractive_swan_WAREHOUSE_URL=sqlite:./data/warehouse.db
+refractive_swan_WAREHOUSE_MAX_CONNECTIONS=5
 ```
 
 ### Vector Store (Qdrant)
@@ -44,11 +44,11 @@ DFPS_WAREHOUSE_MAX_CONNECTIONS=5
 Create `.env.platform.vector_store.dev`:
 
 ```bash
-DFPS_VECTOR_BACKEND=Qdrant
-DFPS_VECTOR_URL=http://localhost:6333
-DFPS_VECTOR_NAMESPACE=dev
-DFPS_VECTOR_POOL_SIZE=5
-DFPS_VECTOR_TIMEOUT_SECS=30
+refractive_swan_VECTOR_BACKEND=Qdrant
+refractive_swan_VECTOR_URL=http://localhost:6333
+refractive_swan_VECTOR_NAMESPACE=dev
+refractive_swan_VECTOR_POOL_SIZE=5
+refractive_swan_VECTOR_TIMEOUT_SECS=30
 ```
 
 ### API Server
@@ -56,8 +56,8 @@ DFPS_VECTOR_TIMEOUT_SECS=30
 Create `.env.app.web.api.dev`:
 
 ```bash
-DFPS_API_HOST=0.0.0.0
-DFPS_API_PORT=8080
+refractive_swan_API_HOST=0.0.0.0
+refractive_swan_API_PORT=8080
 ```
 
 ### Single Env File (Alternative)
@@ -66,26 +66,26 @@ Instead of multiple files, create `.env.mesh.node.dev`:
 
 ```bash
 # Node identity (optional, will generate UUID if missing)
-DFPS_NODE_ID=node-dev-001
+refractive_swan_NODE_ID=node-dev-001
 
 # Warehouse
-DFPS_WAREHOUSE_URL=sqlite:./data/warehouse.db
-DFPS_WAREHOUSE_MAX_CONNECTIONS=5
+refractive_swan_WAREHOUSE_URL=sqlite:./data/warehouse.db
+refractive_swan_WAREHOUSE_MAX_CONNECTIONS=5
 
 # Vector store
-DFPS_VECTOR_BACKEND=Qdrant
-DFPS_VECTOR_URL=http://localhost:6333
-DFPS_VECTOR_NAMESPACE=dev
+refractive_swan_VECTOR_BACKEND=Qdrant
+refractive_swan_VECTOR_URL=http://localhost:6333
+refractive_swan_VECTOR_NAMESPACE=dev
 
 # API
-DFPS_API_HOST=0.0.0.0
-DFPS_API_PORT=8080
+refractive_swan_API_HOST=0.0.0.0
+refractive_swan_API_PORT=8080
 
 # Compliance
-DFPS_COMPLIANCE_MODE=permissive
+refractive_swan_COMPLIANCE_MODE=permissive
 
 # Dataset root (for eval)
-DFPS_DATASET_ROOT=./data/datasets
+refractive_swan_DATASET_ROOT=./data/datasets
 ```
 
 ---
@@ -110,19 +110,19 @@ docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres ankane/pgvector
 
 ```bash
 # Set profile
-export DFPS_ENV=dev
+export refractive_swan_ENV=dev
 
-# Run node (via dfps_api)
+# Run node (via refractive_swan_api)
 cd code
-cargo run -p dfps_api --bin dfps_api
+cargo run -p refractive_swan_api --bin refractive_swan_api
 ```
 
 **Output**:
 ```
-INFO dfps_api: Starting API server at http://0.0.0.0:8080
-INFO dfps_api: NodeDataPlane initialized
-INFO dfps_datamart: Connected to warehouse: sqlite:./data/warehouse.db
-INFO dfps_vector_store: Connected to Qdrant at http://localhost:6333
+INFO refractive_swan_api: Starting API server at http://0.0.0.0:8080
+INFO refractive_swan_api: NodeDataPlane initialized
+INFO refractive_swan_datamart: Connected to warehouse: sqlite:./data/warehouse.db
+INFO refractive_swan_vector_store: Connected to Qdrant at http://localhost:6333
 ```
 
 ---
@@ -176,7 +176,7 @@ curl -X POST http://localhost:8080/api/map-bundles \
 ### via CLI
 
 ```bash
-cargo run -p dfps_cli -- map --file data/bundles.ndjson --output results.ndjson
+cargo run -p refractive_swan_cli -- map --file data/bundles.ndjson --output results.ndjson
 ```
 
 ---
@@ -255,7 +255,7 @@ curl http://localhost:8080/metrics/summary
 
 **Symptom**: `DatamartError::Disabled` in logs
 
-**Solution**: Check `DFPS_WAREHOUSE_URL` is set and database is accessible
+**Solution**: Check `refractive_swan_WAREHOUSE_URL` is set and database is accessible
 
 ```bash
 sqlite3 data/warehouse.db ".tables"
@@ -277,10 +277,10 @@ psql -h localhost -U postgres -c "SELECT * FROM pg_extension WHERE extname='vect
 
 **Symptom**: `Address already in use (os error 98)`
 
-**Solution**: Change `DFPS_API_PORT` or kill existing process
+**Solution**: Change `refractive_swan_API_PORT` or kill existing process
 
 ```bash
-export DFPS_API_PORT=8081
+export refractive_swan_API_PORT=8081
 # or
 lsof -ti:8080 | xargs kill
 ```
@@ -292,21 +292,21 @@ lsof -ti:8080 | xargs kill
 ### Use Postgres
 
 ```bash
-DFPS_WAREHOUSE_URL=postgres://user:pass@localhost:5432/warehouse
+refractive_swan_WAREHOUSE_URL=postgres://user:pass@localhost:5432/warehouse
 ```
 
 ### Use PGVector
 
 ```bash
-DFPS_VECTOR_BACKEND=PgVector
-DFPS_VECTOR_URL=postgres://user:pass@localhost:5432/vector_db
+refractive_swan_VECTOR_BACKEND=PgVector
+refractive_swan_VECTOR_URL=postgres://user:pass@localhost:5432/vector_db
 ```
 
 ### Enable Compliance
 
 ```bash
-DFPS_COMPLIANCE_MODE=strict
-DFPS_DP_EPSILON=1.0
+refractive_swan_COMPLIANCE_MODE=strict
+refractive_swan_DP_EPSILON=1.0
 ```
 
 ### Use Systemd
@@ -322,8 +322,8 @@ After=network.target
 Type=simple
 User=meshnode
 WorkingDirectory=/opt/mesh-node
-Environment="DFPS_ENV=prod"
-ExecStart=/opt/mesh-node/dfps_api
+Environment="refractive_swan_ENV=prod"
+ExecStart=/opt/mesh-node/refractive_swan_api
 Restart=on-failure
 
 [Install]

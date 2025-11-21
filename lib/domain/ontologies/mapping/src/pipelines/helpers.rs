@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dfps_core::mapping::{
+use refractive_swan_core::mapping::{
     CodeElement, DimNCITConcept, MappingResult, MappingState, MappingStrategy,
 };
 
@@ -41,7 +41,7 @@ pub fn build_result_with_score(
     }
 }
 
-pub fn classify(score: f32, thresholds: &dfps_core::mapping::MappingThresholds) -> MappingState {
+pub fn classify(score: f32, thresholds: &refractive_swan_core::mapping::MappingThresholds) -> MappingState {
     if score >= thresholds.auto_map_min {
         MappingState::AutoMapped
     } else if score >= thresholds.needs_review_min {
@@ -53,7 +53,7 @@ pub fn classify(score: f32, thresholds: &dfps_core::mapping::MappingThresholds) 
 
 pub fn attach_license_metadata(
     result: &mut MappingResult,
-    enriched: &dfps_terminology::EnrichedCode,
+    enriched: &refractive_swan_terminology::EnrichedCode,
 ) {
     if let Some(label) = enriched.license_label() {
         result.license_tier = Some(label.to_string());
@@ -102,14 +102,14 @@ pub fn map_with_dim_concepts<I>(
     >,
 ) -> (Vec<MappingResult>, Vec<DimNCITConcept>)
 where
-    I: IntoIterator<Item = dfps_core::staging::StgSrCodeExploded>,
+    I: IntoIterator<Item = refractive_swan_core::staging::StgSrCodeExploded>,
 {
     let xrefs = crate::data::load_umls_xrefs();
     let (results, _) = crate::pipelines::staging::map_with_engine(
         codes,
         &engine,
         &xrefs,
-        None as Option<&dyn dfps_terminology::TerminologyClient>,
+        None as Option<&dyn refractive_swan_terminology::TerminologyClient>,
         &MappingConfig::default(),
     );
     let dim_concepts = extract_dim_concepts(&results);
@@ -133,8 +133,8 @@ fn extract_dim_concepts(results: &[MappingResult]) -> Vec<DimNCITConcept> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_core::mapping::{MappingStrategy, MappingThresholds};
-    use dfps_core::staging::StgSrCodeExploded;
+    use refractive_swan_core::mapping::{MappingStrategy, MappingThresholds};
+    use refractive_swan_core::staging::StgSrCodeExploded;
 
     fn sample_code() -> CodeElement {
         CodeElement::from(StgSrCodeExploded {

@@ -12,22 +12,18 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use dfps_compliance::assert_export_allowed;
-use dfps_contracts::{
+use refractive_swan_compliance::assert_export_allowed;
+use refractive_swan_contracts::{
     DimNCITConcept, ErrorCode, ErrorKind, MappingResult, MappingState, PipelineMetrics,
     PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded, VectorUsageSnapshot,
 };
-use dfps_core::fhir::Bundle;
-use dfps_datamart::{CohortFilters, DatamartError, DatamartSink, SqliteDatamart};
-use dfps_eval::DatasetStore;
-use dfps_observability::{log_no_match, log_pipeline_output_with_summary};
-use dfps_pipeline::{
-    DefaultPipeline, PipelineError, PipelinePort, PipelineRunConfig, VectorPipelineContext,
-};
-use dfps_terminology::codesystem::LicenseTier;
-use dfps_vector_store::{
-    MockVectorStore, QdrantVectorStore, VectorBackend, VectorStore, VectorStoreConfig,
-};
+use refractive_swan_core::fhir::Bundle;
+use refractive_swan_datamart::{CohortFilters, DatamartError};
+use refractive_swan_mesh_dto::MeshNodeId;
+use refractive_swan_mesh_node::{NodeDataPlane, NodePlaneConfig};
+use refractive_swan_observability::{log_no_match, log_pipeline_output_with_summary};
+use refractive_swan_pipeline::{PipelineError, PipelineRunConfig};
+use refractive_swan_terminology::codesystem::LicenseTier;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -36,7 +32,7 @@ use tokio::{net::TcpListener, sync::Mutex};
 use uuid::Uuid;
 
 use crate::{
-    config::{ApiConfig, DataPlaneConfig},
+    config::ApiConfig,
     dto::{AnalyticsSummaryResponse, CohortResponse, EvalRunResponse},
 };
 /// Runtime configuration for the HTTP server.
@@ -48,19 +44,19 @@ pub struct ApiServerConfig {
 
 impl ApiServerConfig {
     pub fn from_env() -> Self {
-        let host = match dfps_configuration::string_var("DFPS_API_HOST") {
+        let host = match refractive_swan_configuration::string_var("refractive_swan_API_HOST") {
             Ok(Some(value)) if !value.trim().is_empty() => value.trim().to_string(),
             Ok(_) => "127.0.0.1".into(),
             Err(err) => {
-                warn!(target: "dfps_api", "invalid DFPS_API_HOST: {err}; using default 127.0.0.1");
+                warn!(target: "refractive_swan_api", "invalid refractive_swan_API_HOST: {err}; using default 127.0.0.1");
                 "127.0.0.1".into()
             }
         };
-        let port = match dfps_configuration::port_var("DFPS_API_PORT") {
+        let port = match refractive_swan_configuration::port_var("refractive_swan_API_PORT") {
             Ok(Some(value)) => value,
             Ok(None) => 8080,
             Err(err) => {
-                warn!(target: "dfps_api", "invalid DFPS_API_PORT: {err}; using default 8080");
+                warn!(target: "refractive_swan_api", "invalid refractive_swan_API_PORT: {err}; using default 8080");
                 8080
             }
         };
@@ -128,7 +124,7 @@ fn parse_license_tier(value: &str) -> Option<LicenseTier> {
 
 fn enforce_export_policy(
     output: &PipelineOutput,
-    policy: &dfps_compliance::Policy,
+    policy: &refractive_swan_compliance::Policy,
     request_id: Uuid,
 ) -> Result<(), ApiError> {
     let tiers = license_tiers_from_output(output);
@@ -147,61 +143,16 @@ fn enforce_export_policy(
 /// Application node state that wires domain ports + adapters (pipeline, datamart,
 /// datasets, metrics, compliance policy) for handlers.
 #[derive(Clone)]
-struct NodeDataPlane {
-    policy: dfps_compliance::Policy,
-    vector_context: Option<VectorPipelineContext>,
-    dataset_store: Arc<dyn DatasetStore + Send + Sync>,
-    metrics: Arc<Mutex<PipelineMetrics>>,
-    pipeline: Arc<dyn PipelinePort + Send + Sync>,
-    datamart: Arc<dyn DatamartSink + Send + Sync>,
-}
-
-impl NodeDataPlane {
-    fn from_config(config: DataPlaneConfig) -> Self {
-        let dataset_store: Arc<dyn DatasetStore + Send + Sync> =
-            Arc::new(config.dataset_store.clone());
-        let vector_context = config.vector.as_ref().and_then(vector_context_from_config);
-        let pipeline: Arc<dyn PipelinePort + Send + Sync> = Arc::new(DefaultPipeline);
-        let datamart: Arc<dyn DatamartSink + Send + Sync> = Arc::new(
-            SqliteDatamart::from_optional_config(config.datamart.clone()),
-        );
-        Self {
-            policy: config.policy,
-            vector_context,
-            dataset_store,
-            metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
-            pipeline,
-            datamart,
-        }
-    }
-
-    fn metrics(&self) -> Arc<Mutex<PipelineMetrics>> {
-        Arc::clone(&self.metrics)
-    }
-
-    fn dataset_store(&self) -> Arc<dyn DatasetStore + Send + Sync> {
-        Arc::clone(&self.dataset_store)
-    }
-
-    fn datamart(&self) -> Arc<dyn DatamartSink + Send + Sync> {
-        Arc::clone(&self.datamart)
-    }
-
-    fn pipeline(&self) -> Arc<dyn PipelinePort + Send + Sync> {
-        Arc::clone(&self.pipeline)
-    }
-}
-
-#[derive(Clone)]
 pub struct ApiState {
     plane: Arc<NodeDataPlane>,
     latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
 }
 
 impl ApiState {
-    pub fn from_plane_config(config: DataPlaneConfig) -> Self {
+    pub fn from_plane_config(config: NodePlaneConfig) -> Self {
+        let plane = NodeDataPlane::from_config(MeshNodeId::new_random(), config);
         Self {
-            plane: Arc::new(NodeDataPlane::from_config(config)),
+            plane: Arc::new(plane),
             latest_eval: Arc::new(Mutex::new(None)),
         }
     }
@@ -209,8 +160,8 @@ impl ApiState {
 
 impl Default for ApiState {
     fn default() -> Self {
-        let config =
-            DataPlaneConfig::from_env().expect("dfps_api: failed to load plane configuration");
+        let config = NodePlaneConfig::from_env("app.web.api")
+            .expect("refractive_swan_api: failed to load plane configuration");
         Self::from_plane_config(config)
     }
 }
@@ -220,7 +171,7 @@ impl Default for ApiState {
 /// Builds the router, wires shared state, and blocks until Ctrl+C (or shutdown).
 pub async fn run(config: ApiConfig) -> Result<(), ServerError> {
     let addr = config.server.socket_addr()?;
-    info!(target: "dfps_api", "starting web backend on {addr}");
+    info!(target: "refractive_swan_api", "starting web backend on {addr}");
     let listener = TcpListener::bind(addr)
         .await
         .map_err(|source| ServerError::Bind { addr, source })?;
@@ -232,7 +183,7 @@ pub async fn run(config: ApiConfig) -> Result<(), ServerError> {
         .await
         .map_err(ServerError::Serve)?;
 
-    info!(target: "dfps_api", "server stopped");
+    info!(target: "refractive_swan_api", "server stopped");
     Ok(())
 }
 
@@ -289,13 +240,13 @@ impl From<&CohortQuery> for CohortFilters {
 
 async fn health() -> impl IntoResponse {
     let request_id = Uuid::new_v4();
-    info!(target: "dfps_api", "request_id={request_id} health");
+    info!(target: "refractive_swan_api", "request_id={request_id} health");
     Json(json!({ "status": "ok" }))
 }
 
 async fn analytics_ncit_summary(State(state): State<ApiState>) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
-    info!(target: "dfps_api", "request_id={request_id} analytics_ncit_summary");
+    info!(target: "refractive_swan_api", "request_id={request_id} analytics_ncit_summary");
     {
         let metrics_handle = state.plane.metrics();
         let mut metrics = metrics_handle.lock().await;
@@ -305,14 +256,14 @@ async fn analytics_ncit_summary(State(state): State<ApiState>) -> Result<Respons
         Ok(response) => response,
         Err(DatamartError::Disabled) => {
             warn!(
-                target: "dfps_api",
+                target: "refractive_swan_api",
                 "request_id={request_id} analytics summary skipped (datamart disabled)"
             );
             AnalyticsSummaryResponse { rows: Vec::new() }
         }
         Err(err) => {
             warn!(
-                target: "dfps_api",
+                target: "refractive_swan_api",
                 "request_id={request_id} analytics summary query failed: {err}"
             );
             AnalyticsSummaryResponse { rows: Vec::new() }
@@ -327,7 +278,7 @@ async fn analytics_cohort(
 ) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
     info!(
-        target: "dfps_api",
+        target: "refractive_swan_api",
         "request_id={request_id} analytics_cohort ncit_id={:?} status={:?} date_from={:?} date_to={:?}",
         query.ncit_id,
         query.status,
@@ -339,7 +290,7 @@ async fn analytics_cohort(
         Ok(response) => response,
         Err(DatamartError::Disabled) => {
             warn!(
-                target: "dfps_api",
+                target: "refractive_swan_api",
                 "request_id={request_id} cohort query skipped (datamart disabled)"
             );
             CohortResponse {
@@ -349,7 +300,7 @@ async fn analytics_cohort(
         }
         Err(err) => {
             warn!(
-                target: "dfps_api",
+                target: "refractive_swan_api",
                 "request_id={request_id} cohort query failed: {err}"
             );
             CohortResponse {
@@ -378,7 +329,7 @@ async fn eval_summary(
 ) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
     let dataset = query.dataset;
-    info!(target: "dfps_api", "request_id={request_id} eval_summary dataset={dataset}");
+    info!(target: "refractive_swan_api", "request_id={request_id} eval_summary dataset={dataset}");
     let cases = state
         .plane
         .dataset_store()
@@ -403,7 +354,7 @@ async fn run_eval(
 ) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
     info!(
-        target: "dfps_api",
+        target: "refractive_swan_api",
         "request_id={request_id} eval_run dataset={} top_k={}",
         body.dataset,
         body.top_k
@@ -438,9 +389,9 @@ async fn latest_eval(State(state): State<ApiState>) -> Result<Response, ApiError
     }
 }
 
-fn run_eval_internal(cases: &[dfps_eval::EvalCase], top_k: usize) -> dfps_eval::EvalSummary {
+fn run_eval_internal(cases: &[refractive_swan_eval::EvalCase], top_k: usize) -> refractive_swan_eval::EvalSummary {
     let summary =
-        dfps_eval::run_eval_with_mapper(cases, |rows| dfps_mapping::map_staging_codes(rows).0);
+        refractive_swan_eval::run_eval_with_mapper(cases, |rows| refractive_swan_mapping::map_staging_codes(rows).0);
     if top_k > 1 {
         // Placeholder until engine exposes true top-k.
         return summary;
@@ -448,27 +399,12 @@ fn run_eval_internal(cases: &[dfps_eval::EvalCase], top_k: usize) -> dfps_eval::
     summary
 }
 
-fn vector_context_from_config(config: &VectorStoreConfig) -> Option<VectorPipelineContext> {
-    if !config.enabled {
-        return None;
-    }
-    let store: Arc<dyn VectorStore> = match config.backend {
-        VectorBackend::Qdrant => {
-            let store = QdrantVectorStore::from_config(config).ok()?;
-            Arc::new(store)
-        }
-        VectorBackend::Mock => Arc::new(MockVectorStore::new(config.namespace.clone())),
-        _ => return None,
-    };
-    Some(VectorPipelineContext::new(store, config.clone()))
-}
-
 async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {
     let request_id = Uuid::new_v4();
     let metrics_handle = state.plane.metrics();
     let metrics = metrics_handle.lock().await.clone();
     info!(
-        target: "dfps_api",
+        target: "refractive_swan_api",
         "request_id={request_id} metrics_summary bundles={} mappings={} compliance_mode={:?}",
         metrics.bundle_count,
         metrics.mapping_count,
@@ -487,31 +423,33 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         ));
     }
     info!(
-        target: "dfps_api",
+        target: "refractive_swan_api",
         "request_id={request_id} map_bundles start bundles={}",
         bundles.len()
     );
 
     let mut response = MapBundlesResponse::default();
+    let policy = state.plane.policy();
     let mut request_metrics = PipelineMetrics {
-        compliance_mode: Some(state.plane.policy.mode.as_str().to_string()),
+        compliance_mode: Some(policy.mode.as_str().to_string()),
         ..PipelineMetrics::default()
     };
     let pipeline = state.plane.pipeline();
     let datamart = state.plane.datamart();
+    let vector_context = state.plane.vector_context();
 
     for bundle in bundles {
         let exec = {
             let config = PipelineRunConfig::default();
             pipeline
-                .map_bundle_with_validation(&bundle, &config, state.plane.vector_context.as_ref())
+                .map_bundle_with_validation(&bundle, &config, vector_context.as_ref())
                 .map_err(|err| match err {
                     PipelineError::Ingestion(source) => {
                         ApiError::ingestion(source.to_string(), request_id)
                     }
                 })?
         };
-        enforce_export_policy(&exec.output, &state.plane.policy, request_id)?;
+        enforce_export_policy(&exec.output, policy, request_id)?;
 
         log_pipeline_output_with_summary(
             &exec.output.flats,
@@ -520,17 +458,17 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
             &exec.metrics,
             &mut request_metrics,
         );
-        if let Err(err) = datamart.persist(&exec.output, &state.plane.policy).await {
+        if let Err(err) = datamart.persist(&exec.output, policy).await {
             match err {
                 DatamartError::Disabled => {
                     warn!(
-                        target: "dfps_api",
+                        target: "refractive_swan_api",
                         "request_id={request_id} datamart persist skipped (disabled)"
                     );
                 }
                 other => {
                     warn!(
-                        target: "dfps_api",
+                        target: "refractive_swan_api",
                         "request_id={request_id} datamart persist failed: {other}"
                     );
                 }
@@ -556,7 +494,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     let payload = response.into_pipeline_output();
 
     info!(
-        target: "dfps_api",
+        target: "refractive_swan_api",
         "request_id={request_id} map_bundles complete bundles={} flats={} mappings={} dim_concepts={} automap={} needs_review={} no_match={} license_blocked={} compliance_mode={}",
         request_metrics.bundle_count,
         total_flats,
@@ -566,13 +504,13 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         request_metrics.needs_review,
         request_metrics.no_match,
         request_metrics.license_blocked,
-        state.plane.policy.mode.as_str()
+        state.plane.policy().mode.as_str()
     );
     if request_metrics.license_blocked > 0 {
         warn!(
-            target: "dfps_compliance",
+            target: "refractive_swan_compliance",
             "request_id={request_id} compliance_blocked reason=license_blocked mode={} count={}",
-            state.plane.policy.mode.as_str(),
+            state.plane.policy().mode.as_str(),
             request_metrics.license_blocked
         );
     }
@@ -582,8 +520,8 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
 
 async fn shutdown_signal() {
     match tokio::signal::ctrl_c().await {
-        Ok(()) => info!(target: "dfps_api", "received shutdown signal"),
-        Err(err) => warn!(target: "dfps_api", "failed waiting for ctrl_c: {err}"),
+        Ok(()) => info!(target: "refractive_swan_api", "received shutdown signal"),
+        Err(err) => warn!(target: "refractive_swan_api", "failed waiting for ctrl_c: {err}"),
     }
 }
 
@@ -660,7 +598,7 @@ impl ApiError {
     fn invalid_json(message: impl Into<String>, request_id: Uuid) -> Self {
         let message = message.into();
         warn!(
-            target: "dfps_api",
+            target: "refractive_swan_api",
             "request_id={request_id} invalid json: {message}"
         );
         Self::InvalidJson {
@@ -672,7 +610,7 @@ impl ApiError {
     fn ingestion(message: impl Into<String>, request_id: Uuid) -> Self {
         let message = message.into();
         warn!(
-            target: "dfps_api",
+            target: "refractive_swan_api",
             "request_id={request_id} invalid fhir payload: {message}"
         );
         Self::Ingestion {
@@ -684,7 +622,7 @@ impl ApiError {
     fn invalid_dataset(message: impl Into<String>, request_id: Uuid) -> Self {
         let message = message.into();
         warn!(
-            target: "dfps_api",
+            target: "refractive_swan_api",
             "request_id={request_id} invalid dataset: {message}"
         );
         Self::InvalidDataset {
@@ -696,7 +634,7 @@ impl ApiError {
     fn compliance(message: impl Into<String>, request_id: Uuid) -> Self {
         let message = message.into();
         warn!(
-            target: "dfps_api",
+            target: "refractive_swan_api",
             "request_id={request_id} compliance blocked: {message}"
         );
         Self::Compliance {
@@ -709,7 +647,7 @@ impl ApiError {
     fn internal(message: impl Into<String>, request_id: Uuid) -> Self {
         let message = message.into();
         error!(
-            target: "dfps_api",
+            target: "refractive_swan_api",
             "request_id={request_id} internal error: {message}"
         );
         Self::Internal {

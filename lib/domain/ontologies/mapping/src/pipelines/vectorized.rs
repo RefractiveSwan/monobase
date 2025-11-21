@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use dfps_compliance::Policy;
-use dfps_core::mapping::{CodeElement, DimNCITConcept, MappingResult};
-use dfps_core::staging::StgSrCodeExploded;
-use dfps_observability::VectorUsageSnapshot;
-use dfps_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
+use refractive_swan_compliance::Policy;
+use refractive_swan_core::mapping::{CodeElement, DimNCITConcept, MappingResult};
+use refractive_swan_core::staging::StgSrCodeExploded;
+use refractive_swan_observability::VectorUsageSnapshot;
+use refractive_swan_vector_port::{EmbeddingProvider, VectorStore, VectorStoreConfig};
 
 use crate::config::MappingConfig;
 use crate::data::load_umls_xrefs;
@@ -105,7 +105,7 @@ where
         codes,
         &engine,
         &xrefs,
-        None as Option<&dyn dfps_terminology::TerminologyClient>,
+        None as Option<&dyn refractive_swan_terminology::TerminologyClient>,
         mapping_config,
     );
     let snapshot = usage_handle.snapshot();

@@ -1,7 +1,7 @@
-# dfps_datawarehouse
+# refractive_swan_datawarehouse
 
 **Conceptual location:** `lib/platform/data/warehouse`  
-**Current physical location:** Not yet implemented (traits will be extracted from `dfps_datamart`)  
+**Current physical location:** Not yet implemented (traits will be extracted from `refractive_swan_datamart`)  
 **Scope:** Backend-agnostic warehouse abstraction with role-based configurations
 
 This directory will host the **warehouse trait layer** that abstracts over different warehouse roles (operational mart, reporting mart, archival) and backends.
@@ -10,7 +10,7 @@ This directory will host the **warehouse trait layer** that abstracts over diffe
 
 ## Purpose
 
-`dfps_datawarehouse` provides:
+`refractive_swan_datawarehouse` provides:
 
 1. **WarehouseRole**: Operational, reporting, archival
 2. **WarehouseConfig**: Composes `RelationalConfig` + optional `LakeConfig`
@@ -41,15 +41,15 @@ pub enum WarehouseRole {
 ```
 
 **Use cases**:
-- **Operational**: Node-local datamart (current `dfps_datamart`)
+- **Operational**: Node-local datamart (current `refractive_swan_datamart`)
 - **Reporting**: Hub-aggregated read replicas (future)
 - **Archival**: Compressed Parquet/Delta exports (future)
 
 ### WarehouseConfig
 
 ```rust
-use dfps_relational_store::RelationalConfig;
-use dfps_datalake::LakeConfig;
+use refractive_swan_relational_store::RelationalConfig;
+use refractive_swan_datalake::LakeConfig;
 
 /// Configuration for warehouse instance.
 #[derive(Clone, Debug)]
@@ -71,7 +71,7 @@ pub struct WarehouseConfig {
 ### WarehouseLoader Trait
 
 ```rust
-use dfps_contracts::PipelineOutput;
+use refractive_swan_contracts::PipelineOutput;
 
 /// Trait for loading pipeline outputs into warehouse.
 #[async_trait]
@@ -94,7 +94,7 @@ pub struct LoadSummary {
 ### WarehouseAnalytics Trait
 
 ```rust
-use dfps_contracts::{AnalyticsSummaryResponse, CohortResponse};
+use refractive_swan_contracts::{AnalyticsSummaryResponse, CohortResponse};
 
 /// Trait for warehouse analytics queries.
 #[async_trait]
@@ -138,21 +138,21 @@ pub enum WarehouseError {
 
 | Layer | Crate | Responsibilities |
 |-------|-------|------------------|
-| **Domain** | `dfps_contracts` | `PipelineOutput`, analytics DTOs |
-| **Warehouse (abstract)** | `dfps_datawarehouse` | `WarehouseLoader`, `WarehouseAnalytics` traits |
-| **Warehouse (concrete)** | `dfps_datamart` | Star schema, SQL queries, implements traits |
-| **Store** | `dfps_relational_store` | Connection pooling, migrations |
+| **Domain** | `refractive_swan_contracts` | `PipelineOutput`, analytics DTOs |
+| **Warehouse (abstract)** | `refractive_swan_datawarehouse` | `WarehouseLoader`, `WarehouseAnalytics` traits |
+| **Warehouse (concrete)** | `refractive_swan_datamart` | Star schema, SQL queries, implements traits |
+| **Store** | `refractive_swan_relational_store` | Connection pooling, migrations |
 
 ---
 
 ## Node vs Hub Usage
 
-### Node-Local Warehouse (`dfps_mesh_node`)
+### Node-Local Warehouse (`refractive_swan_mesh_node`)
 
 ```rust
-use dfps_datawarehouse::{WarehouseConfig, WarehouseRole};
-use dfps_datamart::SqlDatamart;
-use dfps_relational_store::RelationalConfig;
+use refractive_swan_datawarehouse::{WarehouseConfig, WarehouseRole};
+use refractive_swan_datamart::SqlDatamart;
+use refractive_swan_relational_store::RelationalConfig;
 
 pub struct NodeDataPlane {
     warehouse: Arc<dyn WarehouseLoader + WarehouseAnalytics>,
@@ -193,7 +193,7 @@ impl NodeDataPlane {
 }
 ```
 
-### Hub Reporting Warehouse (`dfps_mesh_hub`)
+### Hub Reporting Warehouse (`refractive_swan_mesh_hub`)
 
 ```rust
 // Future: hub reads aggregated views, never raw facts
@@ -233,7 +233,7 @@ impl HubDataPlane {
 ### Archival
 
 - **Purpose**: Long-term retention with compression
-- **Backend**: Parquet/Delta lake (via `dfps_datalake`)
+- **Backend**: Parquet/Delta lake (via `refractive_swan_datalake`)
 - **Schema**: Partitioned by date, minimal indexing
 - **Refresh**: Nightly snapshots
 - **Queries**: Historical trend analysis, compliance audits
@@ -251,11 +251,11 @@ impl HubDataPlane {
 
 - Create `lib/platform/data/warehouse/src/traits.rs`
 - Define `WarehouseRole`, `WarehouseConfig`, `WarehouseLoader`, `WarehouseAnalytics`, `WarehouseError`
-- `dfps_datamart` implements these traits
+- `refractive_swan_datamart` implements these traits
 
 ### Phase 3: Wire to Mesh Node
 
-- `dfps_mesh_node::NodeDataPlane` accepts `Arc<dyn WarehouseLoader + WarehouseAnalytics>`
+- `refractive_swan_mesh_node::NodeDataPlane` accepts `Arc<dyn WarehouseLoader + WarehouseAnalytics>`
 - Node config selects role and relational backend
 - Tests verify operational mart behavior
 
@@ -268,17 +268,17 @@ impl HubDataPlane {
 
 ## Testing
 
-### Unit Tests (in `dfps_datawarehouse`)
+### Unit Tests (in `refractive_swan_datawarehouse`)
 
 - `WarehouseConfig` validation
 - Trait definitions compile
 
-### Integration Tests (in `dfps_datamart`)
+### Integration Tests (in `refractive_swan_datamart`)
 
 - Implement `WarehouseLoader` and verify `load_batch` correctness
 - Implement `WarehouseAnalytics` and verify queries
 
-### End-to-End Tests (in `dfps_mesh_node`)
+### End-to-End Tests (in `refractive_swan_mesh_node`)
 
 - Pipeline → warehouse → analytics flow
 - Operational mart persistence latency

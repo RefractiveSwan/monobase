@@ -1,5 +1,5 @@
 [package]
-name = "dfps_terminology_port"
+name = "refractive_swan_terminology_port"
 version.workspace = true
 edition.workspace = true
 

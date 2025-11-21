@@ -30,7 +30,7 @@ fn workspace_root_discovers_parent_with_cargo_lock() {
     let nested = root.join("nested/deeper");
     fs::create_dir_all(&nested).unwrap();
     env::set_current_dir(&nested).unwrap();
-    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT"]);
 
     let resolved = workspace_root().expect("workspace root resolved");
     assert_eq!(resolved, root);
@@ -44,7 +44,7 @@ fn workspace_root_errors_without_cargo_lock() {
     let original = env::current_dir().unwrap();
     let temp = tempdir().unwrap();
     env::set_current_dir(temp.path()).unwrap();
-    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT"]);
 
     let err = workspace_root().expect_err("should fail without Cargo.lock");
     matches!(err, EnvLoadError::WorkspaceRootNotFound);
@@ -59,11 +59,11 @@ fn workspace_root_respects_env_override() {
     let marker = temp.path();
     fs::write(marker.join("Cargo.lock"), b"").unwrap();
     unsafe {
-        env::set_var("DFPS_WORKSPACE_ROOT", marker);
+        env::set_var("refractive_swan_WORKSPACE_ROOT", marker);
     }
     let resolved = workspace_root().expect("workspace root resolves via env");
     assert_eq!(resolved, marker);
-    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT"]);
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn config_paths_use_workspace_root_when_set() {
     fs::write(root.join("Cargo.lock"), b"").unwrap();
     fs::create_dir_all(root.join("data/environment")).unwrap();
     unsafe {
-        env::set_var("DFPS_WORKSPACE_ROOT", root);
+        env::set_var("refractive_swan_WORKSPACE_ROOT", root);
     }
     let paths = config_paths().expect("config paths");
     assert!(
@@ -83,7 +83,7 @@ fn config_paths_use_workspace_root_when_set() {
             .iter()
             .any(|dir| dir.ends_with("data/environment"))
     );
-    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT"]);
 }
 
 #[test]
@@ -94,19 +94,19 @@ fn config_paths_honors_env_dir_override() {
     fs::write(root.join("Cargo.lock"), b"").unwrap();
     fs::create_dir_all(root.join("custom")).unwrap();
     unsafe {
-        env::set_var("DFPS_WORKSPACE_ROOT", root);
-        env::set_var("DFPS_ENV_DIR", "custom");
+        env::set_var("refractive_swan_WORKSPACE_ROOT", root);
+        env::set_var("refractive_swan_ENV_DIR", "custom");
     }
 
     let paths = config_paths().expect("paths");
     assert_eq!(paths.env_dirs.len(), 1);
     assert!(paths.env_dirs[0].ends_with("custom"));
 
-    clear_env(&["DFPS_WORKSPACE_ROOT", "DFPS_ENV_DIR"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT", "refractive_swan_ENV_DIR"]);
 }
 
 #[test]
-fn resolves_dfps_env_file_overrides_search_dirs() {
+fn resolves_refractive_swan_env_file_overrides_search_dirs() {
     let _lock = env_guard().lock().unwrap();
     let temp = tempdir().unwrap();
     let root = temp.path();
@@ -114,15 +114,15 @@ fn resolves_dfps_env_file_overrides_search_dirs() {
     fs::create_dir_all(root.join("data/environment")).unwrap();
     fs::write(root.join("custom.env"), b"SAMPLE=1").unwrap();
     unsafe {
-        env::set_var("DFPS_WORKSPACE_ROOT", root);
-        env::set_var("DFPS_ENV_FILE", "custom.env");
+        env::set_var("refractive_swan_WORKSPACE_ROOT", root);
+        env::set_var("refractive_swan_ENV_FILE", "custom.env");
     }
 
     let outcome = load_env("platform.vector_store").expect("load env");
     assert_eq!(outcome.files.len(), 1);
     assert!(outcome.files[0].ends_with("custom.env"));
 
-    clear_env(&["DFPS_WORKSPACE_ROOT", "DFPS_ENV_FILE"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT", "refractive_swan_ENV_FILE"]);
 }
 
 #[test]
@@ -133,18 +133,18 @@ fn strict_mode_enforces_missing_files() {
     fs::write(root.join("Cargo.lock"), b"").unwrap();
     fs::create_dir_all(root.join("data/environment")).unwrap();
     unsafe {
-        env::set_var("DFPS_WORKSPACE_ROOT", root);
-        env::set_var("DFPS_ENV_STRICT", "1");
+        env::set_var("refractive_swan_WORKSPACE_ROOT", root);
+        env::set_var("refractive_swan_ENV_STRICT", "1");
     }
 
     let err = load_env("platform.vector_store").expect_err("strict mode should fail");
     matches!(err, EnvLoadError::FileMissing { .. });
 
-    unsafe { env::remove_var("DFPS_ENV_STRICT") };
+    unsafe { env::remove_var("refractive_swan_ENV_STRICT") };
     let outcome = load_env("platform.vector_store").expect("non-strict load succeeds");
     assert!(outcome.files.is_empty());
 
-    clear_env(&["DFPS_WORKSPACE_ROOT"]);
+    clear_env(&["refractive_swan_WORKSPACE_ROOT"]);
 }
 
 #[test]

@@ -23,7 +23,7 @@
 
 - [ ] Add minimal custom theming:
 
-  - [ ] Custom CSS (e.g., `docs/book/theme/css/dfps.css`).
+  - [ ] Custom CSS (e.g., `docs/book/theme/css/refractive_swan.css`).
   - [ ] Optional logo / favicon.
   - [ ] Adjust color palette to align with web frontend.
 
@@ -33,15 +33,15 @@
 
   - [ ] Run `cargo make docs` on main branch.
   - [ ] Publish `docs/book/book/` to a static host (GitHub Pages).
-  - [ ] Expose the resulting URL as `DFPS_DOCS_URL` in deployment configs.
+  - [ ] Expose the resulting URL as `refractive_swan_DOCS_URL` in deployment configs.
 
 - [ ] Ensure CI fails if `cargo make docs` fails (not silently ignored).
 
 ### DOCS-HOST-03 – Frontend integration & UX
 
-- [ ] Update `dfps_web_frontend`:
+- [ ] Update `refractive_swan_web_frontend`:
 
-  - [ ] Confirm `/docs` redirect works correctly when `DFPS_DOCS_URL` is set to the public docs site.
+  - [ ] Confirm `/docs` redirect works correctly when `refractive_swan_DOCS_URL` is set to the public docs site.
   - [ ] Adjust any existing references to local mdBook ports in runbooks.
 
 - [ ] Add a “Docs” link to the main navigation / footer of the mapping workbench.
@@ -56,7 +56,7 @@
 
 - [ ] Update `docs/book/src/index.md` to include:
 
-  - [ ] A short “How to navigate DFPS docs” section.
+  - [ ] A short “How to navigate refractive_swan docs” section.
   - [ ] Links to key runbooks (web, env, makefile, analytics).
 
 ### DOCS-HOST-05 – Crate inventory & directory-level docs (lib/app, lib/domain, lib/platform)
@@ -67,24 +67,24 @@
 
 - [ ] For each of the following crates, ensure crate-level docs and docs-related logic are clean:
 
-  - [ ] `lib/app/frontend/cli` (`dfps_cli`)
-  - [ ] `lib/app/servers/api` (`dfps_api`)
-  - [ ] `lib/app/servers/datamart` (`dfps_datamart`)
-  - [ ] `lib/app/frontend/web` (`dfps_web_frontend`)
-  - [ ] `lib/domain/core` (`dfps_core`)
-  - [ ] `lib/domain/meta/evaluation` (`dfps_eval`)
-  - [ ] `lib/domain/meta/evaluation::fake_data` (`dfps_eval::fake_data`)
+  - [ ] `lib/app/frontend/cli` (`refractive_swan_cli`)
+  - [ ] `lib/app/servers/api` (`refractive_swan_api`)
+  - [ ] `lib/app/servers/datamart` (`refractive_swan_datamart`)
+  - [ ] `lib/app/frontend/web` (`refractive_swan_web_frontend`)
+  - [ ] `lib/domain/core` (`refractive_swan_core`)
+  - [ ] `lib/domain/meta/evaluation` (`refractive_swan_eval`)
+  - [ ] `lib/domain/meta/evaluation::fake_data` (`refractive_swan_eval::fake_data`)
   - [ ] `lib/domain/ingestion::profiles` (embedded FHIR profiles)
-  - [ ] `lib/domain/ingestion` (`dfps_ingestion`)
-  - [ ] `lib/domain/mapping` (`dfps_mapping`)
+  - [ ] `lib/domain/ingestion` (`refractive_swan_ingestion`)
+  - [ ] `lib/domain/mapping` (`refractive_swan_mapping`)
   - [ ] Terminology `obo_graph` module (`lib/domain/ontologies/terminology`)
-  - [ ] `lib/domain/meta/pipeline` (`dfps_pipeline`)
-  - [ ] `lib/domain/ontologies/terminology` (`dfps_terminology`)
-  - [ ] `lib/platform/compliance` (`dfps_compliance`)
-  - [ ] `lib/platform/configuration` (`dfps_configuration`)
-  - [ ] `lib/platform/observability` (`dfps_observability`)
-  - [ ] `lib/platform/test_suite` (`dfps_test_suite`)
-  - [ ] `lib/app/servers/vector_store` (`dfps_vector_store`)
+  - [ ] `lib/domain/meta/pipeline` (`refractive_swan_pipeline`)
+  - [ ] `lib/domain/ontologies/terminology` (`refractive_swan_terminology`)
+  - [ ] `lib/platform/compliance` (`refractive_swan_compliance`)
+  - [ ] `lib/platform/configuration` (`refractive_swan_configuration`)
+  - [ ] `lib/platform/observability` (`refractive_swan_observability`)
+  - [ ] `lib/platform/test_suite` (`refractive_swan_test_suite`)
+  - [ ] `lib/app/servers/vector_store` (`refractive_swan_vector_store`)
 
   For each crate above:
 
@@ -95,20 +95,20 @@
     - [ ] Points to relevant docs: runbooks and system-design sections that mention this crate.
       - [ ] Which docs reference this crate (system-design diagrams, runbooks, Kanban epics).
     - [ ] Any feature flags that are important for docs examples (`eval-advanced`, `profile_validation`, `obo-graph`, `backend-pgvector`).
-    - [ ] Where docs mention domain crates, confirm names and module paths match the latest code (e.g., `dfps_mapping` vs `dfps_terminology` responsibilities).
+    - [ ] Where docs mention domain crates, confirm names and module paths match the latest code (e.g., `refractive_swan_mapping` vs `refractive_swan_terminology` responsibilities).
 
-  - [ ] Confirm docs-related configuration comes only from `dfps_configuration::DocsConfig` (no direct `std::env::var("DFPS_DOCS_URL")` scattered in code).
+  - [ ] Confirm docs-related configuration comes only from `refractive_swan_configuration::DocsConfig` (no direct `std::env::var("refractive_swan_DOCS_URL")` scattered in code).
   - [ ] Remove or refactor any ad-hoc docs URLs or ports; wire through `DocsConfig` instead.
   - [ ] Ensure the crate’s binaries exposed in docs (e.g., `map_bundles`, `map_codes`, `eval_mapping`, `validate_fhir`, `load_datamart`, `build_vector_index`) match actual `Cargo.toml` and `src/bin/**` names.
 
   
-  - [ ] In `dfps_configuration`:
-    - [ ] Implement a `DocsConfig` (or equivalent) capturing `DFPS_DOCS_URL` and docs/search feature flags.
+  - [ ] In `refractive_swan_configuration`:
+    - [ ] Implement a `DocsConfig` (or equivalent) capturing `refractive_swan_DOCS_URL` and docs/search feature flags.
     - [ ] Document these keys in the crate README and ensure they are the **only** source of truth for docs env.
-  - [ ] In `dfps_observability`:
+  - [ ] In `refractive_swan_observability`:
     - [ ] Define and document metrics for docs usage (e.g., `docs_view_total`, `docs_search_query_total`, `docs_redirect_error_total`).
     - [ ] Ensure no ad-hoc metrics are defined elsewhere for the same purpose.
-  - [ ] In `dfps_test_suite`:
+  - [ ] In `refractive_swan_test_suite`:
     - [ ] Group any `/docs`-related tests in a clearly named module (e.g., `tests/docs_integration.rs` or a dedicated test submodule).
     - [ ] Ensure tests cover: valid `/docs` redirects, missing/disabled docs behavior, and basic sanity for the hosted docs URL.
 
@@ -132,9 +132,9 @@
 
 ## Acceptance Criteria
 
-- `cargo make docs` builds a searchable mdBook with DFPS-specific theming.
+- `cargo make docs` builds a searchable mdBook with refractive_swan-specific theming.
 - A CI pipeline publishes docs to a stable URL after merges to main.
-- `/docs` in `dfps_web_frontend` reliably redirects to the hosted documentation.
+- `/docs` in `refractive_swan_web_frontend` reliably redirects to the hosted documentation.
 - Internal links across system-design/runbooks/kanban remain intact.
 
 ## Out of Scope

@@ -15,7 +15,7 @@ The migration follows a **4-phase approach**:
 1. **Phase 1: Conceptual Only** – Design docs + skeleton directories (no code moves)
 2. **Phase 2: Internal Aliasing** – Re-exports and module aliases (backward compat)
 3. **Phase 3: Physical Move** – Move crate code to target locations
-4. **Phase 4: Mesh Node** – Extract `dfps_mesh_node` from `dfps_api`
+4. **Phase 4: Mesh Node** – Extract `refractive_swan_mesh_node` from `refractive_swan_api`
 
 ---
 
@@ -51,7 +51,7 @@ The migration follows a **4-phase approach**:
 
 Create **alias crates** or **module re-exports** at target locations that delegate to current implementations.
 
-### Example: dfps_datamart
+### Example: refractive_swan_datamart
 
 #### Current
 ```
@@ -66,7 +66,7 @@ lib/app/servers/datamart/
 #### Phase 2
 ```
 lib/platform/data/mart/
-  Cargo.toml  (final location  dfps_datamart)
+  Cargo.toml  (final location  refractive_swan_datamart)
   
 lib/app/servers/datamart/
   (removed)
@@ -75,32 +75,18 @@ lib/app/servers/datamart/
 **`lib/platform/data/mart/Cargo.toml`:**
 ```toml
 [package]
-name = "dfps_datamart_alias"
+name = "refractive_swan_datamart_alias"
 version.workspace = true
 
 [dependencies]
-dfps_datamart = { path = "../../../app/servers/datamart" }
+refractive_swan_datamart = { path = "../../../app/servers/datamart" }
 
 [lib]
 path = "src/lib.rs"
 ```
 
-**`lib/platform/data/mart/src/lib.rs`:**
-```rust
-pub use dfps_datamart::*;
-```
-
-### Benefits
-
-- New code can reference `platform/data/mart` path
-- Old code continues using `app/servers/datamart`
-- Tests pass with either path
-- Gradual migration without breaking changes
-
-### Timeline
-
-- **Duration**: 1-2 weeks
-- **Effort**: Low (create alias crates for 3-5 crates)
+- Status: Alias crates landed and were used to update downstream dependencies.
+  The physical move is now complete, so the shim crates have been removed.
 
 ---
 
@@ -141,7 +127,7 @@ members = [
 ```toml
 # In other crates' Cargo.toml
 [dependencies]
-dfps_datamart = { path = "../../platform/data/mart" }  # was: ../app/servers/datamart
+refractive_swan_datamart = { path = "../../platform/data/mart" }  # was: ../app/servers/datamart
 ```
 
 #### 4. Verify Tests
@@ -155,12 +141,12 @@ cargo check --workspace
 
 | Crate | Current | Target |
 |-------|---------|--------|
-| `dfps_datamart` | `app/servers/datamart` | `platform/data/mart` |
-| `dfps_vector_store` | `app/servers/vector_store` | `platform/store/vector_store` |
+| `refractive_swan_datamart` | `app/servers/datamart` | `platform/data/mart` |
+| `refractive_swan_vector_store` | `app/servers/vector_store` | `platform/store/vector_store` |
 
 **NOT moved (yet)**:
-- `dfps_api` (stays until Phase 4)
-- `dfps_cli`, `dfps_web_frontend` (stay in `app/`)
+- `refractive_swan_api` (stays until Phase 4)
+- `refractive_swan_cli`, `refractive_swan_web_frontend` (stay in `app/`)
 
 ### Timeline
 
@@ -171,22 +157,22 @@ cargo check --workspace
 
 ## Phase 4: Mesh Node
 
-**Goal**: Extract `dfps_mesh_node` from `dfps_api`.
+**Goal**: Extract `refractive_swan_mesh_node` from `refractive_swan_api`.
 
 ### Prerequisites
 
 - Phase 3 complete (datamart, vector_store moved)
-- Mesh contracts (`dfps_contracts::mesh`) stable
+- Mesh contracts (`refractive_swan_contracts::mesh`, via the `refractive_swan_mesh_dto` veneer) stable
 - Governance/hub design reviewed
 
 ### Steps
 
-#### 1. Create dfps_mesh_node Crate
+#### 1. Create refractive_swan_mesh_node Crate
 
 ```
 lib/platform/mesh/node/
   src/
-    data_plane.rs  (extract from dfps_api::server::NodeDataPlane)
+    data_plane.rs  (extract from refractive_swan_api::server::NodeDataPlane)
     config.rs
     http/
       routes.rs
@@ -195,26 +181,29 @@ lib/platform/mesh/node/
   Cargo.toml
 ```
 
+- Add `refractive_swan_mesh_dto` as the mesh DTO dependency (hub/node imports should avoid
+  depending on the full `refractive_swan_contracts` crate).
+
 #### 2. Move Business Logic
 
-Extract from `dfps_api::server`:
-- `NodeDataPlane` struct → `dfps_mesh_node::data_plane`
+Extract from `refractive_swan_api::server`:
+- `NodeDataPlane` struct → `refractive_swan_mesh_node::data_plane`
 - Job execution methods → `data_plane.rs`
 - Config loading → `config.rs`
 
-Keep in `dfps_api`:
+Keep in `refractive_swan_api`:
 - Axum router setup
 - HTTP handler glue (thin wrappers)
 
-#### 3. Create dfps_api Shim
+#### 3. Create refractive_swan_api Shim
 
 ```rust
-// In dfps_api/src/lib.rs
-pub use dfps_mesh_node::NodeDataPlane;
+// In refractive_swan_api/src/lib.rs
+pub use refractive_swan_mesh_node::NodeDataPlane;
 
 // Thin HTTP adapter
 pub mod http {
-    use dfps_mesh_node::NodeDataPlane;
+    use refractive_swan_mesh_node::NodeDataPlane;
     use axum::Router;
     
     pub fn router(plane: NodeDataPlane) -> Router {
@@ -226,8 +215,8 @@ pub mod http {
 #### 4. Update Deployments
 
 Existing deployments can:
-- **Option A**: Continue using `dfps_api` (shim wraps `dfps_mesh_node`)
-- **Option B**: Migrate to `dfps_mesh_node` directly + choose HTTP framework
+- **Option A**: Continue using `refractive_swan_api` (shim wraps `refractive_swan_mesh_node`)
+- **Option B**: Migrate to `refractive_swan_mesh_node` directly + choose HTTP framework
 
 ### Timeline
 
@@ -246,8 +235,8 @@ Existing deployments can:
 
 ### After Phase 4
 
-- `dfps_api` exists as compatibility shim
-- Deprecated in favor of `dfps_mesh_node`
+- `refractive_swan_api` exists as compatibility shim
+- Deprecated in favor of `refractive_swan_mesh_node`
 - Removed in next major version (e.g., v2.0)
 
 ---
@@ -267,7 +256,7 @@ Existing deployments can:
 - **Impact**: Medium (requires coordination, but no code logic changed)
 
 ### Phase 4
-- **Rollback**: Keep `dfps_mesh_node`, restore `dfps_api` as standalone crate
+- **Rollback**: Keep `refractive_swan_mesh_node`, restore `refractive_swan_api` as standalone crate
 - **Impact**: High (significant refactoring reversed)
 
 ---
@@ -312,8 +301,8 @@ Existing deployments can:
 - ✅ CI/CD green
 
 ### Phase 4
-- ✅ `dfps_mesh_node` extracted
-- ✅ `dfps_api` shim works
+- ✅ `refractive_swan_mesh_node` extracted
+- ✅ `refractive_swan_api` shim works
 - ✅ Existing deployments unaffected
 
 ---

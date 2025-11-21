@@ -33,7 +33,7 @@
 ## DONE
 
 ### VAL-01 - Validation model
-- [x] Add `validation` module to `dfps_ingestion` (or new crate `dfps_fhir_validation` if needed).
+- [x] Add `validation` module to `refractive_swan_ingestion` (or new crate `refractive_swan_fhir_validation` if needed).
 - [x] Define:
   - [x] `ValidationIssue { id, severity, message, requirement_ref }`
   - [x] `ValidationSeverity` enum (`Error`, `Warning`, `Info`).
@@ -41,14 +41,14 @@
   - `docs/system-design/clinical/fhir/requirements/ingestion-requirements.md` (e.g., `R1`, `R2`, `R3`).
 
 ### VAL-02 - ServiceRequest-level validation
-- [x] Implement `validate_sr(sr: &dfps_core::fhir::ServiceRequest) -> Vec<ValidationIssue>`.
+- [x] Implement `validate_sr(sr: &refractive_swan_core::fhir::ServiceRequest) -> Vec<ValidationIssue>`.
 - [x] Coverage:
   - [x] `R_Subject` - ensure `subject` is present and a valid `Patient` reference.
   - [x] `R_Status` - ensure `status` is recognized and normalizable.
   - [x] `R_Trace` - ensure required identifiers to trace back to a raw Bundle are present.
 
 ### VAL-03 - Bundle-level validation
-- [x] Add `validate_bundle(bundle: &dfps_core::fhir::Bundle) -> Vec<ValidationIssue>`:
+- [x] Add `validate_bundle(bundle: &refractive_swan_core::fhir::Bundle) -> Vec<ValidationIssue>`:
   - [x] Collect per-SR issues and bundle-level invariants (e.g., referenced Patient/Encounter exists).
 - [x] Optionally add a helper that returns a structured report:
   - [x] `ValidationReport { issues: Vec<ValidationIssue>, has_errors: bool }`.
@@ -63,7 +63,7 @@
 - [x] Add new fixtures that explicitly violate R_Subject / R_Status / R_Trace (or reuse existing ones where possible).
 - [x] Unit tests ensuring:
   - [x] each requirement in the requirement diagram corresponds to at least one `ValidationIssue` path.
-- [x] Integration test in `dfps_test_suite` verifying:
+- [x] Integration test in `refractive_swan_test_suite` verifying:
   - [x] baseline bundle produces zero `Error` issues,
   - [x] malformed bundles surface the expected requirement-bound issues.
 

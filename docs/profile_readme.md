@@ -120,12 +120,12 @@ cargo make mvp-up
 | Layer | Command |
 |-------|---------|
 | All crates | `cargo test --all` |
-| CLI contracts | `cargo test -p dfps_test_suite --test integration_tests` |
-| E2E flows | `cargo test -p dfps_test_suite --test e2e_tests` |
+| CLI contracts | `cargo test -p refractive_swan_test_suite --test integration_tests` |
+| E2E flows | `cargo test -p refractive_swan_test_suite --test e2e_tests` |
 | UI snapshots | `cargo insta test --review` |
 | Architecture lint | `cargo make layers-check` |
 | Docs build | `cargo make docs && cargo make docs-serve` |
-| Vector smoke tests | `cargo test -p dfps_vector_store --features backend-pgvector` |
+| Vector smoke tests | `cargo test -p refractive_swan_vector_store --features backend-pgvector` |
 
 ---
 
@@ -147,8 +147,8 @@ cargo make mvp-up
 | 🖥 Web Workbench | `lib/app/frontend/web` | Actix + Maud + HTMX, analytics dashboards & NoMatch explorer |
 | 🌐 REST API | `lib/app/servers/api` | Axum service exposing mapping, metrics, evaluation endpoints |
 | 🧰 CLI Toolkit | `lib/app/frontend/cli` | `map_bundles`, `map_codes`, `eval_mapping`, `load_datamart` |
-| 📊 Datamart Loader | `lib/app/servers/datamart` | SQLite/star-schema analytics with compliance gating |
-| 🔡 Vector Store Ports | `lib/app/servers/vector_store` | Qdrant, pgvector, mock adapters via `dfps_vector_port` |
+| 📊 Datamart Loader | `lib/platform/data/data-plane/mart` | SQLite/star-schema analytics with compliance gating |
+| 🔡 Vector Store Ports | `lib/platform/data/data-stores/vector_store` | Qdrant, pgvector, mock adapters via `refractive_swan_vector_port` |
 
 ---
 

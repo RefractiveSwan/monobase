@@ -1,0 +1,18 @@
+[package]
+name = "refractive_swan_mesh_node"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+refractive_swan_mesh_dto = { path = "../../../dto/mesh" }
+refractive_swan_compliance = { path = "../../meta/compliance" }
+refractive_swan_vector_port = { path = "../../../domain/ports/data/data-store/vector" }
+refractive_swan_datamart_port = { path = "../../../domain/ports/data/data-plane/datamart" }
+refractive_swan_datamart = { path = "../../data/data-plane/mart" }
+refractive_swan_eval = { path = "../../../domain/meta/evaluation" }
+refractive_swan_pipeline = { path = "../../../domain/meta/pipeline" }
+refractive_swan_observability = { path = "../../meta/observability" }
+refractive_swan_vector_store = { path = "../../data/data-stores/vector_store" }
+refractive_swan_configuration = { path = "../../meta/configuration" }
+tokio = { workspace = true, features = ["sync"] }
+thiserror.workspace = true

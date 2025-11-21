@@ -29,7 +29,7 @@
 
 * [x] **OBS-01 – Structured logging hooks**
 
-  * Added `dfps_observability` crate plus `map_bundles` logging/metrics so CLI runs emit counts per mapping state.
+  * Added `refractive_swan_observability` crate plus `map_bundles` logging/metrics so CLI runs emit counts per mapping state.
 
 * [x] **OBS-02 – Metrics snapshot test**
 
@@ -53,8 +53,8 @@ Central place for **shared test utilities, property tests, integration-style tes
 
 * [x] **TS-01 – Test harness layout**
 
-  * `dfps_test_suite` now exposes `fixtures`, `assertions`, and `regression` modules plus workspace integration tests.
-  * All workspace tests now live under `dfps_test_suite/tests/{unit,integration,e2e}` for clear separation by type.
+  * `refractive_swan_test_suite` now exposes `fixtures`, `assertions`, and `regression` modules plus workspace integration tests.
+  * All workspace tests now live under `refractive_swan_test_suite/tests/{unit,integration,e2e}` for clear separation by type.
 
   * In `lib/test_suite/src/lib.rs`, expose helpers:
 
@@ -105,7 +105,7 @@ Central place for **shared test utilities, property tests, integration-style tes
 Using `fake` crate for convenient generators against your domain types.
 
 * [x] **FD-01 – Wire `fake` + `Dummy` derives**
-  * Core exposes a `dummy` feature powered by `fake::Dummy`, enabled automatically from `dfps_eval::fake_data`.
+  * Core exposes a `dummy` feature powered by `fake::Dummy`, enabled automatically from `refractive_swan_eval::fake_data`.
 
   * Add `fake` + `rand` deps (already in WS-02).
   * For simpler types, derive `Dummy` directly in `core` (behind a cfg or feature if you want), or in `fake_data` via wrapper types.
@@ -148,7 +148,7 @@ Using `fake` crate for convenient generators against your domain types.
 
 * [x] **FD-05 – CLI / dev helper (optional)**
 
-  * Added fake-data binaries under `dfps_eval` (e.g., `generate_sample`) that emit NDJSON scenarios.
+  * Added fake-data binaries under `refractive_swan_eval` (e.g., `generate_sample`) that emit NDJSON scenarios.
 
   * Add a small binary target in `fake_data` or a separate bin crate (e.g. `bin/generate_sample.rs`) that dumps fake domain objects as NDJSON for quick eyeballing.
 
@@ -222,7 +222,7 @@ Functional domain modeling + `serde` via ADTs and newtypes, roughly along the li
 
     ```toml
     [package]
-    name = "dfps_core"
+    name = "refractive_swan_core"
     version = "0.1.0"
     edition = "2021"
 
@@ -236,7 +236,7 @@ Functional domain modeling + `serde` via ADTs and newtypes, roughly along the li
 
     ```toml
     [package]
-    name = "dfps_eval"
+    name = "refractive_swan_eval"
     version = "0.1.0"
     edition = "2021"
 
@@ -252,7 +252,7 @@ Functional domain modeling + `serde` via ADTs and newtypes, roughly along the li
 
     ```toml
     [package]
-    name = "dfps_test_suite"
+    name = "refractive_swan_test_suite"
     version = "0.1.0"
     edition = "2021"
 

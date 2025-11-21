@@ -1,4 +1,4 @@
-use dfps_core::staging::StgSrCodeExploded;
+use refractive_swan_core::staging::StgSrCodeExploded;
 
 use crate::codesystem::{CodeSystemMeta, LicenseTier, SourceKind};
 use crate::registry::lookup_codesystem;

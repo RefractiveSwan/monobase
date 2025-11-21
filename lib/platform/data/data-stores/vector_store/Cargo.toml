@@ -1,5 +1,5 @@
 [package]
-name = "dfps_vector_store"
+name = "refractive_swan_vector_store"
 version.workspace = true
 edition.workspace = true
 
@@ -12,8 +12,8 @@ backend-pgvector = ["dep:tokio", "dep:tokio-postgres", "dep:pgvector"]
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror = "2.0.17"
-dfps_configuration = { path = "../../../platform/meta/configuration" }
-dfps_vector_port = { path = "../../../domain/ports/data/data-store/vector" }
+refractive_swan_configuration = { path = "../../../../platform/meta/configuration" }
+refractive_swan_vector_port = { path = "../../../../domain/ports/data/data-store/vector" }
 tokio = { workspace = true, optional = true, features = ["rt-multi-thread"] }
 reqwest = { workspace = true, optional = true, features = ["blocking"] }
 tokio-postgres = { version = "0.7", optional = true, features = ["with-uuid-1"] }

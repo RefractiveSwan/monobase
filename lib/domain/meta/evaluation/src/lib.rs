@@ -8,7 +8,7 @@
 pub mod config;
 pub mod fake_data;
 
-use dfps_core::{
+use refractive_swan_core::{
     mapping::{MappingResult, MappingState},
     staging::StgSrCodeExploded,
 };
@@ -184,7 +184,7 @@ impl FileDatasetStore {
 #[cfg(all(test, feature = "eval-advanced"))]
 mod advanced_tests {
     use super::*;
-    use dfps_core::mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds};
+    use refractive_swan_core::mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds};
 
     #[test]
     fn advanced_stats_are_populated_when_feature_enabled() {
@@ -377,7 +377,7 @@ impl EvalCase {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct EvalResult {
     pub case: EvalCase,
-    pub mapping: dfps_core::mapping::MappingResult,
+    pub mapping: refractive_swan_core::mapping::MappingResult,
     pub correct: bool,
 }
 
@@ -1188,7 +1188,7 @@ fn finalize_confusion(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfps_core::mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds};
+    use refractive_swan_core::mapping::{MappingSourceVersion, MappingStrategy, MappingThresholds};
     use std::{fs::File, io::BufReader};
 
     #[test]

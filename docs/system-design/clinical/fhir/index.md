@@ -20,8 +20,8 @@
 
 ## Ingestion MVP
 
-The Rust modules `dfps_core::fhir` and `dfps_core::staging`, plus the
-`dfps_ingestion` crate, implement the ServiceRequest ingestion flow described in
+The Rust modules `refractive_swan_core::fhir` and `refractive_swan_core::staging`, plus the
+`refractive_swan_ingestion` crate, implement the ServiceRequest ingestion flow described in
 the [system architecture](./architecture/system-architecture.md),
 [ingestion ER model](./models/data-model-er.md), and
 [ServiceRequest sequence](./behavior/sequence-servicerequest.md) documents. This
@@ -32,14 +32,14 @@ MVP powers the synthetic bundle generators and end-to-end ingestion tests.
 ### Code snippet
 
 ```rust
-use dfps_ingestion::{
+use refractive_swan_ingestion::{
     bundle_to_staging_with_validation, ExternalValidationContext,
     validation::{ValidationMode, validate_bundle},
 };
-use dfps_pipeline::bundle_to_mapped_sr;
+use refractive_swan_pipeline::bundle_to_mapped_sr;
 use serde_json::from_str;
 
-let bundle: dfps_core::fhir::Bundle =
+let bundle: refractive_swan_core::fhir::Bundle =
     from_str(include_str!("../../lib/domain/meta/evaluation/data/regression/fhir_bundle_sr.json"))?;
 
 let validated = bundle_to_staging_with_validation(
@@ -58,9 +58,9 @@ assert_eq!(exploded.len(), mapped.exploded_codes.len());
 ### Validation quickstart
 
 ```rust
-use dfps_ingestion::validation::{validate_bundle, validate_sr, ValidationMode};
+use refractive_swan_ingestion::validation::{validate_bundle, validate_sr, ValidationMode};
 
-let bundle: dfps_core::fhir::Bundle =
+let bundle: refractive_swan_core::fhir::Bundle =
     serde_json::from_str(include_str!("../../lib/domain/meta/evaluation/data/regression/fhir_bundle_sr.json"))?;
 
 // Validate the whole bundle before ingestion.
@@ -77,10 +77,10 @@ let issues = validate_sr(&sr);
 assert!(issues.is_empty());
 
 // Strict mode will block ingestion when issues are present.
-let lenient = dfps_ingestion::bundle_to_staging_with_validation(
+let lenient = refractive_swan_ingestion::bundle_to_staging_with_validation(
     &bundle,
     ValidationMode::Lenient,
-    dfps_ingestion::ExternalValidationContext::default(),
+    refractive_swan_ingestion::ExternalValidationContext::default(),
 )?;
 assert!(!lenient.report.has_errors());
 ```
@@ -90,20 +90,20 @@ assert!(!lenient.report.has_errors());
 - Generate sample NDJSON Bundles:
 
   ```bash
-  cargo run -p dfps_eval --bin generate_fhir_bundle -- --count 5 --seed 42 > bundles.ndjson
+  cargo run -p refractive_swan_eval --bin generate_fhir_bundle -- --count 5 --seed 42 > bundles.ndjson
   ```
 
 - Run the full ingestion + mapping pipeline:
 
   ```bash
-  cargo run -p dfps_cli --bin map_bundles bundles.ndjson > pipeline_output.ndjson
+  cargo run -p refractive_swan_cli --bin map_bundles bundles.ndjson > pipeline_output.ndjson
   ```
 
 - Show CLI help:
 
   ```bash
-  cargo run -p dfps_cli --bin map_bundles -- --help
-  cargo run -p dfps_eval --bin generate_fhir_bundle -- --help
+  cargo run -p refractive_swan_cli --bin map_bundles -- --help
+  cargo run -p refractive_swan_eval --bin generate_fhir_bundle -- --help
   ```
 
 ### Observability & logging
@@ -111,8 +111,8 @@ assert!(!lenient.report.has_errors());
 - Enable structured logs + metrics summary:
 
   ```bash
-  RUST_LOG=dfps_pipeline=info,dfps_mapping=warn \
-    cargo run -p dfps_cli --bin map_bundles -- --log-level debug bundles.ndjson
+  RUST_LOG=refractive_swan_pipeline=info,refractive_swan_mapping=warn \
+    cargo run -p refractive_swan_cli --bin map_bundles -- --log-level debug bundles.ndjson
   ```
 
   The CLI prints NDJSON outputs plus a final `metrics_summary` line with counts
@@ -121,8 +121,8 @@ assert!(!lenient.report.has_errors());
 - Inspect why a specific code mapped the way it did:
 
   ```bash
-  RUST_LOG=dfps_mapping=warn \
-    cargo run -p dfps_mapping --bin map_codes -- --explain staging_codes.ndjson
+  RUST_LOG=refractive_swan_mapping=warn \
+    cargo run -p refractive_swan_mapping --bin map_codes -- --explain staging_codes.ndjson
   ```
 
   Each `mapping_result` is followed by `{"kind":"explanation","value":{...}}`

@@ -1,8 +1,8 @@
 //! External validator integration tests (FHIR-CONF-015).
 
 use axum::{Router, http::StatusCode, response::IntoResponse, routing::post};
-use dfps_core::fhir::Bundle;
-use dfps_ingestion::{
+use refractive_swan_core::fhir::Bundle;
+use refractive_swan_ingestion::{
     IngestionError, bundle_to_staging_with_validation,
     validation::{
         ExternalValidationContext, ValidationMode, ValidationReport,
@@ -67,14 +67,14 @@ async fn spawn_validator(with_issue: bool) -> (SocketAddr, oneshot::Sender<()>, 
 #[tokio::test]
 async fn external_issues_merge_into_report() {
     let (_addr, shutdown, handle) = spawn_validator(true).await;
-    let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let bundle: Bundle = refractive_swan_test_suite::regression::baseline_fhir_bundle();
     let report: ValidationReport = tokio::task::spawn_blocking(move || {
         let validator = BlockingValidator::new(_addr.to_string());
         let ctx = ExternalValidationContext {
             validator: Some(&validator),
             profile_url: None,
         };
-        dfps_ingestion::validation::validate_bundle_with_external_profile(
+        refractive_swan_ingestion::validation::validate_bundle_with_external_profile(
             &bundle,
             ValidationMode::ExternalStrict,
             ctx,
@@ -98,7 +98,7 @@ async fn external_issues_merge_into_report() {
 #[tokio::test]
 async fn external_strict_blocks_ingestion_on_error() {
     let (_addr, shutdown, handle) = spawn_validator(true).await;
-    let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let bundle: Bundle = refractive_swan_test_suite::regression::baseline_fhir_bundle();
     let outcome = tokio::task::spawn_blocking(move || {
         let validator = BlockingValidator::new(_addr.to_string());
         let ctx = ExternalValidationContext {
@@ -128,14 +128,14 @@ async fn external_strict_blocks_ingestion_on_error() {
 #[tokio::test]
 async fn external_preferred_allows_pass_through_when_clean() {
     let (_addr, shutdown, handle) = spawn_validator(false).await;
-    let bundle: Bundle = dfps_test_suite::regression::baseline_fhir_bundle();
+    let bundle: Bundle = refractive_swan_test_suite::regression::baseline_fhir_bundle();
     let report = tokio::task::spawn_blocking(move || {
         let validator = BlockingValidator::new(_addr.to_string());
         let ctx = ExternalValidationContext {
             validator: Some(&validator),
             profile_url: None,
         };
-        dfps_ingestion::validation::validate_bundle_with_external_profile(
+        refractive_swan_ingestion::validation::validate_bundle_with_external_profile(
             &bundle,
             ValidationMode::ExternalPreferred,
             ctx,

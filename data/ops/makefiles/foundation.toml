@@ -13,9 +13,9 @@ script_runner = "bash"
 script = [
     '''
 set -euo pipefail
-echo "Validating DFPS environment files..."
-ENV_DIR="${DFPS_ENV_DIR:-data/environment}"
-PROFILE="${DFPS_ENV:-dev}"
+echo "Validating refractive_swan environment files..."
+ENV_DIR="${refractive_swan_ENV_DIR:-data/environment}"
+PROFILE="${refractive_swan_ENV:-dev}"
 
 missing_count=0
 for namespace in app.web.api app.web.frontend app.cli; do
@@ -44,7 +44,7 @@ args = [
     "-NoLogo",
     "-NoProfile",
     "-Command",
-    "$ENV_DIR = if ($env:DFPS_ENV_DIR) { $env:DFPS_ENV_DIR } else { 'data/environment' }; $PROFILE_NAME = if ($env:DFPS_ENV) { $env:DFPS_ENV } else { 'dev' }; Write-Host 'Validating DFPS environment files...'; $missingCount = 0; @('app.web.api', 'app.web.frontend', 'app.cli') | ForEach-Object { $file = \"$ENV_DIR/.env.$_.$PROFILE_NAME\"; if (-not (Test-Path $file)) { Write-Host \"  ❌ Missing: $file\" -ForegroundColor Red; $script:missingCount++ } else { Write-Host \"  ✓ Found: $file\" -ForegroundColor Green } }; if ($missingCount -gt 0) { Write-Host ''; Write-Host \"Missing $missingCount env file(s). See docs/runbook/010-foundation/env-quickstart.md\" -ForegroundColor Yellow; exit 1 }; Write-Host '✅ All required env files present' -ForegroundColor Green"
+    "$ENV_DIR = if ($env:refractive_swan_ENV_DIR) { $env:refractive_swan_ENV_DIR } else { 'data/environment' }; $PROFILE_NAME = if ($env:refractive_swan_ENV) { $env:refractive_swan_ENV } else { 'dev' }; Write-Host 'Validating refractive_swan environment files...'; $missingCount = 0; @('app.web.api', 'app.web.frontend', 'app.cli') | ForEach-Object { $file = \"$ENV_DIR/.env.$_.$PROFILE_NAME\"; if (-not (Test-Path $file)) { Write-Host \"  ❌ Missing: $file\" -ForegroundColor Red; $script:missingCount++ } else { Write-Host \"  ✓ Found: $file\" -ForegroundColor Green } }; if ($missingCount -gt 0) { Write-Host ''; Write-Host \"Missing $missingCount env file(s). See docs/runbook/010-foundation/env-quickstart.md\" -ForegroundColor Yellow; exit 1 }; Write-Host '✅ All required env files present' -ForegroundColor Green"
 ]
 
 
@@ -60,10 +60,10 @@ script_runner = "bash"
 script = [
     '''
 set -euo pipefail
-echo "DFPS Environment Setup Wizard"
+echo "refractive_swan Environment Setup Wizard"
 echo "============================="
-ENV_DIR="${DFPS_ENV_DIR:-data/environment}"
-PROFILE="${DFPS_ENV:-dev}"
+ENV_DIR="${refractive_swan_ENV_DIR:-data/environment}"
+PROFILE="${refractive_swan_ENV:-dev}"
 
 if [ ! -d "$ENV_DIR" ]; then
   echo "Creating $ENV_DIR..."
@@ -99,10 +99,10 @@ echo "Edit files in $ENV_DIR as needed"
 script_runner = "powershell"
 script_extension = "ps1"
 script = '''
-Write-Host "DFPS Environment Setup Wizard" -ForegroundColor Cyan
+Write-Host "refractive_swan Environment Setup Wizard" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
-$ENV_DIR = if ($env:DFPS_ENV_DIR) { $env:DFPS_ENV_DIR } else { "data/environment" }
-$PROFILE = if ($env:DFPS_ENV) { $env:DFPS_ENV } else { "dev" }
+$ENV_DIR = if ($env:refractive_swan_ENV_DIR) { $env:refractive_swan_ENV_DIR } else { "data/environment" }
+$PROFILE = if ($env:refractive_swan_ENV) { $env:refractive_swan_ENV } else { "dev" }
 
 if (-not (Test-Path $ENV_DIR)) {
     Write-Host "Creating $ENV_DIR..."
@@ -174,9 +174,9 @@ script_runner = "bash"
 script = [
     '''
 set -euo pipefail
-ENV_DIR="${DFPS_ENV_DIR:-data/environment}"
+ENV_DIR="${refractive_swan_ENV_DIR:-data/environment}"
 NAMESPACE="${NAMESPACE}"
-PROFILE="${DFPS_ENV:-dev}"
+PROFILE="${refractive_swan_ENV:-dev}"
 
 template_file="${ENV_DIR}/.env.${NAMESPACE}.example"
 echo "Creating template: $template_file"
@@ -187,7 +187,7 @@ cat > "$template_file" <<EOF
 
 # Common settings
 RUST_LOG=${NAMESPACE}=info
-DFPS_ENV=${PROFILE}
+refractive_swan_ENV=${PROFILE}
 
 # Add namespace-specific variables below:
 # EXAMPLE_VAR=value
@@ -202,9 +202,9 @@ echo "Now copy to .env.${NAMESPACE}.${PROFILE} and customize"
 script_runner = "powershell"
 script_extension = "ps1"
 script = '''
-$ENV_DIR = if ($env:DFPS_ENV_DIR) { $env:DFPS_ENV_DIR } else { "data/environment" }
+$ENV_DIR = if ($env:refractive_swan_ENV_DIR) { $env:refractive_swan_ENV_DIR } else { "data/environment" }
 $NAMESPACE = $env:NAMESPACE
-$PROFILE = if ($env:DFPS_ENV) { $env:DFPS_ENV } else { "dev" }
+$PROFILE = if ($env:refractive_swan_ENV) { $env:refractive_swan_ENV } else { "dev" }
 
 $templateFile = "$ENV_DIR/.env.$NAMESPACE.example"
 Write-Host "Creating template: $templateFile"
@@ -215,7 +215,7 @@ $content = @"
 
 # Common settings
 RUST_LOG=$NAMESPACE=info
-DFPS_ENV=$PROFILE
+refractive_swan_ENV=$PROFILE
 
 # Add namespace-specific variables below:
 # EXAMPLE_VAR=value

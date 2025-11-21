@@ -1,8 +1,8 @@
 //! Mapping integration tests covering lexical/rule paths (REFR-06).
 
-use dfps_core::mapping::MappingState;
-use dfps_mapping::map_staging_codes;
-use dfps_test_suite::fixtures;
+use refractive_swan_core::mapping::MappingState;
+use refractive_swan_mapping::map_staging_codes;
+use refractive_swan_test_suite::fixtures;
 
 #[test]
 fn cpt_code_maps_to_ncit() {

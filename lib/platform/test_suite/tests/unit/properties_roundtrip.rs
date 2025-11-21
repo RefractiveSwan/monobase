@@ -1,7 +1,7 @@
 //! REFR-14 – Fixture round-trip properties for service request scenarios.
-//! Ensures `dfps_test_suite::fixtures` stay deterministic and serialization-safe.
+//! Ensures `refractive_swan_test_suite::fixtures` stay deterministic and serialization-safe.
 
-use dfps_test_suite::{assertions, fixtures};
+use refractive_swan_test_suite::{assertions, fixtures};
 use proptest::prelude::*;
 
 proptest! {

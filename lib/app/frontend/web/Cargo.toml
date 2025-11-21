@@ -1,5 +1,5 @@
 [package]
-name = "dfps_web_frontend"
+name = "refractive_swan_web_frontend"
 version.workspace = true
 edition.workspace = true
 
@@ -7,7 +7,7 @@ edition.workspace = true
 path = "src/lib.rs"
 
 [[bin]]
-name = "dfps_web_frontend"
+name = "refractive_swan_web_frontend"
 path = "src/main.rs"
 
 [dependencies]
@@ -15,12 +15,12 @@ actix-files.workspace = true
 actix-multipart.workspace = true
 actix-web.workspace = true
 bytes.workspace = true
-dfps_core = { path = "../../../domain/core" }
-dfps_eval = { path = "../../../domain/meta/evaluation" }
-dfps_contracts = { path = "../../../domain/meta/contracts" }
-dfps_web_dto = { path = "../../../dto/web" }
-dfps_observability = { path = "../../../platform/meta/observability" }
-dfps_configuration = { path = "../../../platform/meta/configuration" }
+refractive_swan_core = { path = "../../../domain/core" }
+refractive_swan_eval = { path = "../../../domain/meta/evaluation" }
+refractive_swan_contracts = { path = "../../../domain/meta/contracts" }
+refractive_swan_web_dto = { path = "../../../dto/web" }
+refractive_swan_observability = { path = "../../../platform/meta/observability" }
+refractive_swan_configuration = { path = "../../../platform/meta/configuration" }
 futures-util.workspace = true
 maud.workspace = true
 reqwest.workspace = true

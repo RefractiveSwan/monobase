@@ -1,10 +1,10 @@
-# Crate: lib/app/frontend/cli — `dfps_cli`
+# Crate: lib/app/frontend/cli — `refractive_swan_cli`
 
 **Purpose**  
 Small CLIs for local ingestion + mapping workflows.
 
 **Env & logging**
-- Loads `app.cli` via `dfps_configuration`.
+- Loads `app.cli` via `refractive_swan_configuration`.
 - `env_logger` with `--log-level` on `map_bundles`.
 
 **Bins**
@@ -16,11 +16,11 @@ Small CLIs for local ingestion + mapping workflows.
     - `{"kind":"mapping_result", ...}`
     - `{"kind":"dim_concept", ...}` (deduped by `ncit_id`)
     - `{"kind":"metrics_summary", ...}` (final)
-  - Logs pipeline summaries and `NoMatch` reasons via `dfps_observability`.
+  - Logs pipeline summaries and `NoMatch` reasons via `refractive_swan_observability`.
   - Example:
     ```bash
     cd code
-    cargo run -p dfps_cli --bin map_bundles -- ./bundle.ndjson
+    cargo run -p refractive_swan_cli --bin map_bundles -- ./bundle.ndjson
     ```
 - **`map_codes`** — map `StgSrCodeExploded` rows.
   - Flags: `--explain` (emit candidate explanations), `--explain-top N` (default 5).
@@ -29,5 +29,5 @@ Small CLIs for local ingestion + mapping workflows.
   - Example:
     ```bash
     cd code
-    cargo run -p dfps_cli --bin map_codes -- --explain --explain-top 5 ./codes.ndjson
+    cargo run -p refractive_swan_cli --bin map_codes -- --explain --explain-top 5 ./codes.ndjson
     ```

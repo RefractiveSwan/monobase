@@ -14,7 +14,7 @@
 
 ## TODO
 
-### Frontend – Web UI (`dfps_web_frontend` or external app)
+### Frontend – Web UI (`refractive_swan_web_frontend` or external app)
 _Working branch: `feature/app/web/frontend-mvp`_
 
 #### WEB-FE-04 – UX polish & copy
@@ -46,12 +46,12 @@ _Working branch: `feature/app/web/frontend-mvp`_
 
 ## INPROGRESS
 
-### Backend – HTTP API gateway (`dfps_api`)
+### Backend – HTTP API gateway (`refractive_swan_api`)
 _Working branch: `feature/app/servers-mvp`_
 
 ---
 
-### Frontend – Web UI (`dfps_web_frontend`)
+### Frontend – Web UI (`refractive_swan_web_frontend`)
 _Working branch: `feature/app/web/frontend-mvp`_
 
 #### WEB-FE-01 – Frontend project scaffold
@@ -84,7 +84,7 @@ _Working branch: `feature/app/web/frontend-mvp`_
 
 ## REVIEW
 
-### Backend – HTTP API gateway (`dfps_api`)
+### Backend – HTTP API gateway (`refractive_swan_api`)
 _Working branch: `feature/app/servers-mvp`_
 
 #### WEB-BE-01 – Scaffold web backend crate
@@ -93,7 +93,7 @@ _Working branch: `feature/app/servers-mvp`_
 - [x] Expose a `run()` function that `main()` delegates to so tests can drive the server in-process.
 
 #### WEB-BE-02 – Core FHIR -> NCIt HTTP API
-- [x] Add dependencies on `dfps_pipeline` and `dfps_observability`.
+- [x] Add dependencies on `refractive_swan_pipeline` and `refractive_swan_observability`.
 - [x] Implement `POST /api/map-bundles`:
   - [x] Accept a single FHIR `Bundle` or an array/NDJSON of Bundles.
   - [x] For each bundle, call `bundle_to_mapped_sr`.
@@ -111,7 +111,7 @@ _Working branch: `feature/app/servers-mvp`_
 - [x] Ensure structured logs include a request ID / correlation ID for each call.
 
 #### WEB-BE-04 – Tests & CI for backend
-- [x] Add integration tests (in `dfps_api` or `dfps_test_suite`) that:
+- [x] Add integration tests (in `refractive_swan_api` or `refractive_swan_test_suite`) that:
   - [x] Spin up the server in-process (no external port binding).
   - [x] `POST /api/map-bundles` with the baseline FHIR bundle fixture and assert NCIt IDs and mapping states.
   - [x] `POST /api/map-bundles` with an “unknown code” bundle and assert `NoMatch` handling + proper HTTP status.
@@ -135,7 +135,7 @@ _Working branch: `feature/app/servers-mvp`_
 # Next steps
 
 - Customize bundles to reproduce `NeedsReview` or `NoMatch` scenarios and verify how the UI reflects them.
-- Tail `dfps_api` logs while submitting bundles to correlate request IDs between backend and frontend (HTMX surfaces alert banners with request context).
-- Hook the frontend into future CI by running `cargo test -p dfps_web_frontend` plus optional `cargo fmt --check`.
+- Tail `refractive_swan_api` logs while submitting bundles to correlate request IDs between backend and frontend (HTMX surfaces alert banners with request context).
+- Hook the frontend into future CI by running `cargo test -p refractive_swan_web_frontend` plus optional `cargo fmt --check`.
 
 Once comfortable with this workflow, you can iterate on new UX panels or backend endpoints knowing the full loop from FHIR bundle to NCIt mapping.

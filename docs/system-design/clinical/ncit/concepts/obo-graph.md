@@ -28,12 +28,12 @@ Lightweight OBO graph ingestion and reasoning utilities that expose NCIt (and a 
 
 ## Fixtures & tests
 - Fixtures: `data/obo/ncit-mini.obo`, `data/obo/mondo-mini.obo` (PET/CT lineage + MONDO cross-xref).
-- Tests (`dfps_terminology::obo_graph`):
+- Tests (`refractive_swan_terminology::obo_graph`):
   - Parse fixtures, verify ancestor/descendant relationships (PET-CT → PET, CT).
   - Synonym expansion (label + PET/CT variants) and hop-bounded related concept queries.
   - Runtime loader integration (mini `.obo` fixtures) + cache eviction behavior via synthetic large graphs.
   - Xref-driven synonym discovery via MONDO slice.
-- Version surfacing: graph versions are exposed via `GraphContext::version` and `dfps_terminology::obo::graph_versions()` for cache invalidation and metrics tags.
+- Version surfacing: graph versions are exposed via `GraphContext::version` and `refractive_swan_terminology::obo::graph_versions()` for cache invalidation and metrics tags.
 
 ## Cross-links
 - Terminology layer with graph context: `../../fhir/concepts/terminology-layer.md`

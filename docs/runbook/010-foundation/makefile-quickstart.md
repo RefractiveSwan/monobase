@@ -1,4 +1,4 @@
-# Makefile Quickstart - DFPS
+# Makefile Quickstart - refractive_swan
 
 This quickstart lists the most useful `cargo make` commands organized by workflow area and complexity level.
 
@@ -88,8 +88,8 @@ cargo make fhir-test          # Run all FHIR validation tests
 cargo make fhir-profile-update  # Test after editing profiles
 
 # 🔴 External validator
-DFPS_FHIR_VALIDATOR_BASE_URL=http://validator:8080 \
-DFPS_FHIR_VALIDATOR_PROFILE=http://example.com/profile \
+refractive_swan_FHIR_VALIDATOR_BASE_URL=http://validator:8080 \
+refractive_swan_FHIR_VALIDATOR_PROFILE=http://example.com/profile \
 INPUT=bundle.json cargo make fhir-validate-external
 ```
 
@@ -159,7 +159,7 @@ INPUT=staging_codes.ndjson cargo make map-codes
 
 ## Notes
 
-- **Active profile**: Defaults to `dev`. Override with `DFPS_ENV=test cargo make <task>`
+- **Active profile**: Defaults to `dev`. Override with `refractive_swan_ENV=test cargo make <task>`
 - **Prerequisites**:
   - Install `cargo-make`: `cargo install cargo-make`
   - Install `mdbook`: `cargo install mdbook` (for docs tasks)

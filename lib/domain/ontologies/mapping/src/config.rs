@@ -1,5 +1,5 @@
-use dfps_compliance::{ComplianceMode, Policy};
-use dfps_core::mapping::{MappingSourceVersion, MappingThresholds};
+use refractive_swan_compliance::{ComplianceMode, Policy};
+use refractive_swan_core::mapping::{MappingSourceVersion, MappingThresholds};
 
 use crate::data::{NCIT_DATA_VERSION, UMLS_DATA_VERSION};
 
