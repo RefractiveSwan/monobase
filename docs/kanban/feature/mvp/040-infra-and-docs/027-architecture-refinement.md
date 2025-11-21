@@ -109,10 +109,9 @@ lib/
 - [x] Record the target tree inside `docs/kanban/feature/mvp/040-infra-and-docs/025-mesh-data-plane.md` so both kanbans align.
 
 ### Phase 1 – Domain ports consolidation
-- [ ] Create `lib/domain/ports/` and move `dfps_vector_port` there (pure rename; no code change besides path updates).
-- [ ] Extract `TerminologyClient`, `ExternalValidator`, and `DatamartSinkPort` traits into sibling crates/modules under `domain/ports`.
-- [ ] Update feature crates to depend on these ports via the new path.
-- [ ] Introduce re-export shims (e.g., `pub mod ports { pub use dfps_domain_ports::data::data_store::vector::*; }`) so downstream crates compile while migrations occur.
+- [x] Create `lib/domain/ports/` and move `dfps_vector_port` there (pure rename; no code change besides path updates).
+- [x] Extract `TerminologyClient`, `ExternalValidator`, and `DatamartSinkPort` traits into sibling crates/modules under `domain/ports`.
+- [x] Update feature crates to depend on these ports via the new path.
 
 ### Phase 2 – Domain layout alignment
 - [ ] Move `dfps_ingestion` and `dfps_eval` under `domain/meta/{ingestion,evaluation}` to reflect the plan.
