@@ -1,3 +1,6 @@
+//! Terminology lookup port shared across domain crates.
+//! Implementations live in `dfps_terminology` and platform adapters.
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -21,7 +24,6 @@ pub struct NcitRecord {
     pub synonyms: Vec<String>,
 }
 
-/// Errors that can occur during terminology lookups.
 #[derive(Debug, Error, Clone)]
 pub enum TerminologyClientError {
     #[error("terminology lookup forbidden")]
@@ -38,7 +40,25 @@ pub enum TerminologyClientError {
 
 pub type TerminologyResult<T> = Result<T, TerminologyClientError>;
 
-/// Abstraction for UMLS/NCIt external services.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TerminologyClientConfig {
+    pub base_url: Option<String>,
+    pub api_key: Option<String>,
+    pub timeout_secs: Option<u64>,
+    pub mode: TerminologyMode,
+}
+
+impl Default for TerminologyClientConfig {
+    fn default() -> Self {
+        Self {
+            base_url: None,
+            api_key: None,
+            timeout_secs: None,
+            mode: TerminologyMode::MockOnly,
+        }
+    }
+}
+
 pub trait TerminologyClient: Send + Sync {
     fn lookup_cui(&self, system: &str, code: &str) -> TerminologyResult<Option<CuiRecord>>;
 

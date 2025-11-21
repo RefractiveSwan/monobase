@@ -16,9 +16,10 @@ pub mod valueset;
 pub use bridge::{CodeKind, EnrichedCode, canonicalize_system, canonicalize_system_url};
 #[cfg(feature = "http-client")]
 pub use client::HttpTerminologyClient;
-pub use client::{
-    CompositeTerminologyClient, CuiRecord, MockTerminologyClient, NcitRecord, TerminologyClient,
-    TerminologyClientConfig, TerminologyClientError, TerminologyMode, TerminologyResult,
+pub use client::{CompositeTerminologyClient, MockTerminologyClient};
+pub use dfps_terminology_port::{
+    CuiRecord, NcitRecord, TerminologyClient, TerminologyClientConfig, TerminologyClientError,
+    TerminologyMode, TerminologyResult,
 };
 pub use codesystem::{CodeSystemMeta, LicenseTier, SourceKind};
 #[cfg(feature = "obo-graph")]

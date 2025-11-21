@@ -1,4 +1,4 @@
-use super::types::{
+use dfps_terminology_port::{
     CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError, TerminologyResult,
 };
 use std::collections::HashMap;

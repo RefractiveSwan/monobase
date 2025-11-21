@@ -1,6 +1,6 @@
-use super::config::TerminologyClientConfig;
-use super::types::{
-    CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError, TerminologyResult,
+use dfps_terminology_port::{
+    CuiRecord, NcitRecord, TerminologyClient, TerminologyClientConfig, TerminologyClientError,
+    TerminologyResult,
 };
 use reqwest::Url;
 use reqwest::blocking::{Client as HttpClient, ClientBuilder as HttpClientBuilder};

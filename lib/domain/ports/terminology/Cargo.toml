@@ -1,0 +1,8 @@
+[package]
+name = "dfps_terminology_port"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true

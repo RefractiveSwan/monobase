@@ -1,5 +1,5 @@
 use super::mock::MockTerminologyClient;
-use super::types::{CuiRecord, NcitRecord, TerminologyClient, TerminologyResult};
+use dfps_terminology_port::{CuiRecord, NcitRecord, TerminologyClient, TerminologyResult};
 
 /// Composite client that prefers local/mock data and falls back to a remote client when present.
 pub struct CompositeTerminologyClient {
@@ -58,7 +58,7 @@ impl TerminologyClient for CompositeTerminologyClient {
 #[cfg(test)]
 mod tests {
     use super::super::mock::MockTerminologyClient;
-    use super::super::types::{CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError};
+    use dfps_terminology_port::{CuiRecord, NcitRecord, TerminologyClient, TerminologyClientError};
     use super::*;
 
     #[test]
