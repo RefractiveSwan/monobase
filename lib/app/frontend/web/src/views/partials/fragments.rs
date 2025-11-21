@@ -1,8 +1,8 @@
 use maud::{Markup, html};
 use refractive_swan_contracts::PipelineMetrics;
 
-use crate::view_model::{AlertMessage, PageContext};
 use crate::views::components::{card::*, typography::*};
+use crate::views::models::{AlertMessage, PageContext};
 
 use super::results::render_results_panel;
 

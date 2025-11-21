@@ -1,11 +1,11 @@
 use actix_web::{HttpResponse, Result, web};
 
+use crate::views::layout::ViewChrome;
 use crate::{
-    client::BackendClient,
     handlers::eval::render_eval_report_fragment,
     state::AppState,
-    view_model::{DEFAULT_EVAL_DATASET, HealthOverview, PageContext},
     views,
+    views::models::{DEFAULT_EVAL_DATASET, HealthOverview, PageContext},
 };
 
 /// Register landing page and workbench routes.
@@ -15,25 +15,25 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 }
 
 /// Landing page handler.
-pub async fn landing_page() -> Result<HttpResponse> {
+pub async fn landing_page(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let chrome = ViewChrome::from(&state.config);
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
-        .body(views::render_landing_page()))
+        .body(views::render_landing_page(&chrome)))
 }
 
 /// Workbench page handler.
 pub async fn workbench(state: web::Data<AppState>) -> Result<HttpResponse> {
-    let ctx = build_base_context(&state.client, state.dataset_store.as_ref()).await;
+    let ctx = build_base_context(&state).await;
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(views::render_workbench_page(&ctx)))
 }
 
 /// Shared context builder reused across feature handlers so everything pulls from the same backend calls.
-pub(crate) async fn build_base_context(
-    client: &BackendClient,
-    store: &(dyn refractive_swan_eval::DatasetStore + Send + Sync),
-) -> PageContext {
+pub(crate) async fn build_base_context(state: &AppState) -> PageContext {
+    let client = &state.client;
+    let store = state.dataset_store.as_ref();
     let datasets = client.eval_datasets().await.unwrap_or_default();
     let selected_dataset = datasets
         .first()
@@ -77,6 +77,7 @@ pub(crate) async fn build_base_context(
         eval_report_html,
         eval_panel_error,
         selected_eval_dataset: selected_dataset,
+        chrome: ViewChrome::from(&state.config),
         ..PageContext::default()
     }
 }

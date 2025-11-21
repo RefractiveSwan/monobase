@@ -1,11 +1,12 @@
 use actix_web::{HttpResponse, Result, web};
 use serde::Deserialize;
 
+use crate::views::layout::ViewChrome;
 use crate::{
     client::BackendClient,
     state::AppState,
-    view_model::{DEFAULT_EVAL_DATASET, EvalContext, PageContext},
     views,
+    views::models::{DEFAULT_EVAL_DATASET, EvalContext, PageContext},
 };
 use refractive_swan_eval::report;
 
@@ -33,6 +34,7 @@ pub async fn eval_page(state: web::Data<AppState>) -> Result<HttpResponse> {
         datasets,
         selected_eval_dataset: selected,
         eval,
+        chrome: ViewChrome::from(&state.config),
         ..PageContext::default()
     };
     Ok(HttpResponse::Ok()

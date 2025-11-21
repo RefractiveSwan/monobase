@@ -7,6 +7,7 @@ pub struct AppConfig {
     pub backend_base_url: String,
     pub client_timeout: Duration,
     pub docs_url: Option<String>,
+    pub github_url: Option<String>,
 }
 
 impl AppConfig {
@@ -29,12 +30,17 @@ impl AppConfig {
             .map_err(ConfigError::Env)?
             .map(|value| value.trim().to_string())
             .filter(|value| !value.is_empty());
+        let github_url = config::string_var("refractive_swan_GITHUB_URL")
+            .map_err(ConfigError::Env)?
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
 
         Ok(Self {
             listen_addr,
             backend_base_url,
             client_timeout: Duration::from_secs(timeout_secs),
             docs_url,
+            github_url,
         })
     }
 }

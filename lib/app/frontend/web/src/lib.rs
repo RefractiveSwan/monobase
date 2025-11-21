@@ -1,10 +1,8 @@
 pub mod client;
-pub mod components;
 pub mod config;
 pub mod handlers;
 pub mod routes;
 pub mod state;
-pub mod view_model;
 pub mod views;
 
 use actix_web::{App, HttpServer, web};

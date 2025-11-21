@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 ## [Unreleased]
 
 ### Added
+- FE-028 – “028-01 – UI architecture & style system” (documented `views/**` layout, centralized Tailwind theme tokens, wired config-driven navbar/footer links, and added the `/ui/components` preview route plus page shell/breadcrumb/callout support).
 - REFR-027 – `refractive_swan_datamart` and `refractive_swan_vector_store` now live under `lib/platform/data/{data-plane,mart,data-stores/vector_store}`, and the new `refractive_swan_mesh_node` crate publishes the shared `NodeDataPlane` so mesh/runtime work can reuse it outside `refractive_swan_api`.
 - REFR-027 – Mesh DTO veneer (`refractive_swan_mesh_dto`) re-exports mesh node/hub contracts and updates the architecture/kanban docs so DTO surfaces (web, CLI, mesh) have dedicated crates under `lib/dto`.
 - FHIR-CONF-015 – External validator model and client (`refractive_swan_ingestion::validation::external` adds OperationOutcome/ExternalValidationReport, `validate_bundle_external`, and env template for external FHIR validation).

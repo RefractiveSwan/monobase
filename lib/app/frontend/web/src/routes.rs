@@ -16,4 +16,5 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
     handlers::analytics::configure(cfg);
     handlers::mapping::configure(cfg);
     handlers::eval::configure(cfg);
+    handlers::ui::configure(cfg);
 }

@@ -1,4 +1,4 @@
-use crate::view_model::{AlertKind, AlertMessage};
+use crate::views::models::{AlertKind, AlertMessage};
 use maud::{Markup, html};
 
 pub fn status_badge(status: &str) -> Markup {

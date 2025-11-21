@@ -1,14 +1,26 @@
 use maud::{Markup, html};
 
 use crate::views::components::{badge::*, card::*, input::*, layout::*, table::*, typography::*};
-use crate::views::layout::base_layout;
-use crate::views::models::{AlertKind, AlertMessage, CohortView, PageContext};
+use crate::views::layout::{Breadcrumb, PageCallout, PageShellProps, page_shell};
+use crate::views::models::{self, AlertKind, AlertMessage, CohortView, PageContext};
 
 pub fn render_analytics_page(ctx: &PageContext) -> String {
-    base_layout(page_container(html! {
-        (section_heading("Analytics Dashboard"))
-        (render_analytics_panels(ctx))
-    }))
+    page_shell(PageShellProps {
+        title: "Analytics & Observability",
+        chrome: &ctx.chrome,
+        content: html! {
+            (section_heading("Analytics Dashboard"))
+            (render_analytics_panels(ctx))
+        },
+        breadcrumbs: vec![
+            Breadcrumb::home(),
+            Breadcrumb::new("Analytics", Some("/analytics")),
+        ],
+        callouts: vec![PageCallout::info(
+            "Observability mode",
+            "Analytics and cohort panels read from `/analytics/*` endpoints and the observability metrics cache."
+        )],
+    })
     .into_string()
 }
 
@@ -82,7 +94,7 @@ pub(crate) fn render_analytics_panels(ctx: &PageContext) -> Markup {
     }
 }
 
-fn render_top_concepts(concepts: &[crate::view_model::AnalyticsConceptTile]) -> Markup {
+fn render_top_concepts(concepts: &[models::AnalyticsConceptTile]) -> Markup {
     html! {
         div class="space-y-3" {
             (subsection_heading("Top Concepts"))
@@ -104,7 +116,7 @@ fn render_top_concepts(concepts: &[crate::view_model::AnalyticsConceptTile]) -> 
     }
 }
 
-fn render_state_distribution(states: &[crate::view_model::CountStat]) -> Markup {
+fn render_state_distribution(states: &[models::CountStat]) -> Markup {
     html! {
         div class="space-y-3" {
             (subsection_heading("State Distribution"))
@@ -123,7 +135,7 @@ fn render_state_distribution(states: &[crate::view_model::CountStat]) -> Markup 
     }
 }
 
-fn render_time_buckets(buckets: &[crate::view_model::AnalyticsTimeBucket]) -> Markup {
+fn render_time_buckets(buckets: &[models::AnalyticsTimeBucket]) -> Markup {
     html! {
         div class="space-y-3" {
             (subsection_heading("Time Buckets"))

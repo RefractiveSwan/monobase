@@ -37,6 +37,8 @@ If you want `/docs` in the frontend to redirect to an mdBook instance:
 2. Run it in another terminal: `cargo make docs-serve` (defaults to `http://127.0.0.1:3000`)
 3. Export `refractive_swan_DOCS_URL=http://127.0.0.1:3000` before running the frontend so `/docs` redirects there.
 
+Need different GitHub link in the navbar/footer? Set `refractive_swan_GITHUB_URL=<https://github.com/yourfork/project>` before launching the frontend.
+
 ## 4. Start the backend API
 
 In terminal **A**:
@@ -71,8 +73,9 @@ cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 
 Key files:
 
-- `src/routes.rs`: handles `/` (page render), `/map/paste`, `/map/upload`.
-- `src/views.rs`: Maud templates for hero section, metrics dashboard, mapping results, and NoMatch explorer.
+- `src/routes.rs`: handles `/`, `/map/*`, `/analytics`, `/eval/*`, `/docs`, and `/ui/components`.
+- `src/views/README.md`: documents the `views/{components,layout,pages,partials,styles}` split plus the new shell/theme helpers.
+- `src/views/layout/shell.rs`: shared navbar/footer/breadcrumb/callout renderer.
 - `src/client.rs`: reqwest wrapper that speaks to the backend API.
 
 When the server starts it logs `Listening on 127.0.0.1:8090`. Open `http://127.0.0.1:8090` to reach the UI.
@@ -138,6 +141,7 @@ Checklist:
    - Hero badges show backend health and metrics.
    - “MappingResult rows” table lists the NCIt concept, state badge, and `MappingResult.reason` (if any).
    - The NoMatch explorer populates when the backend emits `MappingState::NoMatch`.
+   - Visit `/ui/components` for a Storybook-like gallery of the shared cards/buttons/badges.
 
 If the backend is offline, the hero displays a red “Backend warning” card with troubleshooting hints.
 

@@ -1,8 +1,8 @@
 use maud::{Markup, html};
 use refractive_swan_contracts::pipeline::MappingState;
 
-use crate::view_model::{MappingResultsView, ServiceRequestSummary};
 use crate::views::components::{badge::*, card::*, table::*};
+use crate::views::models::{MappingResultsView, ServiceRequestSummary};
 
 pub(crate) fn render_results_panel(results: &MappingResultsView) -> Markup {
     html! {
@@ -37,7 +37,7 @@ fn render_summary_total_card(total: usize) -> Markup {
 
 fn render_summary_stat_card(
     title: &str,
-    stats: &[crate::view_model::CountStat],
+    stats: &[crate::views::models::CountStat],
     empty_msg: &str,
 ) -> Markup {
     html! {
@@ -59,7 +59,7 @@ fn render_summary_stat_card(
     }
 }
 
-fn render_results_table(rows: &[crate::view_model::MappingRowView]) -> Markup {
+fn render_results_table(rows: &[crate::views::models::MappingRowView]) -> Markup {
     html! {
         div class="overflow-x-auto" {
             table class="min-w-full divide-y divide-gray-200 text-sm" {
@@ -88,7 +88,7 @@ fn render_empty_results_row() -> Markup {
     }
 }
 
-fn render_mapping_row(row: &crate::view_model::MappingRowView) -> Markup {
+fn render_mapping_row(row: &crate::views::models::MappingRowView) -> Markup {
     table_row(html! {
         (render_service_request_cell(&row.sr_id, &row.system))
         (render_code_element_cell(&row.code, &row.display))

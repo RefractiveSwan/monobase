@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     handlers::home,
     state::AppState,
-    view_model::{AlertKind, AlertMessage, MappingResultsView, PageContext},
     views,
+    views::models::{AlertKind, AlertMessage, MappingResultsView, PageContext},
 };
 
 const MAX_UPLOAD_BYTES: usize = 512 * 1024; // Mirrors refractive_swan_cli bundle cap.
@@ -31,7 +31,7 @@ pub async fn map_from_paste(
     form: web::Form<BundleForm>,
 ) -> Result<HttpResponse> {
     let hx = is_htmx(&req);
-    let mut ctx = home::build_base_context(&state.client, state.dataset_store.as_ref()).await;
+    let mut ctx = home::build_base_context(&state).await;
     let trimmed = form.bundle_text.trim();
     if trimmed.is_empty() {
         ctx.alert = Some(AlertMessage {
@@ -60,7 +60,7 @@ pub async fn map_from_upload(
     mut payload: Multipart,
 ) -> Result<HttpResponse> {
     let hx = is_htmx(&req);
-    let mut ctx = home::build_base_context(&state.client, state.dataset_store.as_ref()).await;
+    let mut ctx = home::build_base_context(&state).await;
     match read_bundle_file(&mut payload).await {
         Ok(Some(text)) => match serde_json::from_str::<serde_json::Value>(&text) {
             Ok(value) => handle_mapping(value, state, ctx, hx).await,
@@ -290,6 +290,7 @@ mod tests {
             backend_base_url: backend.uri(),
             client_timeout: Duration::from_secs(5),
             docs_url: None,
+            github_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
         let dataset_store = Arc::new(refractive_swan_eval::FileDatasetStore::default());

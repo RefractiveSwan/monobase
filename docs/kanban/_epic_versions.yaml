@@ -26,6 +26,9 @@ epics:
   LIC-020:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0
+  FE-028:
+    introduced_in: v0.1.0
+    last_updated_in: v0.1.0
   REFR-022:
     introduced_in: v0.1.0
     last_updated_in: v0.1.0

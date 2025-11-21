@@ -1,14 +1,26 @@
 use maud::{Markup, html};
 use refractive_swan_contracts::eval::EvalSummary;
 
-use crate::view_model::{MappingResultsView, PageContext};
-use crate::views::components::{button::*, card::*, layout::*, table::*, typography::*};
-use crate::views::layout::base_layout;
+use crate::views::components::{button::*, card::*, table::*, typography::*};
+use crate::views::layout::{Breadcrumb, PageCallout, PageShellProps, page_shell};
+use crate::views::models::{MappingResultsView, PageContext};
 
 pub fn render_eval_page(ctx: &PageContext) -> String {
-    base_layout(page_container(html! {
-        (render_eval_section(ctx))
-    }))
+    page_shell(PageShellProps {
+        title: "Evaluation Control Center",
+        chrome: &ctx.chrome,
+        content: html! {
+            (render_eval_section(ctx))
+        },
+        breadcrumbs: vec![
+            Breadcrumb::home(),
+            Breadcrumb::new("Evaluation", Some("/eval")),
+        ],
+        callouts: vec![PageCallout::info(
+            "Dataset store",
+            "Dataset dropdown is backed by refractive_swan_eval::DatasetStore so UI + CLI stay in sync."
+        )],
+    })
     .into_string()
 }
 

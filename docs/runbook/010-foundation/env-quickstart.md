@@ -41,6 +41,7 @@ To bootstrap a new namespace, drop a `.env.<namespace>.example` file in `data/en
 | `refractive_swan_API_BASE_URL` | Frontend | URL that the frontend uses to reach the backend. |
 | `refractive_swan_API_CLIENT_TIMEOUT_SECS` | Frontend | Reqwest timeout (seconds). |
 | `refractive_swan_DOCS_URL` | Frontend | Optional URL that `/docs` should redirect to (e.g., `http://127.0.0.1:3000`). |
+| `refractive_swan_GITHUB_URL` | Frontend | Optional GitHub URL surfaced in the navbar/footer (`https://github.com/RefractiveSwan/monobase` by default). |
 
 Each namespace-specific `.env` file can also hold logging directives (`RUST_LOG`), telemetry endpoints, or other secrets that surfaces consume.
 
@@ -58,6 +59,7 @@ refractive_swan_FRONTEND_LISTEN_ADDR=127.0.0.1:8090
 refractive_swan_API_BASE_URL=http://127.0.0.1:8080
 refractive_swan_API_CLIENT_TIMEOUT_SECS=15
 refractive_swan_DOCS_URL=http://127.0.0.1:3000
+refractive_swan_GITHUB_URL=https://github.com/RefractiveSwan/monobase
 RUST_LOG=refractive_swan_web_frontend=info
 ```
 

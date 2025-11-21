@@ -4,10 +4,10 @@
 **Branch:** `feature/app/FE-028-expansion`  
 **Goal:** Turn the existing HTMX + Tailwind workbench into a richer client that surfaces more of the monorepo’s capabilities (analytics, dataset control, eval orchestration, observability) while keeping the view architecture clearly modularized.
 
-> Status: **TODO**  
+> Status: **INPROGRESS**  
 > Branch target version: `Unreleased`  
 > Introduced in: `v0.1.0`  
-> Last updated in: `Unreleased`
+> Last updated in: `v0.1.0`
 
 ---
 
@@ -30,11 +30,11 @@ The initial web workbench (REFR-027) reorganized `views/` but still exposes only
 
 ### 028-01 – UI architecture & style system
 
-- [ ] Document the new `views/{components,layout,pages,partials,styles}` structure (README + diagrams).  
-- [ ] Extract shared Tailwind tokens / academic theme into a `styles/theme.rs` helper so pages don’t inline script blocks.  
-- [ ] Introduce a small Storybook-like preview route (`GET /ui/components`) that renders the reusable cards/buttons/badges for visual QA.  
-- [ ] Promote navbar/footer + announcements into a `layout::shell` that supports breadcrumbs and per-page callouts.  
-- [ ] Wire GitHub/Docs links centrally (navbar + footer) and keep the URLs in config/env for customization.
+- [x] Document the new `views/{components,layout,pages,partials,styles}` structure (README + diagrams).  
+- [x] Extract shared Tailwind tokens / academic theme into a `styles/theme.rs` helper so pages don’t inline script blocks.  
+- [x] Introduce a small Storybook-like preview route (`GET /ui/components`) that renders the reusable cards/buttons/badges for visual QA.  
+- [x] Promote navbar/footer + announcements into a `layout::shell` that supports breadcrumbs and per-page callouts.  
+- [x] Wire GitHub/Docs links centrally (navbar + footer) and keep the URLs in config/env for customization.
 
 ### 028-02 – Mapping workflow improvements
 

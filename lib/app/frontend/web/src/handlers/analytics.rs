@@ -3,8 +3,8 @@ use actix_web::{HttpResponse, Result, web};
 use crate::{
     client::CohortFilters,
     state::AppState,
-    view_model::{AnalyticsSummaryView, CohortView},
     views,
+    views::models::{AnalyticsSummaryView, CohortView},
 };
 
 use super::home;
@@ -20,7 +20,7 @@ pub async fn analytics_dashboard(
     query: Option<web::Query<CohortFilters>>,
 ) -> Result<HttpResponse> {
     let mut filters = query.map(|q| q.into_inner()).unwrap_or_default();
-    let mut ctx = home::build_base_context(&state.client, state.dataset_store.as_ref()).await;
+    let mut ctx = home::build_base_context(&state).await;
     match state.client.analytics_summary().await {
         Ok(summary) => ctx.analytics_summary = Some(AnalyticsSummaryView::from_response(&summary)),
         Err(err) => {
@@ -130,6 +130,7 @@ mod tests {
             backend_base_url: backend.uri(),
             client_timeout: Duration::from_secs(5),
             docs_url: None,
+            github_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
         let dataset_store = Arc::new(refractive_swan_eval::FileDatasetStore::default());
@@ -188,6 +189,7 @@ mod tests {
             backend_base_url: backend.uri(),
             client_timeout: Duration::from_secs(5),
             docs_url: None,
+            github_url: None,
         };
         let client = BackendClient::from_config(&config).expect("client");
         let dataset_store = Arc::new(refractive_swan_eval::FileDatasetStore::default());

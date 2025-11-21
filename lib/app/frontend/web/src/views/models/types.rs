@@ -4,7 +4,7 @@ use refractive_swan_contracts::{
     pipeline::MappingState,
 };
 
-use crate::client::CohortFilters;
+use crate::{client::CohortFilters, views::layout::ViewChrome};
 
 /// Default the API cannot list available eval datasets.
 /// Keep this aligned with docs/runbook/mapping-eval-quickstart.md examples.
@@ -27,6 +27,7 @@ pub struct PageContext {
     pub cohort: Option<CohortView>,
     pub cohort_filters: CohortFilters,
     pub cohort_error: Option<String>,
+    pub chrome: ViewChrome,
 }
 
 impl Default for PageContext {
@@ -47,6 +48,16 @@ impl Default for PageContext {
             cohort: None,
             cohort_filters: CohortFilters::default(),
             cohort_error: None,
+            chrome: ViewChrome::default(),
+        }
+    }
+}
+
+impl PageContext {
+    pub fn with_chrome(chrome: ViewChrome) -> Self {
+        Self {
+            chrome,
+            ..Self::default()
         }
     }
 }

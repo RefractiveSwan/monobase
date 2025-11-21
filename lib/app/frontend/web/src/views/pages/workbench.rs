@@ -1,23 +1,35 @@
 use maud::{Markup, html};
 use refractive_swan_contracts::PipelineMetrics;
 
-use crate::view_model::{AlertKind, AlertMessage, PageContext};
 use crate::views::components::{badge::*, button::*, card::*, input::*, layout::*, typography::*};
-use crate::views::layout::base_layout;
+use crate::views::layout::{Breadcrumb, PageCallout, PageShellProps, page_shell};
+use crate::views::models::{AlertKind, AlertMessage, PageContext};
 use crate::views::pages::eval::render_no_match_explorer;
 use crate::views::partials::fragments::{render_eval_panel, render_metrics_dashboard};
 use crate::views::partials::results::render_results_panel;
 
 pub fn render_workbench_page(ctx: &PageContext) -> String {
-    base_layout(page_container(html! {
-        (render_workbench_hero(ctx))
-        (render_input_section())
-        (render_results_section(ctx))
-        @if let Some(metrics) = &ctx.metrics {
-            (render_metrics_dashboard(Some(metrics)))
-        }
-        (render_eval_panel(ctx))
-    }))
+    page_shell(PageShellProps {
+        title: "Mapping Workbench",
+        chrome: &ctx.chrome,
+        content: html! {
+            (render_workbench_hero(ctx))
+            (render_input_section())
+            (render_results_section(ctx))
+            @if let Some(metrics) = &ctx.metrics {
+                (render_metrics_dashboard(Some(metrics)))
+            }
+            (render_eval_panel(ctx))
+        },
+        breadcrumbs: vec![
+            Breadcrumb::home(),
+            Breadcrumb::new("Workbench", Some("/map")),
+        ],
+        callouts: vec![PageCallout::info(
+            "CLI parity",
+            "Paste/upload flows call the same `/api/map-bundles` endpoint that powers refractive_swan_cli."
+        )],
+    })
     .into_string()
 }
 
