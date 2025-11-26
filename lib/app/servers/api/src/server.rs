@@ -29,6 +29,7 @@ use refractive_swan_mesh_node::{NodeDataPlane, NodePlaneConfig};
 use refractive_swan_observability::{log_no_match, log_pipeline_output_with_summary};
 use refractive_swan_pipeline::{PipelineError, PipelineRunConfig};
 use refractive_swan_terminology::codesystem::LicenseTier;
+use refractive_swan_terminology::{list_code_systems, list_ontologies};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -209,6 +210,12 @@ pub fn router(state: ApiState) -> Router {
         .route("/api/datasets/refresh", post(refresh_datasets))
         .route("/api/datasets/upload", post(upload_dataset))
         .route("/api/datasets/:name", delete(delete_dataset))
+        .route("/admin/terminology/insights", get(terminology_insights))
+        .route("/admin/compliance/policy", get(compliance_policy))
+        .route("/admin/ingestion/summary", get(ingestion_summary))
+        .route("/admin/vector/status", get(vector_status))
+        .route("/admin/datamart/health", get(datamart_health))
+        .route("/admin/toggles", get(feature_toggles))
         .with_state(state)
 }
 
@@ -262,6 +269,49 @@ impl DatasetNodeRegistry {
     fn mark_refreshed(&mut self) {
         self.last_refresh_iso = Some(Utc::now().to_rfc3339());
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct TerminologyInsights {
+    total_systems: usize,
+    licensed: usize,
+    open: usize,
+    ontologies: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ComplianceView {
+    mode: String,
+    actions: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct IngestionSummary {
+    bundles: usize,
+    mapping_count: usize,
+    license_blocked: usize,
+    vector_queries: usize,
+    vector_hits: usize,
+    vector_fallbacks: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct VectorStatusView {
+    backend: String,
+    namespace: String,
+    enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct DatamartHealthView {
+    status: String,
+    detail: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct FeatureTogglesView {
+    vector_enabled: bool,
+    mesh_node_id: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -464,8 +514,8 @@ async fn upload_dataset(
 ) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
     info!(
-        target: "refractive_swan_api",
-        "request_id={request_id} dataset_upload name={} n_cases={}",
+        target: "refractive_swan_observability.dataset_admin",
+        "request_id={request_id} event=dataset_upload name={} n_cases={}",
         body.manifest.name, body.manifest.n_cases
     );
     let data = B64
@@ -531,8 +581,8 @@ async fn delete_dataset(
     registry.disable(&name);
     registry.mark_refreshed();
     info!(
-        target: "refractive_swan_api",
-        "request_id={request_id} dataset_delete name={}",
+        target: "refractive_swan_observability.dataset_admin",
+        "request_id={request_id} event=dataset_delete name={}",
         name
     );
     Ok(Json(json!({ "status": "ok", "disabled": name })).into_response())
@@ -550,6 +600,99 @@ fn run_eval_internal(
         return summary;
     }
     summary
+}
+
+async fn terminology_insights() -> Result<Response, ApiError> {
+    let systems = list_code_systems();
+    let licensed = systems
+        .iter()
+        .filter(|meta| matches!(meta.license_tier, LicenseTier::Licensed))
+        .count();
+    let open = systems
+        .iter()
+        .filter(|meta| matches!(meta.license_tier, LicenseTier::Open))
+        .count();
+    let insights = TerminologyInsights {
+        total_systems: systems.len(),
+        licensed,
+        open,
+        ontologies: list_ontologies().len(),
+    };
+    Ok(Json(insights).into_response())
+}
+
+async fn compliance_policy(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    let policy = state.plane.policy().clone();
+    let actions = refractive_swan_compliance::ComplianceAction::all()
+        .into_iter()
+        .filter(|action| policy.is_action_allowed(*action))
+        .map(|a| format!("{:?}", a))
+        .collect();
+    let view = ComplianceView {
+        mode: policy.mode.as_str().to_string(),
+        actions,
+    };
+    Ok(Json(view).into_response())
+}
+
+async fn ingestion_summary(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    let metrics = state.plane.metrics().lock().await.clone();
+    let view = IngestionSummary {
+        bundles: metrics.bundle_count,
+        mapping_count: metrics.mapping_count,
+        license_blocked: metrics.license_blocked,
+        vector_queries: metrics.vector_queries,
+        vector_hits: metrics.vector_hits,
+        vector_fallbacks: metrics.vector_fallbacks,
+    };
+    Ok(Json(view).into_response())
+}
+
+async fn vector_status(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    if let Some(ctx) = state.plane.vector_context() {
+        let cfg = ctx.config();
+        let view = VectorStatusView {
+            backend: format!("{:?}", cfg.backend),
+            namespace: cfg.namespace.clone(),
+            enabled: true,
+        };
+        Ok(Json(view).into_response())
+    } else {
+        Ok(Json(VectorStatusView {
+            backend: "mock".into(),
+            namespace: "n/a".into(),
+            enabled: false,
+        })
+        .into_response())
+    }
+}
+
+async fn datamart_health(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    let datamart = state.plane.datamart();
+    let status = match datamart.ncit_summary().await {
+        Ok(_) => DatamartHealthView {
+            status: "ok".into(),
+            detail: None,
+        },
+        Err(DatamartError::Disabled) => DatamartHealthView {
+            status: "disabled".into(),
+            detail: Some("Datamart disabled".into()),
+        },
+        Err(err) => DatamartHealthView {
+            status: "error".into(),
+            detail: Some(err.to_string()),
+        },
+    };
+    Ok(Json(status).into_response())
+}
+
+async fn feature_toggles(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    let vector_enabled = state.plane.vector_context().is_some();
+    let view = FeatureTogglesView {
+        vector_enabled,
+        mesh_node_id: state.plane.node_id().to_string(),
+    };
+    Ok(Json(view).into_response())
 }
 
 async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {

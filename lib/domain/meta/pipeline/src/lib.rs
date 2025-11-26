@@ -333,6 +333,10 @@ impl VectorPipelineContext {
         self.top_k = top_k.max(1);
         self
     }
+
+    pub fn config(&self) -> &VectorStoreConfig {
+        &self.config
+    }
 }
 
 impl std::fmt::Debug for VectorPipelineContext {
