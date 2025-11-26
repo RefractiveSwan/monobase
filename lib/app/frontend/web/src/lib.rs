@@ -3,7 +3,9 @@ pub mod config;
 pub mod handlers;
 pub mod routes;
 pub mod state;
-pub mod views;
+pub mod templates;
+pub mod vector;
+pub mod views; // keep last to avoid circular deps in re-exports
 
 use actix_web::{App, HttpServer, web};
 use client::BackendClient;

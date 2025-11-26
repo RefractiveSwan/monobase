@@ -1,14 +1,23 @@
+use chrono::{Duration, NaiveDate};
 use std::collections::{BTreeMap, HashMap};
 
 use super::types::{
-    AnalyticsConceptTile, AnalyticsSummaryView, AnalyticsTimeBucket, CohortRowView, CohortView,
-    CountStat,
+    AnalyticsConceptTile, AnalyticsSummaryFilter, AnalyticsSummaryView, AnalyticsTimeBucket,
+    CohortRowView, CohortView, CountStat,
 };
 use crate::client::{AnalyticsSummaryResponse, CohortResponse};
 
 impl AnalyticsSummaryView {
     pub fn from_response(resp: &AnalyticsSummaryResponse) -> Self {
-        let (state_tally, concept_tally, time_buckets) = aggregate_analytics_data(&resp.rows);
+        Self::from_response_with_filter(resp, &AnalyticsSummaryFilter::default())
+    }
+
+    pub fn from_response_with_filter(
+        resp: &AnalyticsSummaryResponse,
+        filter: &AnalyticsSummaryFilter,
+    ) -> Self {
+        let filtered_rows = filter_rows(&resp.rows, filter);
+        let (state_tally, concept_tally, time_buckets) = aggregate_analytics_data(&filtered_rows);
 
         let top_concepts = build_top_concepts(concept_tally);
         let state_counts = build_state_counts(state_tally);
@@ -20,6 +29,40 @@ impl AnalyticsSummaryView {
             time_buckets,
         }
     }
+}
+
+fn filter_rows(
+    rows: &[crate::client::AnalyticsSummaryRow],
+    filter: &AnalyticsSummaryFilter,
+) -> Vec<crate::client::AnalyticsSummaryRow> {
+    let mut filtered = rows.to_vec();
+    if let Some(state) = filter.state.as_ref().map(|value| value.to_lowercase()) {
+        filtered.retain(|row| {
+            row.mapping_state
+                .as_ref()
+                .map(|value| value.to_lowercase() == state)
+                .unwrap_or(false)
+        });
+    }
+    if let Some(days) = filter.range_days {
+        if let Some(max_date) = filtered
+            .iter()
+            .filter_map(|row| parse_bucket(row.time_bucket.as_deref()))
+            .max()
+        {
+            let threshold = max_date - Duration::days(days as i64 - 1);
+            filtered.retain(|row| {
+                parse_bucket(row.time_bucket.as_deref())
+                    .map(|date| date >= threshold)
+                    .unwrap_or(true)
+            });
+        }
+    }
+    filtered
+}
+
+fn parse_bucket(value: Option<&str>) -> Option<NaiveDate> {
+    value.and_then(|bucket| NaiveDate::parse_from_str(bucket, "%Y-%m-%d").ok())
 }
 
 fn aggregate_analytics_data(

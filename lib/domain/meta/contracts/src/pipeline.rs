@@ -7,4 +7,7 @@ pub use refractive_swan_core::{
     },
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
+pub use refractive_swan_ingestion::{
+    RequirementRef, ValidationIssue, ValidationReport, ValidationSeverity,
+};
 pub use refractive_swan_pipeline::PipelineOutput;

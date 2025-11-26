@@ -48,6 +48,7 @@ mod tests {
                 "preferred_name": "FDG Uptake",
                 "semantic_group": "Test"
             }],
+            "validation_reports": [],
             "vector_usage": null
         });
         let contract: MapBundlesResponse = serde_json::from_value(payload.clone()).unwrap();

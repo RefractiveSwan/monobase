@@ -73,10 +73,12 @@ cargo run -p refractive_swan_web_frontend --bin refractive_swan_web_frontend
 
 Key files:
 
-- `src/routes.rs`: handles `/`, `/map/*`, `/analytics`, `/eval/*`, `/docs`, and `/ui/components`.
+- `src/routes.rs`: handles `/`, `/map/*`, `/analytics`, `/observability`, `/eval/*`, `/docs`, `/ui/components`, plus helper endpoints for bundle templates (`/map/template`), cached history (`/map/history/{id}`), NDJSON downloads (`/map/download/latest`), analytics summary fragments (`/analytics/summary/fragment`), and log polling (`/logs/latest`).
 - `src/views/README.md`: documents the `views/{components,layout,pages,partials,styles}` split plus the new shell/theme helpers.
 - `src/views/layout/shell.rs`: shared navbar/footer/breadcrumb/callout renderer.
 - `src/client.rs`: reqwest wrapper that speaks to the backend API.
+- `/map/history/{id}` & `/map/download/latest` (wired via `handlers/mapping.rs`): HTMX endpoint backing the upload history panel and a download endpoint that serializes the latest run as NDJSON.
+- `/analytics/cohort/export`: CSV export for the current cohort filters (handled in `handlers/analytics.rs`).
 
 When the server starts it logs `Listening on 127.0.0.1:8090`. Open `http://127.0.0.1:8090` to reach the UI.
 
@@ -138,9 +140,13 @@ Checklist:
 2. Scroll to “Paste Bundle JSON”, paste the sample JSON (or upload the file).
 3. Submit. HTMX updates the results card without a full reload.
 4. Observe:
-   - Hero badges show backend health and metrics.
+   - Hero badges show backend health and metrics (including compliance banners).
    - “MappingResult rows” table lists the NCIt concept, state badge, and `MappingResult.reason` (if any).
-   - The NoMatch explorer populates when the backend emits `MappingState::NoMatch`.
+   - Toggle between sample templates (PET/CT, Oncology, Blank) to reuse curated Bundles from `lib/domain/meta/evaluation/data/regression`, then rerun without pasting manually.
+   - The NoMatch explorer now includes a remediation pane with CLI/doc tips, and the upload history panel can replay the last few runs via `/map/history/{id}`.
+   - Download the latest run as NDJSON with the button under the results card (served by `/map/download/latest`).
+   - Visit `/analytics` to try the HTMX-powered filters (state + time range) that refresh charts via `/analytics/summary/fragment`.
+   - Visit `/observability` for vector/compliance/dataset health plus the live log panel (polls `/logs/latest` for NoMatch/API error events).
    - Visit `/ui/components` for a Storybook-like gallery of the shared cards/buttons/badges.
 
 If the backend is offline, the hero displays a red “Backend warning” card with troubleshooting hints.

@@ -5,5 +5,6 @@
   "source": "refractive_swan_eval::fake_data",
   "n_cases": 5,
   "sha256": "c7eccf74c3fc6ac170e1b63bacedbe236c2dd955bc4aa6275406498512e112cc",
-  "notes": "Extended PET/CT sample mixing CPT, SNOMED, LOINC, and NCIt identifiers"
+  "notes": "Extended PET/CT sample mixing CPT, SNOMED, LOINC, and NCIt identifiers",
+  "tier": "silver"
 }

@@ -1,8 +1,11 @@
 use maud::{Markup, html};
 
+use crate::client::CohortFilters;
 use crate::views::components::{badge::*, card::*, input::*, layout::*, table::*, typography::*};
 use crate::views::layout::{Breadcrumb, PageCallout, PageShellProps, page_shell};
-use crate::views::models::{self, AlertKind, AlertMessage, CohortView, PageContext};
+use crate::views::models::{
+    self, AlertKind, AlertMessage, AnalyticsSummaryView, CohortView, PageContext,
+};
 
 pub fn render_analytics_page(ctx: &PageContext) -> String {
     page_shell(PageShellProps {
@@ -30,19 +33,16 @@ pub(crate) fn render_analytics_panels(ctx: &PageContext) -> Markup {
             (card(html! {
                 (card_header("Analytics Summary", None))
                 (card_body(html! {
-                    div class="space-y-6" {
-                        @if let Some(error) = &ctx.analytics_error {
-                            (alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
-                        } @else if let Some(summary) = &ctx.analytics_summary {
-                            (render_top_concepts(&summary.top_concepts))
-                            div class="border-t border-gray-100 pt-4" {
-                                (render_state_distribution(&summary.state_counts))
+                    div class="space-y-4" {
+                        (render_summary_filters())
+                        div id="analytics-summary-fragment" class="space-y-6" {
+                            @if let Some(error) = &ctx.analytics_error {
+                                (alert(&AlertMessage { kind: AlertKind::Error, text: error.clone() }))
+                            } @else if let Some(summary) = &ctx.analytics_summary {
+                                (render_summary_content(summary))
+                            } @else {
+                                p class="text-sm text-gray-500 italic" { "No analytics data available." }
                             }
-                            div class="border-t border-gray-100 pt-4" {
-                                (render_time_buckets(&summary.time_buckets))
-                            }
-                        } @else {
-                            p class="text-sm text-gray-500 italic" { "No analytics data available." }
                         }
                     }
                 }))
@@ -82,6 +82,7 @@ pub(crate) fn render_analytics_panels(ctx: &PageContext) -> Markup {
                         @if let Some(cohort) = &ctx.cohort {
                             div class="mt-4" {
                                 p class="text-xs text-gray-500 mb-2" { (format!("Found {} matching records", cohort.total)) }
+                                (render_cohort_export_link(&ctx.cohort_filters))
                                 (render_cohort_table(cohort))
                             }
                         } @else {
@@ -91,6 +92,71 @@ pub(crate) fn render_analytics_panels(ctx: &PageContext) -> Markup {
                 }))
             }))
         }))
+    }
+}
+
+fn render_cohort_export_link(filters: &CohortFilters) -> Markup {
+    let query = filters.to_query_string();
+    let href = if query.is_empty() {
+        "/analytics/cohort/export".to_string()
+    } else {
+        format!("/analytics/cohort/export?{}", query)
+    };
+    html! {
+        div class="mb-3 flex justify-end" {
+            a href=(href) class="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-navy-900 hover:bg-gray-50" {
+                svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" {
+                    path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z M8 4v16 M16 4v16 M4 10h16 M4 14h16" {}
+                }
+                "Download CSV"
+            }
+        }
+    }
+}
+
+fn render_summary_filters() -> Markup {
+    html! {
+        form
+            class="flex flex-wrap gap-3 text-xs"
+            hx-get="/analytics/summary/fragment"
+            hx-target="#analytics-summary-fragment"
+            hx-trigger="change"
+        {
+            label class="flex flex-col gap-1" {
+                (label_text("State filter"))
+                select name="state_filter" class="rounded-md border-gray-300 px-3 py-1.5 text-xs" {
+                    option value="" { "All states" }
+                    option value="auto_mapped" { "AutoMapped" }
+                    option value="needs_review" { "Needs review" }
+                    option value="no_match" { "NoMatch" }
+                }
+            }
+            label class="flex flex-col gap-1" {
+                (label_text("Time range"))
+                select name="range_days" class="rounded-md border-gray-300 px-3 py-1.5 text-xs" {
+                    option value="" { "All time" }
+                    option value="7" { "Last 7 days" }
+                    option value="14" { "Last 14 days" }
+                    option value="30" { "Last 30 days" }
+                }
+            }
+        }
+    }
+}
+
+pub fn render_summary_fragment(summary: &AnalyticsSummaryView) -> String {
+    render_summary_content(summary).into_string()
+}
+
+fn render_summary_content(summary: &AnalyticsSummaryView) -> Markup {
+    html! {
+        (render_top_concepts(&summary.top_concepts))
+        div class="border-t border-gray-100 pt-4" {
+            (render_state_distribution(&summary.state_counts))
+        }
+        div class="border-t border-gray-100 pt-4" {
+            (render_time_chart(&summary.time_buckets))
+        }
     }
 }
 
@@ -135,35 +201,6 @@ fn render_state_distribution(states: &[models::CountStat]) -> Markup {
     }
 }
 
-fn render_time_buckets(buckets: &[models::AnalyticsTimeBucket]) -> Markup {
-    html! {
-        div class="space-y-3" {
-            (subsection_heading("Time Buckets"))
-            @if buckets.is_empty() {
-                p class="text-sm text-gray-500" { "No ordered_at timestamps available." }
-            } @else {
-                (table_container(html! {
-                    (table_header(&["Date", "States"]))
-                    tbody class="bg-white divide-y divide-gray-200" {
-                        @for bucket in buckets {
-                            (table_row(html! {
-                                (table_cell_mono(html! { (bucket.bucket.clone()) }))
-                                (table_cell(html! {
-                                    @for stat in &bucket.state_counts {
-                                        span class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs mr-2" {
-                                            (format!("{}: {}", stat.label, stat.count))
-                                        }
-                                    }
-                                }))
-                            }))
-                        }
-                    }
-                }))
-            }
-        }
-    }
-}
-
 fn render_cohort_table(cohort: &CohortView) -> Markup {
     html! {
         (table_container(html! {
@@ -183,5 +220,38 @@ fn render_cohort_table(cohort: &CohortView) -> Markup {
                 }
             }
         }))
+    }
+}
+
+fn render_time_chart(buckets: &[models::AnalyticsTimeBucket]) -> Markup {
+    if buckets.is_empty() {
+        return html! { p class="text-sm text-gray-500" { "No ordered_at timestamps available." } };
+    }
+    let max_total = buckets
+        .iter()
+        .map(|bucket| {
+            bucket
+                .state_counts
+                .iter()
+                .map(|stat| stat.count)
+                .sum::<usize>()
+        })
+        .max()
+        .unwrap_or(1) as f64;
+    html! {
+        div class="space-y-2" {
+            (subsection_heading("Time Distribution"))
+            @for bucket in buckets {
+                @let total: usize = bucket.state_counts.iter().map(|stat| stat.count).sum();
+                @let width = ((total as f64 / max_total) * 100.0).max(5.0);
+                div class="flex items-center gap-3" {
+                    span class="w-24 text-xs font-mono text-gray-500" { (bucket.bucket.clone()) }
+                    div class="flex-1 h-3 rounded bg-gray-100" {
+                        div class="h-3 rounded bg-navy-700" style=(format!("width: {:.2}%", width)) {}
+                    }
+                    span class="text-xs font-semibold text-navy-900" { (total) }
+                }
+            }
+        }
     }
 }

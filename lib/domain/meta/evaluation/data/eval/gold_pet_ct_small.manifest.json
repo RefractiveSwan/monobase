@@ -5,5 +5,6 @@
   "source": "refractive_swan_eval::fake_data",
   "n_cases": 5,
   "sha256": "69d614a06d4ee7c0ce65ffed6744515f309d765c8520fdd6136ed2e29f415d43",
-  "notes": "Gold tier baseline with high-confidence NCIt matches"
+  "notes": "Gold tier baseline with high-confidence NCIt matches",
+  "tier": "gold"
 }

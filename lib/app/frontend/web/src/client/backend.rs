@@ -6,14 +6,13 @@ use reqwest::{Client, RequestBuilder, Response};
 use serde::de::DeserializeOwned;
 
 use super::error::{BackendError, ClientError};
-use super::types::HealthResponse;
-use crate::config::AppConfig;
+use super::types::{HealthResponse, MapBundlesResponse};
+use crate::{config::AppConfig, vector::VectorMode};
 
 pub use refractive_swan_web_dto::{
     AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetManifest,
     EvalRunResponse, EvalSummary, PipelineMetrics,
 };
-pub type MapBundlesResponse = refractive_swan_web_dto::PipelineOutput;
 
 #[derive(Debug, Clone)]
 pub struct BackendClient {
@@ -65,14 +64,13 @@ impl BackendClient {
     pub async fn map_bundles(
         &self,
         payload: serde_json::Value,
+        vector_mode: VectorMode,
     ) -> Result<MapBundlesResponse, ClientError> {
-        let response = self
-            .send(
-                self.client
-                    .post(self.endpoint("/api/map-bundles"))
-                    .json(&payload),
-            )
-            .await?;
+        let mut request = self.client.post(self.endpoint("/api/map-bundles"));
+        if let Some(value) = vector_mode.query_param() {
+            request = request.query(&[("vector", value)]);
+        }
+        let response = self.send(request.json(&payload)).await?;
         Self::handle_json(response).await
     }
 

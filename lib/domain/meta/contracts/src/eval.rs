@@ -1,6 +1,6 @@
 //! Eval contracts aligning CLI/API outputs.
 
-pub use refractive_swan_eval::{DatasetManifest, EvalSummary};
+pub use refractive_swan_eval::{DatasetManifest, DatasetTier, EvalSummary};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

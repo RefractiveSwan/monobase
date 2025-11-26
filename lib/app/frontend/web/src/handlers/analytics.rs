@@ -1,17 +1,23 @@
-use actix_web::{HttpResponse, Result, web};
+use actix_web::{HttpResponse, Result, http::header, web};
+use serde::Deserialize;
 
 use crate::{
     client::CohortFilters,
     state::AppState,
     views,
-    views::models::{AnalyticsSummaryView, CohortView},
+    views::models::{AnalyticsSummaryFilter, AnalyticsSummaryView, CohortView},
 };
 
 use super::home;
 
 /// Registers analytics dashboard route.
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::resource("/analytics").route(web::get().to(analytics_dashboard)));
+    cfg.service(web::resource("/analytics").route(web::get().to(analytics_dashboard)))
+        .service(web::resource("/analytics/cohort/export").route(web::get().to(cohort_export)))
+        .service(
+            web::resource("/analytics/summary/fragment")
+                .route(web::get().to(analytics_summary_fragment)),
+        );
 }
 
 /// Renders `/analytics` by calling warehouse-backed summary + cohort endpoints.
@@ -44,6 +50,84 @@ pub async fn analytics_dashboard(
     Ok(HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(views::render_analytics_page(&ctx)))
+}
+
+#[derive(Deserialize)]
+pub struct AnalyticsSummaryQuery {
+    pub state_filter: Option<String>,
+    pub range_days: Option<u32>,
+}
+
+pub async fn analytics_summary_fragment(
+    state: web::Data<AppState>,
+    query: web::Query<AnalyticsSummaryQuery>,
+) -> Result<HttpResponse> {
+    match state.client.analytics_summary().await {
+        Ok(summary) => {
+            let filter = AnalyticsSummaryFilter {
+                state: query.state_filter.as_ref().and_then(|s| {
+                    if s.trim().is_empty() {
+                        None
+                    } else {
+                        Some(s.clone())
+                    }
+                }),
+                range_days: query.range_days.filter(|v| *v > 0),
+            };
+            let view = AnalyticsSummaryView::from_response_with_filter(&summary, &filter);
+            Ok(HttpResponse::Ok()
+                .content_type("text/html; charset=utf-8")
+                .body(crate::views::pages::analytics::render_summary_fragment(
+                    &view,
+                )))
+        }
+        Err(err) => Ok(HttpResponse::InternalServerError()
+            .content_type("text/plain; charset=utf-8")
+            .body(format!("Analytics summary failed: {}", err.user_message()))),
+    }
+}
+
+pub async fn cohort_export(
+    state: web::Data<AppState>,
+    query: Option<web::Query<CohortFilters>>,
+) -> Result<HttpResponse> {
+    let filters = query.map(|q| q.into_inner()).unwrap_or_default();
+    match state.client.analytics_cohort(&filters).await {
+        Ok(cohort) => {
+            let csv = build_cohort_csv(&cohort);
+            Ok(HttpResponse::Ok()
+                .insert_header((header::CONTENT_TYPE, "text/csv"))
+                .insert_header((
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"cohort_export.csv\"",
+                ))
+                .body(csv))
+        }
+        Err(err) => Ok(HttpResponse::InternalServerError()
+            .content_type("text/plain; charset=utf-8")
+            .body(format!("Cohort export failed: {}", err.user_message()))),
+    }
+}
+
+fn build_cohort_csv(cohort: &crate::client::CohortResponse) -> String {
+    let mut rows = String::from(
+        "sr_id,patient_id,encounter_id,ncit_id,description,status,intent,ordered_at,mapping_state\n",
+    );
+    for row in &cohort.rows {
+        rows.push_str(&format!(
+            "\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\",\"{}\"\n",
+            row.sr_id,
+            row.patient_id.clone().unwrap_or_default(),
+            row.encounter_id.clone().unwrap_or_default(),
+            row.ncit_id.clone().unwrap_or_default(),
+            row.description.replace('"', "'"),
+            row.status,
+            row.intent,
+            row.ordered_at.clone().unwrap_or_default(),
+            row.mapping_state.clone().unwrap_or_default(),
+        ));
+    }
+    rows
 }
 
 #[cfg(test)]

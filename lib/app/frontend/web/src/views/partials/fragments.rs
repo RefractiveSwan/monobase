@@ -3,12 +3,20 @@ use refractive_swan_contracts::PipelineMetrics;
 
 use crate::views::components::{card::*, typography::*};
 use crate::views::models::{AlertMessage, PageContext};
+use crate::views::pages::workbench::{
+    render_history_container, render_validation_summary_container,
+};
 
 use super::results::render_results_panel;
 
 /// HTMX fragment returned to `/map/paste` and `/map/upload` handlers.
 pub fn render_results_fragment(ctx: &PageContext) -> String {
-    render_results(ctx).into_string()
+    html! {
+        (render_results(ctx))
+        (render_validation_summary_container(ctx, true))
+        (render_history_container(ctx, true))
+    }
+    .into_string()
 }
 
 fn render_results(ctx: &PageContext) -> Markup {

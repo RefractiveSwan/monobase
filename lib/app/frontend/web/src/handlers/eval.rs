@@ -1,12 +1,12 @@
 use actix_web::{HttpResponse, Result, web};
 use serde::Deserialize;
 
-use crate::views::layout::ViewChrome;
 use crate::{
     client::BackendClient,
+    handlers::home,
     state::AppState,
     views,
-    views::models::{DEFAULT_EVAL_DATASET, EvalContext, PageContext},
+    views::models::{DEFAULT_EVAL_DATASET, EvalContext, EvalJobView, PageContext},
 };
 use refractive_swan_eval::report;
 
@@ -14,7 +14,14 @@ use refractive_swan_eval::report;
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/eval").route(web::get().to(eval_page)))
         .service(web::resource("/eval/report").route(web::get().to(eval_report)))
-        .service(web::resource("/eval/run").route(web::post().to(eval_run)));
+        .service(web::resource("/eval/run").route(web::post().to(eval_run)))
+        .service(web::resource("/eval/jobs").route(web::get().to(eval_jobs_fragment)))
+        .service(web::resource("/eval/calibration").route(web::get().to(eval_calibration_fragment)))
+        .service(
+            web::resource("/eval/compare")
+                .route(web::get().to(eval_compare_fragment))
+                .route(web::post().to(eval_compare_submit)),
+        );
 }
 
 pub async fn eval_page(state: web::Data<AppState>) -> Result<HttpResponse> {
@@ -30,11 +37,13 @@ pub async fn eval_page(state: web::Data<AppState>) -> Result<HttpResponse> {
         }),
         Err(_) => None,
     };
+    let eval_jobs = hydrate_eval_jobs(state.get_ref());
     let ctx = PageContext {
         datasets,
         selected_eval_dataset: selected,
         eval,
-        chrome: ViewChrome::from(&state.config),
+        eval_jobs,
+        chrome: home::view_chrome(&state),
         ..PageContext::default()
     };
     Ok(HttpResponse::Ok()
@@ -83,15 +92,11 @@ pub async fn eval_run(
     state: web::Data<AppState>,
     form: web::Form<EvalRunForm>,
 ) -> Result<HttpResponse> {
-    let dataset = form.dataset.clone();
-    match state.client.eval_run(&dataset, form.top_k).await {
-        Ok(run) => Ok(HttpResponse::Ok()
-            .content_type("text/html; charset=utf-8")
-            .body(views::render_eval_fragment(&run))),
-        Err(err) => Ok(HttpResponse::InternalServerError()
-            .content_type("text/plain; charset=utf-8")
-            .body(format!("Eval run error: {err}"))),
-    }
+    state.enqueue_eval_job(form.dataset.clone(), form.top_k);
+    let jobs = hydrate_eval_jobs(state.get_ref());
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_eval_jobs_fragment(&jobs)))
 }
 
 /// Builds the eval report fragment via refractive_swan_eval helpers.
@@ -116,4 +121,76 @@ pub(crate) async fn render_eval_report_fragment(
         baseline.as_ref().map(|snapshot| &snapshot.summary),
     );
     Ok(html)
+}
+
+pub async fn eval_jobs_fragment(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let jobs = hydrate_eval_jobs(state.get_ref());
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_eval_jobs_fragment(&jobs)))
+}
+
+pub async fn eval_calibration_fragment(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let jobs = hydrate_eval_jobs(state.get_ref());
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_eval_calibration_fragment(&jobs)))
+}
+
+#[derive(Deserialize, Default)]
+pub struct EvalCompareForm {
+    #[serde(default)]
+    pub job_ids: Vec<String>,
+}
+
+pub async fn eval_compare_fragment(state: web::Data<AppState>) -> Result<HttpResponse> {
+    let jobs = hydrate_eval_jobs(state.get_ref());
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_eval_compare_fragment(&jobs, None)))
+}
+
+pub async fn eval_compare_submit(
+    state: web::Data<AppState>,
+    form: web::Form<EvalCompareForm>,
+) -> Result<HttpResponse> {
+    let jobs = hydrate_eval_jobs(state.get_ref());
+    let selection = form.job_ids.iter().take(2).cloned().collect::<Vec<_>>();
+    let selection = if selection.len() == 2 {
+        Some([selection[0].clone(), selection[1].clone()])
+    } else {
+        None
+    };
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(views::render_eval_compare_fragment(&jobs, selection)))
+}
+
+fn hydrate_eval_jobs(state: &AppState) -> Vec<EvalJobView> {
+    state
+        .eval_jobs_snapshot()
+        .into_iter()
+        .map(|entry| EvalJobView {
+            id: entry.id.to_string(),
+            dataset: entry.dataset,
+            submitted_at: entry.submitted_at.format("%Y-%m-%d %H:%M:%S").to_string(),
+            status: match entry.status {
+                crate::state::EvalJobStatus::Queued => {
+                    crate::views::models::EvalJobStatusView::Queued
+                }
+                crate::state::EvalJobStatus::Running => {
+                    crate::views::models::EvalJobStatusView::Running
+                }
+                crate::state::EvalJobStatus::Completed => {
+                    crate::views::models::EvalJobStatusView::Completed
+                }
+                crate::state::EvalJobStatus::Failed => {
+                    crate::views::models::EvalJobStatusView::Failed
+                }
+            },
+            summary: entry.summary.as_ref().map(|summary| summary.into()),
+            error: entry.error,
+            top_k: entry.top_k,
+        })
+        .collect()
 }

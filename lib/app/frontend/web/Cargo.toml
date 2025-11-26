@@ -28,6 +28,13 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror = "2.0.17"
 log = "0.4"
+chrono = { version = "0.4.38", default-features = false, features = ["clock"] }
+uuid = { version = "1.8.0", features = ["serde", "v4"] }
+serde_urlencoded = "0.7"
+sha2 = "0.10"
+refractive_swan_test_suite = { path = "../../../platform/test_suite" }
+refractive_swan_compliance = { path = "../../../platform/meta/compliance" }
+refractive_swan_terminology = { path = "../../../domain/ontologies/terminology" }
 
 [dev-dependencies]
 wiremock = "0.6"

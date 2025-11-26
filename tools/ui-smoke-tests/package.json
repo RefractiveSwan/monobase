@@ -1,0 +1,12 @@
+{
+  "name": "refractive-swan-ui-smoke-tests",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.45.0"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "codegen": "playwright codegen ${FRONTEND_BASE_URL:-http://127.0.0.1:8090}"
+  }
+}

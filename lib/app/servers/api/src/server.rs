@@ -16,7 +16,8 @@ use log::{error, info, warn};
 use refractive_swan_compliance::assert_export_allowed;
 use refractive_swan_contracts::{
     DimNCITConcept, ErrorCode, ErrorKind, MappingResult, MappingState, PipelineMetrics,
-    PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded, VectorUsageSnapshot,
+    PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded, ValidationReport,
+    VectorUsageSnapshot,
 };
 use refractive_swan_core::fhir::Bundle;
 use refractive_swan_datamart::{CohortFilters, DatamartError};
@@ -219,6 +220,11 @@ struct EvalRunRequest {
     top_k: usize,
 }
 
+#[derive(Deserialize, Default)]
+struct MapQuery {
+    vector: Option<String>,
+}
+
 #[derive(Debug, Default, Deserialize)]
 struct CohortQuery {
     ncit_id: Option<String>,
@@ -417,7 +423,11 @@ async fn metrics_summary(State(state): State<ApiState>) -> impl IntoResponse {
     Json(metrics)
 }
 
-async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Response, ApiError> {
+async fn map_bundles(
+    State(state): State<ApiState>,
+    Query(params): Query<MapQuery>,
+    body: Bytes,
+) -> Result<Response, ApiError> {
     let request_id = Uuid::new_v4();
     let bundles = parse_bundles(&body, request_id)?;
     if bundles.is_empty() {
@@ -432,7 +442,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
         bundles.len()
     );
 
-    let mut response = MapBundlesResponse::default();
+    let mut response = AggregatedPipelineOutput::default();
     let policy = state.plane.policy();
     let mut request_metrics = PipelineMetrics {
         compliance_mode: Some(policy.mode.as_str().to_string()),
@@ -440,13 +450,22 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     };
     let pipeline = state.plane.pipeline();
     let datamart = state.plane.datamart();
+    let vector_override = matches!(params.vector.as_deref(), Some("disabled"));
     let vector_context = state.plane.vector_context();
 
     for bundle in bundles {
         let exec = {
             let config = PipelineRunConfig::default();
             pipeline
-                .map_bundle_with_validation(&bundle, &config, vector_context.as_ref())
+                .map_bundle_with_validation(
+                    &bundle,
+                    &config,
+                    if vector_override {
+                        None
+                    } else {
+                        vector_context.as_ref()
+                    },
+                )
                 .map_err(|err| match err {
                     PipelineError::Ingestion(source) => {
                         ApiError::ingestion(source.to_string(), request_id)
@@ -484,7 +503,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
                 log_no_match(mapping);
             }
         }
-        response.record_output(exec.output);
+        response.record_output(exec.output, exec.validation);
     }
 
     {
@@ -495,7 +514,7 @@ async fn map_bundles(State(state): State<ApiState>, body: Bytes) -> Result<Respo
     let total_flats = response.flats.len();
     let total_mappings = response.mapping_results.len();
     let total_dim_concepts = response.dim_concepts.len();
-    let payload = response.into_pipeline_output();
+    let payload = response.into_body();
 
     info!(
         target: "refractive_swan_api",
@@ -530,17 +549,18 @@ async fn shutdown_signal() {
 }
 
 #[derive(Default)]
-struct MapBundlesResponse {
+struct AggregatedPipelineOutput {
     flats: Vec<StgServiceRequestFlat>,
     exploded_codes: Vec<StgSrCodeExploded>,
     mapping_results: Vec<MappingResult>,
     dim_concepts: Vec<DimNCITConcept>,
     seen_dim_ids: HashSet<String>,
     vector_usage: Option<VectorUsageSnapshot>,
+    validation_reports: Vec<ValidationReport>,
 }
 
-impl MapBundlesResponse {
-    fn record_output(&mut self, output: PipelineOutput) {
+impl AggregatedPipelineOutput {
+    fn record_output(&mut self, output: PipelineOutput, validation: ValidationReport) {
         self.flats.extend(output.flats);
         self.exploded_codes.extend(output.exploded_codes);
         self.mapping_results.extend(output.mapping_results);
@@ -552,17 +572,29 @@ impl MapBundlesResponse {
         if self.vector_usage.is_none() {
             self.vector_usage = output.vector_usage;
         }
+        self.validation_reports.push(validation);
     }
 
-    fn into_pipeline_output(self) -> PipelineOutput {
-        PipelineOutput {
+    fn into_body(self) -> MapBundlesBody {
+        MapBundlesBody {
             flats: self.flats,
             exploded_codes: self.exploded_codes,
             mapping_results: self.mapping_results,
             dim_concepts: self.dim_concepts,
             vector_usage: self.vector_usage,
+            validation_reports: self.validation_reports,
         }
     }
+}
+
+#[derive(Serialize)]
+struct MapBundlesBody {
+    flats: Vec<StgServiceRequestFlat>,
+    exploded_codes: Vec<StgSrCodeExploded>,
+    mapping_results: Vec<MappingResult>,
+    dim_concepts: Vec<DimNCITConcept>,
+    vector_usage: Option<VectorUsageSnapshot>,
+    validation_reports: Vec<ValidationReport>,
 }
 
 #[derive(Debug, Serialize)]

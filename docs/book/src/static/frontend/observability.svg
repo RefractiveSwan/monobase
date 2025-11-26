@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="420" viewBox="0 0 800 420">
+  <rect width="800" height="420" fill="#f1f5f9"/>
+  <text x="50" y="60" font-family="'Segoe UI', sans-serif" font-size="28" fill="#0f172a">Observability dashboard snapshot</text>
+  <rect x="50" y="90" width="200" height="120" rx="12" fill="#dcfce7" stroke="#047857" stroke-width="2"/>
+  <text x="70" y="130" font-family="'Segoe UI', sans-serif" font-size="18" fill="#065f46">Vector usage</text>
+  <rect x="270" y="90" width="220" height="120" rx="12" fill="#e0e7ff" stroke="#3730a3" stroke-width="2"/>
+  <text x="290" y="130" font-family="'Segoe UI', sans-serif" font-size="18" fill="#312e81">Compliance policy</text>
+  <rect x="510" y="90" width="240" height="120" rx="12" fill="#ffe4e6" stroke="#be123c" stroke-width="2"/>
+  <text x="530" y="130" font-family="'Segoe UI', sans-serif" font-size="18" fill="#831843">Dataset health</text>
+  <rect x="50" y="230" width="700" height="150" rx="12" fill="#ffffff" stroke="#cbd5f5" stroke-width="2"/>
+  <text x="70" y="270" font-family="'Segoe UI', sans-serif" font-size="18" fill="#0f172a">Live log panel – shows NoMatch + API errors (polls `/logs/latest`).</text>
+  <text x="50" y="400" font-family="'JetBrains Mono', monospace" font-size="16" fill="#475569">Placeholder illustration.</text>
+</svg>

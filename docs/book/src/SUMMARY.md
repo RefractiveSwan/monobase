@@ -8,6 +8,8 @@
   - [Makefile Quickstart](runbook/makefile-quickstart.md)
   - [Mapping Eval Quickstart](runbook/mapping-eval-quickstart.md)
 
+- [Frontend Command Center](frontend/command-center.md)
+
 - [Kanban (Feature)](kanban/README.md)
   - [001 – Base skeleton](kanban/feature/001-base-skeleton.md)
   - [002 – FHIR pipeline MVP](kanban/feature/002-fhir-pipeline-mvp.md)

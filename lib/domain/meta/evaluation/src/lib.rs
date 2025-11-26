@@ -246,6 +246,21 @@ impl DatasetError {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DatasetTier {
+    Bronze,
+    Silver,
+    Gold,
+    Uncategorized,
+}
+
+impl Default for DatasetTier {
+    fn default() -> Self {
+        DatasetTier::Uncategorized
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct DatasetManifest {
     pub name: String,
@@ -256,6 +271,8 @@ pub struct DatasetManifest {
     pub sha256: String,
     #[serde(default)]
     pub notes: Option<String>,
+    #[serde(default)]
+    pub tier: DatasetTier,
 }
 
 #[derive(Debug)]

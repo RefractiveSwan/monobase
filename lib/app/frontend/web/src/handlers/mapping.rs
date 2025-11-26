@@ -1,22 +1,32 @@
 use actix_multipart::Multipart;
-use actix_web::{HttpRequest, HttpResponse, Result, web};
+use actix_web::{HttpRequest, HttpResponse, Result, http::header, web};
 use bytes::BytesMut;
 use futures_util::TryStreamExt;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::{
+    client::MapBundlesResponse,
     handlers::home,
-    state::AppState,
+    state::{AppState, LogEntry, MappingHistoryEntry},
     views,
-    views::models::{AlertKind, AlertMessage, MappingResultsView, PageContext},
+    views::models::{
+        AlertKind, AlertMessage, MappingResultsView, PageContext, summary_from_reports,
+    },
+    views::pages::workbench::render_bundle_textarea_fragment,
 };
+use std::time::Instant;
+use uuid::Uuid;
 
 const MAX_UPLOAD_BYTES: usize = 512 * 1024; // Mirrors refractive_swan_cli bundle cap.
 
 /// Registers mapping-specific HTMX endpoints.
 pub fn configure(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/map/paste").route(web::post().to(map_from_paste)))
-        .service(web::resource("/map/upload").route(web::post().to(map_from_upload)));
+        .service(web::resource("/map/upload").route(web::post().to(map_from_upload)))
+        .service(web::resource("/map/history/{id}").route(web::get().to(history_entry)))
+        .service(web::resource("/map/template").route(web::get().to(bundle_template)))
+        .service(web::resource("/map/download/latest").route(web::get().to(download_latest)));
 }
 
 #[derive(Deserialize, Serialize)]
@@ -96,10 +106,21 @@ async fn handle_mapping(
     mut ctx: PageContext,
     hx: bool,
 ) -> Result<HttpResponse> {
-    match state.client.map_bundles(payload).await {
+    let started = Instant::now();
+    let vector_mode = state.vector_mode();
+    match state.client.map_bundles(payload, vector_mode).await {
         Ok(response) => {
+            let duration = started.elapsed().as_millis();
+            let records = response.clone();
             ctx.results = Some(MappingResultsView::from_response(&response));
             let mapped = ctx.results.as_ref().map(|res| res.rows.len()).unwrap_or(0);
+            ctx.validation_summary = summary_from_reports(&response.validation_reports);
+            if let Some(results) = &ctx.results {
+                for row in &results.no_matches {
+                    let reason = row.reason.as_deref().unwrap_or("unknown");
+                    state.record_log(LogEntry::no_match(&row.sr_id, &row.code, reason));
+                }
+            }
             ctx.alert = Some(if mapped == 0 {
                 AlertMessage {
                     kind: AlertKind::Info,
@@ -112,12 +133,21 @@ async fn handle_mapping(
                     text: format!("Mapped {mapped} code(s)"),
                 }
             });
+            state.record_history(MappingHistoryEntry::success(duration, mapped, records));
+            let history_entries = state.history_snapshot();
+            ctx.mapping_history = home::hydrate_mapping_history(&history_entries);
             Ok(respond(ctx, hx))
         }
         Err(err) => {
+            let duration = started.elapsed().as_millis();
+            let msg = err.user_message();
+            state.record_history(MappingHistoryEntry::failure(duration, msg.clone()));
+            state.record_log(LogEntry::error(format!("Mapping error: {}", msg)));
+            let history_entries = state.history_snapshot();
+            ctx.mapping_history = home::hydrate_mapping_history(&history_entries);
             ctx.alert = Some(AlertMessage {
                 kind: AlertKind::Error,
-                text: format!("Backend error: {}", err.user_message()),
+                text: format!("Backend error: {}", msg),
             });
             Ok(respond(ctx, hx))
         }
@@ -172,13 +202,108 @@ async fn read_bundle_file(payload: &mut Multipart) -> Result<Option<String>, Str
     Ok(None)
 }
 
+pub async fn history_entry(
+    state: web::Data<AppState>,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let id = Uuid::parse_str(&path.into_inner())
+        .map_err(|_| actix_web::error::ErrorBadRequest("invalid history id"))?;
+    if let Some(entry) = state.history_entry(&id) {
+        if let Some(response) = entry.response {
+            let mut ctx = PageContext::default();
+            ctx.results = Some(MappingResultsView::from_response(&response));
+            if !entry.validation_reports.is_empty() {
+                ctx.validation_summary = summary_from_reports(&entry.validation_reports);
+            }
+            return Ok(HttpResponse::Ok()
+                .content_type("text/html; charset=utf-8")
+                .body(views::render_results_fragment(&ctx)));
+        }
+    }
+    Ok(HttpResponse::NotFound()
+        .content_type("text/plain; charset=utf-8")
+        .body("Mapping history not found"))
+}
+
+#[derive(Deserialize)]
+pub struct TemplateQuery {
+    pub name: Option<String>,
+}
+
+pub async fn bundle_template(query: web::Query<TemplateQuery>) -> Result<HttpResponse> {
+    let name = query.name.as_deref().unwrap_or("blank");
+    let template = crate::templates::load_template(name);
+    Ok(HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(render_bundle_textarea_fragment(template).into_string()))
+}
+
+pub async fn download_latest(state: web::Data<AppState>) -> Result<HttpResponse> {
+    if let Some(entry) = state
+        .history_snapshot()
+        .into_iter()
+        .find(|entry| entry.response.is_some())
+    {
+        if let Some(response) = entry.response {
+            let bytes = build_ndjson_bytes(&response)
+                .map_err(|err| actix_web::error::ErrorInternalServerError(err))?;
+            return Ok(HttpResponse::Ok()
+                .insert_header((header::CONTENT_TYPE, "application/x-ndjson"))
+                .insert_header((
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"mapping_results.ndjson\"",
+                ))
+                .body(bytes));
+        }
+    }
+    Ok(HttpResponse::NotFound()
+        .content_type("text/plain; charset=utf-8")
+        .body("No mapping results cached yet."))
+}
+
+fn build_ndjson_bytes(response: &MapBundlesResponse) -> Result<Vec<u8>, serde_json::Error> {
+    let mut buffer = Vec::new();
+    for flat in &response.flats {
+        serde_json::to_writer(&mut buffer, &json!({"kind":"staging_flat","value":flat}))?;
+        buffer.push(b'\n');
+    }
+    for code in &response.exploded_codes {
+        serde_json::to_writer(
+            &mut buffer,
+            &json!({"kind":"stg_sr_code_exploded","value":code}),
+        )?;
+        buffer.push(b'\n');
+    }
+    for result in &response.mapping_results {
+        serde_json::to_writer(
+            &mut buffer,
+            &json!({"kind":"mapping_result","value":result}),
+        )?;
+        buffer.push(b'\n');
+    }
+    for concept in &response.dim_concepts {
+        serde_json::to_writer(&mut buffer, &json!({"kind":"dim_concept","value":concept}))?;
+        buffer.push(b'\n');
+    }
+    for (bundle_index, report) in response.validation_reports.iter().enumerate() {
+        for issue in &report.issues {
+            serde_json::to_writer(
+                &mut buffer,
+                &json!({"kind":"validation_issue","bundle_index": bundle_index, "value": issue}),
+            )?;
+            buffer.push(b'\n');
+        }
+    }
+    Ok(buffer)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use actix_web::{App, test, web};
     use refractive_swan_contracts::pipeline::{
         DimNCITConcept, MappingResult, MappingSourceVersion, MappingState, MappingStrategy,
-        MappingThresholds, StgServiceRequestFlat, StgSrCodeExploded,
+        MappingThresholds, PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded,
     };
     use refractive_swan_core::order::{ServiceRequestIntent, ServiceRequestStatus};
     use refractive_swan_observability::PipelineMetrics;
@@ -197,7 +322,7 @@ mod tests {
     };
 
     fn sample_backend_response() -> MapBundlesResponse {
-        MapBundlesResponse {
+        let output = PipelineOutput {
             flats: vec![StgServiceRequestFlat {
                 sr_id: "SR-1".into(),
                 patient_id: "P1".into(),
@@ -234,7 +359,8 @@ mod tests {
                 semantic_group: "Test".into(),
             }],
             vector_usage: None,
-        }
+        };
+        MapBundlesResponse::new(output, Vec::new())
     }
 
     #[actix_web::test]

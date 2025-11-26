@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 refractive_swan_core = { path = "../../core" }
 refractive_swan_eval = { path = "../evaluation" }
+refractive_swan_ingestion = { path = "../ingestion" }
 refractive_swan_pipeline = { path = "../pipeline" }
 refractive_swan_observability = { path = "../../../platform/meta/observability" }
 serde = { workspace = true }

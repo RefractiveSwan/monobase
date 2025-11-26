@@ -1,6 +1,11 @@
+pub mod admin;
 pub mod analytics;
 pub mod docs;
+pub mod environment;
 pub mod eval;
 pub mod home;
 pub mod mapping;
+pub mod mesh;
+pub mod observability;
+pub mod settings;
 pub mod ui;

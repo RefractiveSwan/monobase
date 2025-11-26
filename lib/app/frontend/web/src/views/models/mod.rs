@@ -2,8 +2,10 @@ mod analytics;
 mod helpers;
 mod mapping;
 mod types;
+mod validation;
 
 pub use types::*;
+pub use validation::summary_from_reports;
 
 // Tests from original file
 #[cfg(test)]
@@ -85,9 +87,10 @@ mod tests {
         MapBundlesResponse {
             flats,
             exploded_codes,
-            dim_concepts,
             mapping_results,
+            dim_concepts,
             vector_usage: None,
+            validation_reports: Vec::new(),
         }
     }
 

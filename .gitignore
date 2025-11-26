@@ -45,6 +45,10 @@ Desktop.ini
 *.swp
 *.swo
 
+tools/ui-smoke-tests/node_modules/
+tools/ui-smoke-tests/test-results/
+tools/ui-smoke-tests/playwright-report/
+
 
 # === Env / secrets ===
 
