@@ -12,6 +12,8 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{delete, get, post},
 };
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as B64;
 use chrono::Utc;
 use log::{error, info, warn};
 use refractive_swan_compliance::assert_export_allowed;
@@ -29,6 +31,8 @@ use refractive_swan_pipeline::{PipelineError, PipelineRunConfig};
 use refractive_swan_terminology::codesystem::LicenseTier;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
+use std::fs;
 use thiserror::Error;
 use tokio::{net::TcpListener, sync::Mutex};
 use uuid::Uuid;
@@ -396,7 +400,7 @@ async fn list_eval_datasets(State(state): State<ApiState>) -> Result<Response, A
         manifests
             .into_iter()
             .map(|manifest| DatasetListEntry {
-                disabled: registry.is_disabled(&manifest.name),
+                disabled: manifest.disabled || registry.is_disabled(&manifest.name),
                 last_refresh_iso: registry.last_refresh_iso.clone(),
                 manifest,
             })
@@ -464,15 +468,51 @@ async fn upload_dataset(
         "request_id={request_id} dataset_upload name={} n_cases={}",
         body.manifest.name, body.manifest.n_cases
     );
-    // TODO: enforce checksum + write to DatasetStore root; today we accept and mark refreshed.
+    let data = B64
+        .decode(body.ndjson_b64.as_bytes())
+        .map_err(|err| ApiError::invalid_dataset(err.to_string(), request_id))?;
+
+    let computed_sha = format!("{:x}", Sha256::digest(&data));
+    if !body.manifest.sha256.is_empty() && !body.manifest.sha256.eq_ignore_ascii_case(&computed_sha)
+    {
+        return Err(ApiError::invalid_dataset(
+            format!(
+                "checksum mismatch: manifest sha={} computed sha={}",
+                body.manifest.sha256, computed_sha
+            ),
+            request_id,
+        ));
+    }
+
+    let dataset_root = state.plane.dataset_store().data_root().to_path_buf();
+    fs::create_dir_all(&dataset_root)
+        .map_err(|err| ApiError::ingestion(err.to_string(), request_id))?;
+    let name = body.manifest.name.clone();
+    let manifest_path = dataset_root.join(format!("{}.manifest.json", name));
+    let data_path = dataset_root.join(format!("{}.ndjson", name));
+    let mut manifest = body.manifest;
+    manifest.sha256 = computed_sha.clone();
+    manifest.n_cases = data
+        .split(|b| *b == b'\n')
+        .filter(|line| !line.is_empty())
+        .count();
+    manifest.disabled = false;
+
+    fs::write(&data_path, &data).map_err(|err| ApiError::ingestion(err.to_string(), request_id))?;
+    let manifest_json = serde_json::to_string_pretty(&manifest)
+        .map_err(|err| ApiError::ingestion(err.to_string(), request_id))?;
+    fs::write(&manifest_path, manifest_json)
+        .map_err(|err| ApiError::ingestion(err.to_string(), request_id))?;
+
     {
         let mut registry = state.dataset_registry.lock().await;
         registry.mark_refreshed();
-        registry.enable(&body.manifest.name);
+        registry.enable(&name);
     }
+
     Ok(Json(json!({
-        "status": "accepted",
-        "message": "Dataset upload stubbed; file persistence not yet implemented."
+        "status": "ok",
+        "sha256": computed_sha,
     }))
     .into_response())
 }
@@ -481,8 +521,20 @@ async fn delete_dataset(
     State(state): State<ApiState>,
     Path(name): Path<String>,
 ) -> Result<Response, ApiError> {
+    let request_id = Uuid::new_v4();
+    let dataset_root = state.plane.dataset_store().data_root().to_path_buf();
+    let manifest_path = dataset_root.join(format!("{}.manifest.json", name));
+    let data_path = dataset_root.join(format!("{}.ndjson", name));
+    let _ = fs::remove_file(manifest_path);
+    let _ = fs::remove_file(data_path);
     let mut registry = state.dataset_registry.lock().await;
     registry.disable(&name);
+    registry.mark_refreshed();
+    info!(
+        target: "refractive_swan_api",
+        "request_id={request_id} dataset_delete name={}",
+        name
+    );
     Ok(Json(json!({ "status": "ok", "disabled": name })).into_response())
 }
 

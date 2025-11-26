@@ -10,8 +10,8 @@ use super::types::{HealthResponse, MapBundlesResponse};
 use crate::{config::AppConfig, vector::VectorMode};
 
 pub use refractive_swan_web_dto::{
-    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetManifest,
-    EvalRunResponse, EvalSummary, PipelineMetrics,
+    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetListEntry,
+    DatasetManifest, EvalRunResponse, EvalSummary, PipelineMetrics,
 };
 
 #[derive(Debug, Clone)]
@@ -74,7 +74,7 @@ impl BackendClient {
         Self::handle_json(response).await
     }
 
-    pub async fn eval_datasets(&self) -> Result<Vec<DatasetManifest>, ClientError> {
+    pub async fn eval_datasets(&self) -> Result<Vec<DatasetListEntry>, ClientError> {
         let response = self
             .send(self.client.get(self.endpoint("/api/eval/datasets")))
             .await?;

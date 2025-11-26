@@ -45,8 +45,9 @@ pub(crate) async fn build_base_context(state: &AppState) -> PageContext {
     let store = state.dataset_store.as_ref();
     let datasets = client.eval_datasets().await.unwrap_or_default();
     let selected_dataset = datasets
-        .first()
-        .map(|m| m.name.clone())
+        .iter()
+        .find(|entry| !entry.disabled)
+        .map(|m| m.manifest.name.clone())
         .unwrap_or_else(|| DEFAULT_EVAL_DATASET.to_string());
     let metrics = client.metrics_summary().await.ok();
 

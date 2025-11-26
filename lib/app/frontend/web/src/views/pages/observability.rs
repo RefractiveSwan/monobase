@@ -116,7 +116,8 @@ fn render_dataset_card(ctx: &PageContext) -> Markup {
                 (table_container(html! {
                     (table_header(&["Dataset", "Cases"]))
                     tbody class="bg-white divide-y divide-gray-200 text-xs" {
-                        @for dataset in &ctx.datasets {
+                        @for entry in &ctx.datasets {
+                            @let dataset = &entry.manifest;
                             (table_row(html! {
                                 (table_cell(html! { (dataset.name.clone()) }))
                                 (table_cell_mono(html! { (dataset.n_cases) }))

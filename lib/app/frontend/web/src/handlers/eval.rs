@@ -27,8 +27,9 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
 pub async fn eval_page(state: web::Data<AppState>) -> Result<HttpResponse> {
     let datasets = state.client.eval_datasets().await.unwrap_or_default();
     let selected = datasets
-        .first()
-        .map(|m| m.name.clone())
+        .iter()
+        .find(|entry| !entry.disabled)
+        .map(|m| m.manifest.name.clone())
         .unwrap_or_else(|| DEFAULT_EVAL_DATASET.to_string());
     let eval = match state.client.eval_run(&selected, 1).await {
         Ok(run) => Some(EvalContext {

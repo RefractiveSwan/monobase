@@ -148,7 +148,12 @@ fn render_eval_section(ctx: &PageContext) -> Markup {
                     (label_text("Dataset"))
                     select id="dataset" name="dataset" class="rounded-md border-gray-300 px-3 py-1.5 text-sm" {
                         @for ds in &ctx.datasets {
-                            option value=(ds.name) selected[(ctx.selected_eval_dataset == ds.name)] { (format!("{} ({} rows)", ds.name, ds.n_cases)) }
+                            @let manifest = &ds.manifest;
+                            option
+                                value=(manifest.name)
+                                selected[(ctx.selected_eval_dataset == manifest.name)]
+                                disabled[ds.disabled]
+                            { (format!("{} ({} rows)", manifest.name, manifest.n_cases)) }
                         }
                     }
                     (label_text("Top K"))
@@ -225,7 +230,8 @@ fn render_dataset_tiers(ctx: &PageContext) -> Markup {
     }
     let mut grouped: Vec<Vec<&refractive_swan_contracts::eval::DatasetManifest>> =
         vec![Vec::new(); TIER_ORDER.len()];
-    for manifest in &ctx.datasets {
+    for entry in &ctx.datasets {
+        let manifest = &entry.manifest;
         let idx = tier_index(&manifest.tier);
         grouped[idx].push(manifest);
     }

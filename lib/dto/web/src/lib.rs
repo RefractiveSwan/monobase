@@ -3,8 +3,8 @@
 //! both sides stay in sync.
 
 pub use refractive_swan_contracts::{
-    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetManifest,
-    EvalRunResponse, EvalSummary, PipelineMetrics, PipelineOutput,
+    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetListEntry,
+    DatasetManifest, EvalRunResponse, EvalSummary, PipelineMetrics, PipelineOutput,
 };
 
 pub use refractive_swan_contracts::errors::{ErrorCode, ErrorKind};

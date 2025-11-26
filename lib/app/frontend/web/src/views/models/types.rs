@@ -1,6 +1,6 @@
 use refractive_swan_contracts::{
     PipelineMetrics,
-    eval::{DatasetManifest, EvalSummary},
+    eval::{DatasetListEntry, EvalSummary},
     pipeline::{MappingState, ValidationSeverity},
 };
 
@@ -18,7 +18,7 @@ pub struct PageContext {
     pub alert: Option<AlertMessage>,
     pub results: Option<MappingResultsView>,
     pub eval: Option<EvalContext>,
-    pub datasets: Vec<DatasetManifest>,
+    pub datasets: Vec<DatasetListEntry>,
     pub selected_eval_dataset: String,
     pub eval_report_html: Option<String>,
     pub eval_panel_error: Option<String>,

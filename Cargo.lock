@@ -2602,6 +2602,7 @@ name = "refractive_swan_api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64",
  "chrono",
  "env_logger",
  "log",
@@ -2620,6 +2621,7 @@ dependencies = [
  "refractive_swan_web_dto",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "thiserror 2.0.17",
  "tokio",

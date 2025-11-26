@@ -97,7 +97,12 @@ pub(crate) fn render_eval_panel(ctx: &PageContext) -> Markup {
                             hx-trigger="change" {
                             @if !ctx.datasets.is_empty() {
                                 @for dataset in &ctx.datasets {
-                                    option value=(dataset.name) selected[(ctx.selected_eval_dataset == dataset.name)] { (dataset.name.clone()) }
+                                    @let manifest = &dataset.manifest;
+                                    option
+                                        value=(manifest.name)
+                                        selected[(ctx.selected_eval_dataset == manifest.name)]
+                                        disabled[dataset.disabled]
+                                    { (manifest.name.clone()) }
                                 }
                             } @else {
                                 option value=(ctx.selected_eval_dataset) { (ctx.selected_eval_dataset.clone()) }

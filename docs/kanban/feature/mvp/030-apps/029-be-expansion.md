@@ -30,15 +30,15 @@ FE-028 put the frontend in command-center mode; now the backend must keep up. Th
 
 ### 029-01 – Dataset store façade per mesh node
 
-- [ ] Split `refractive_swan_eval::DatasetStore` access into mesh-aware traits so API/hub/node instances can enforce tenancy and per-entity roots.  
-- [ ] Mirror manifest tier metadata + checksum state back through `/api/eval/datasets`, including “disabled” flags for nodes that should not surface certain datasets.  
-- [ ] Add a `DatasetNodeRegistry` cache keyed by mesh entity ID that tracks last refresh timestamp + manifest errors for observability.
+- [x] Split `refractive_swan_eval::DatasetStore` access into mesh-aware traits so API/hub/node instances can enforce tenancy and per-entity roots.  
+- [x] Mirror manifest tier metadata + checksum state back through `/api/eval/datasets`, including “disabled” flags for nodes that should not surface certain datasets.  
+- [x] Add a `DatasetNodeRegistry` cache keyed by mesh entity ID that tracks last refresh timestamp + manifest errors for observability.
 
 ### 029-02 – Admin endpoints (refresh/upload/delete)
 
-- [ ] Implement POST `/api/datasets/refresh` and `/api/datasets/upload` (accept manifest + NDJSON) with background jobs + status polling; enforce checksum verification before activation.  
-- [ ] Wire upload actions through to `refractive_swan_eval::DatasetStore` so new manifests land under the correct mesh namespace and tier.  
-- [ ] Provide DELETE `/api/datasets/:name` with guard rails (confirm active jobs complete, ensure FE sends confirmation token).  
+- [x] Implement POST `/api/datasets/refresh` and `/api/datasets/upload` (accept manifest + NDJSON) with background jobs + status polling; enforce checksum verification before activation.  
+- [x] Wire upload actions through to `refractive_swan_eval::DatasetStore` so new manifests land under the correct mesh namespace and tier.  
+- [x] Provide DELETE `/api/datasets/:name` with guard rails (confirm active jobs complete, ensure FE sends confirmation token).  
 - [ ] Emit structured events to `refractive_swan_observability` so FE-028 history panes can show dataset admin activity.
 
 ### 029-03 – Terminology/compliance/ingestion bridges
