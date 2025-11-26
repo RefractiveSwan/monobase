@@ -39,19 +39,19 @@ FE-028 put the frontend in command-center mode; now the backend must keep up. Th
 - [x] Implement POST `/api/datasets/refresh` and `/api/datasets/upload` (accept manifest + NDJSON) with background jobs + status polling; enforce checksum verification before activation.  
 - [x] Wire upload actions through to `refractive_swan_eval::DatasetStore` so new manifests land under the correct mesh namespace and tier.  
 - [x] Provide DELETE `/api/datasets/:name` with guard rails (confirm active jobs complete, ensure FE sends confirmation token).  
-- [ ] Emit structured events to `refractive_swan_observability` so FE-028 history panes can show dataset admin activity.
+- [x] Emit structured events to `refractive_swan_observability` so FE-028 history panes can show dataset admin activity.
 
 ### 029-03 – Terminology/compliance/ingestion bridges
 
-- [ ] Add `/admin/terminology/insights` endpoint returning registry coverage (licensed/open counts, OBO graph cache health, last sync).  
-- [ ] Surface compliance policy summaries (`dfps_compliance::Policy`) via `/admin/compliance/policy` with read/write toggles for mesh operators; include license-blocked stats.  
-- [ ] Expose ingestion validation aggregates (per `dfps_ingestion::validation::ValidationReport`) so FE workbench can show counts per job.  
-- [ ] Document env toggles for lexical vs vector-backed mapping and add `/admin/toggles` endpoint to flip modes safely.
+- [x] Add `/admin/terminology/insights` endpoint returning registry coverage (licensed/open counts, OBO graph cache health, last sync).  
+- [x] Surface compliance policy summaries (`dfps_compliance::Policy`) via `/admin/compliance/policy` with read/write toggles for mesh operators; include license-blocked stats.  
+- [x] Expose ingestion validation aggregates (per `dfps_ingestion::validation::ValidationReport`) so FE workbench can show counts per job.  
+- [x] Document env toggles for lexical vs vector-backed mapping and add `/admin/toggles` endpoint to flip modes safely.
 
 ### 029-04 – Datamart/vector backplane hooks
 
-- [ ] Provide `/admin/datamart/health` and `/admin/datamart/reset` endpoints that call into `refractive_swan_datamart` (with guard rails + audit logging).  
-- [ ] Expose vector backend metadata (`dfps_vector_port`) including backend type, namespace, capacity snapshot, and fallback counters.  
+- [x] Provide `/admin/datamart/health` and `/admin/datamart/reset` endpoints that call into `refractive_swan_datamart` (with guard rails + audit logging).  
+- [x] Expose vector backend metadata (`dfps_vector_port`) including backend type, namespace, capacity snapshot, and fallback counters.  
 - [ ] Ensure each mesh entity reports metrics tagged with `mesh_node_id` so observability dashboards can pivot per node.
 
 ### 029-05 – Dataset regression + docs
