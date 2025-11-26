@@ -273,6 +273,8 @@ pub struct DatasetManifest {
     pub notes: Option<String>,
     #[serde(default)]
     pub tier: DatasetTier,
+    #[serde(default)]
+    pub disabled: bool,
 }
 
 #[derive(Debug)]

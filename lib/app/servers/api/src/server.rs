@@ -7,17 +7,18 @@ use std::{
 use axum::{
     Json, Router,
     body::Bytes,
-    extract::{Json as JsonPayload, Query, State},
+    extract::{Json as JsonPayload, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
+use chrono::Utc;
 use log::{error, info, warn};
 use refractive_swan_compliance::assert_export_allowed;
 use refractive_swan_contracts::{
     DimNCITConcept, ErrorCode, ErrorKind, MappingResult, MappingState, PipelineMetrics,
     PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded, ValidationReport,
-    VectorUsageSnapshot,
+    VectorUsageSnapshot, eval::DatasetListEntry,
 };
 use refractive_swan_core::fhir::Bundle;
 use refractive_swan_datamart::{CohortFilters, DatamartError};
@@ -147,6 +148,7 @@ fn enforce_export_policy(
 pub struct ApiState {
     plane: Arc<NodeDataPlane>,
     latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
+    dataset_registry: Arc<Mutex<DatasetNodeRegistry>>,
 }
 
 impl ApiState {
@@ -155,6 +157,7 @@ impl ApiState {
         Self {
             plane: Arc::new(plane),
             latest_eval: Arc::new(Mutex::new(None)),
+            dataset_registry: Arc::new(Mutex::new(DatasetNodeRegistry::default())),
         }
     }
 }
@@ -199,6 +202,9 @@ pub fn router(state: ApiState) -> Router {
         .route("/api/eval/datasets", get(list_eval_datasets))
         .route("/api/eval/run", post(run_eval))
         .route("/api/eval/latest", get(latest_eval))
+        .route("/api/datasets/refresh", post(refresh_datasets))
+        .route("/api/datasets/upload", post(upload_dataset))
+        .route("/api/datasets/:name", delete(delete_dataset))
         .with_state(state)
 }
 
@@ -218,6 +224,40 @@ struct EvalRunRequest {
     dataset: String,
     #[serde(default = "default_top_k")]
     top_k: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct UploadDatasetRequest {
+    manifest: refractive_swan_eval::DatasetManifest,
+    ndjson_b64: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct DatasetNodeRegistry {
+    #[serde(default)]
+    disabled: Vec<String>,
+    #[serde(default)]
+    last_refresh_iso: Option<String>,
+}
+
+impl DatasetNodeRegistry {
+    fn is_disabled(&self, name: &str) -> bool {
+        self.disabled.iter().any(|n| n == name)
+    }
+
+    fn disable(&mut self, name: &str) {
+        if !self.disabled.iter().any(|n| n == name) {
+            self.disabled.push(name.to_string());
+        }
+    }
+
+    fn enable(&mut self, name: &str) {
+        self.disabled.retain(|n| n != name);
+    }
+
+    fn mark_refreshed(&mut self) {
+        self.last_refresh_iso = Some(Utc::now().to_rfc3339());
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -351,7 +391,18 @@ async fn list_eval_datasets(State(state): State<ApiState>) -> Result<Response, A
         .dataset_store()
         .list_manifests()
         .map_err(|err| ApiError::invalid_dataset(err.to_string(), Uuid::new_v4()))?;
-    Ok(Json(manifests).into_response())
+    let entries = {
+        let registry = state.dataset_registry.lock().await;
+        manifests
+            .into_iter()
+            .map(|manifest| DatasetListEntry {
+                disabled: registry.is_disabled(&manifest.name),
+                last_refresh_iso: registry.last_refresh_iso.clone(),
+                manifest,
+            })
+            .collect::<Vec<_>>()
+    };
+    Ok(Json(entries).into_response())
 }
 
 async fn run_eval(
@@ -393,6 +444,46 @@ async fn latest_eval(State(state): State<ApiState>) -> Result<Response, ApiError
             Uuid::new_v4(),
         ))
     }
+}
+
+async fn refresh_datasets(State(state): State<ApiState>) -> Result<Response, ApiError> {
+    {
+        let mut registry = state.dataset_registry.lock().await;
+        registry.mark_refreshed();
+    }
+    list_eval_datasets(State(state)).await
+}
+
+async fn upload_dataset(
+    State(state): State<ApiState>,
+    JsonPayload(body): JsonPayload<UploadDatasetRequest>,
+) -> Result<Response, ApiError> {
+    let request_id = Uuid::new_v4();
+    info!(
+        target: "refractive_swan_api",
+        "request_id={request_id} dataset_upload name={} n_cases={}",
+        body.manifest.name, body.manifest.n_cases
+    );
+    // TODO: enforce checksum + write to DatasetStore root; today we accept and mark refreshed.
+    {
+        let mut registry = state.dataset_registry.lock().await;
+        registry.mark_refreshed();
+        registry.enable(&body.manifest.name);
+    }
+    Ok(Json(json!({
+        "status": "accepted",
+        "message": "Dataset upload stubbed; file persistence not yet implemented."
+    }))
+    .into_response())
+}
+
+async fn delete_dataset(
+    State(state): State<ApiState>,
+    Path(name): Path<String>,
+) -> Result<Response, ApiError> {
+    let mut registry = state.dataset_registry.lock().await;
+    registry.disable(&name);
+    Ok(Json(json!({ "status": "ok", "disabled": name })).into_response())
 }
 
 fn run_eval_internal(
