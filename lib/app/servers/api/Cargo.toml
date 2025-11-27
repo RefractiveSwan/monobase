@@ -33,3 +33,4 @@ refractive_swan_mesh_node = { path = "../../../platform/mesh/node" }
 refractive_swan_mesh_dto = { path = "../../../dto/mesh" }
 refractive_swan_contracts = { path = "../../../domain/meta/contracts" }
 refractive_swan_web_dto = { path = "../../../dto/web" }
+tower = { version = "0.4", features = ["make"] }

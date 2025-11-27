@@ -37,6 +37,9 @@ pub struct PipelineMetrics {
     pub vector_capacity_geom_rm_sqrt_dm: Option<f32>,
     #[serde(default)]
     pub vector_capacity_cap_alpha_sim: Option<f32>,
+    /// Mesh node identifier (optional; set by mesh-enabled servers)
+    #[serde(default)]
+    pub mesh_node_id: Option<String>,
     /// Number of `/analytics/*` requests served by API/frontend surfaces.
     #[serde(default)]
     pub analytics_requests: usize,
@@ -105,6 +108,9 @@ impl PipelineMetrics {
             if self.compliance_mode.is_none() {
                 self.compliance_mode = Some(mode.clone());
             }
+        }
+        if let Some(node_id) = other.mesh_node_id.as_ref() {
+            self.mesh_node_id = Some(node_id.clone());
         }
         if let Some(p95) = other.vector_latency_ms_p95 {
             self.vector_latency_ms_p95 = Some(p95);

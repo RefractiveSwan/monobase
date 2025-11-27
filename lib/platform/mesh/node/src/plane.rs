@@ -57,12 +57,16 @@ impl NodeDataPlane {
         datamart: Arc<dyn DatamartSink + Send + Sync>,
         vector_context: Option<VectorPipelineContext>,
     ) -> Self {
+        let node_id_str = node_id.to_string();
         Self {
             node_id,
             policy,
             vector_context,
             dataset_store,
-            metrics: Arc::new(Mutex::new(PipelineMetrics::default())),
+            metrics: Arc::new(Mutex::new(PipelineMetrics {
+                mesh_node_id: Some(node_id_str),
+                ..PipelineMetrics::default()
+            })),
             pipeline,
             datamart,
         }

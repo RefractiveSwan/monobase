@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - REFR-024 – Platform README now documents env namespaces + crate responsibilities, and `refractive_swan_test_suite` ships a `TempSqliteWarehouse` helper for temporary datamart instances.
 
 ### Changed
+- BE-029 – “Ensure each mesh entity reports metrics tagged with mesh_node_id so observability dashboards can pivot per node” (checkbox completed).
 - REFR-022 – “Restructure refractive_swan_core into super-domains (primitives/clinical/interop/semantics) with bridges under consumer modules” (checkbox completed).
 - REFR-022 – “Preserve legacy public API paths via lib.rs re-exports and prelude wiring” (checkbox completed).
 - REFR-05  – FHIR profiles folded into `refractive_swan_ingestion::profiles` with crate README/docs, external validator port/context, and CLI/test adapters owning HTTP/env; workspace crate paths aligned to `evaluation/` + `ontologies/` layout.

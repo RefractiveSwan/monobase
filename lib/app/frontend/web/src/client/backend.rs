@@ -10,8 +10,8 @@ use super::types::{HealthResponse, MapBundlesResponse};
 use crate::{config::AppConfig, vector::VectorMode};
 
 pub use refractive_swan_web_dto::{
-    AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse, CohortRow, DatasetListEntry,
-    DatasetManifest, EvalRunResponse, EvalSummary, PipelineMetrics,
+    AdminEvent, AdminEventKind, AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse,
+    CohortRow, DatasetListEntry, DatasetManifest, EvalRunResponse, EvalSummary, PipelineMetrics,
 };
 
 #[derive(Debug, Clone)]
@@ -46,6 +46,13 @@ impl BackendClient {
     pub async fn metrics_summary(&self) -> Result<PipelineMetrics, ClientError> {
         let response = self
             .send(self.client.get(self.endpoint("/metrics/summary")))
+            .await?;
+        Self::handle_json(response).await
+    }
+
+    pub async fn admin_events(&self) -> Result<Vec<AdminEvent>, ClientError> {
+        let response = self
+            .send(self.client.get(self.endpoint("/admin/events")))
             .await?;
         Self::handle_json(response).await
     }

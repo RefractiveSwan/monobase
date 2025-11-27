@@ -6,7 +6,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 // refractive_swan Lib
-use refractive_swan_api::{ApiState, router as api_router};
+use refractive_swan_api::{ApiState, router_with_state as api_router};
 use refractive_swan_core::{
     mapping::{
         // DimNCITConcept,
@@ -24,7 +24,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use std::net::SocketAddr;
 use tokio::{net::TcpListener, sync::oneshot, task::JoinHandle};
-use tower::ServiceExt;
+use tower::{ServiceExt, make::Shared};
 
 #[derive(Deserialize)]
 struct MapBundlesBody {
@@ -66,7 +66,8 @@ async fn spawn_http_server() -> (SocketAddr, oneshot::Sender<()>, JoinHandle<()>
         let shutdown = async {
             let _ = shutdown_rx.await;
         };
-        if let Err(err) = axum::serve(listener, router.into_make_service())
+        let make_service = Shared::new(router);
+        if let Err(err) = axum::serve(listener, make_service)
             .with_graceful_shutdown(shutdown)
             .await
         {
@@ -247,10 +248,18 @@ async fn eval_datasets_and_run_endpoints_work() {
         .uri("/api/eval/datasets")
         .body(Body::empty())
         .expect("datasets request");
-    let (status, manifests): (StatusCode, Vec<refractive_swan_eval::DatasetManifest>) =
-        send_json(&app, datasets_request).await;
+    let (status, manifests): (
+        StatusCode,
+        Vec<refractive_swan_contracts::eval::DatasetListEntry>,
+    ) = send_json(&app, datasets_request).await;
     assert_eq!(status, StatusCode::OK);
     assert!(!manifests.is_empty(), "manifests should not be empty");
+    assert!(
+        manifests
+            .iter()
+            .any(|entry| entry.manifest.name == "bronze_pet_ct_small"),
+        "bronze_pet_ct_small manifest should be present"
+    );
 
     let body = serde_json::json!({ "dataset": "bronze_pet_ct_small", "top_k": 1 });
     let run_request = Request::builder()

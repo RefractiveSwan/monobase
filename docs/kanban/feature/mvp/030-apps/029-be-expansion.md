@@ -4,7 +4,7 @@
 **Branch:** `feature/app/BE-029-backend-expansion`  
 **Goal:** Give the API/mesh ceilings first-class control over dataset-store admin operations (refresh/upload/tier metadata) while bridging compliance, terminology, and datamart signals so each mesh entity exposes predictable management surfaces.
 
-> Status: **TODO**  
+> Status: **INPROGRESS**  
 > Branch target version: `Unreleased`  
 > Introduced in: `v0.1.0`  
 > Last updated in: `v0.1.0`
@@ -52,7 +52,7 @@ FE-028 put the frontend in command-center mode; now the backend must keep up. Th
 
 - [x] Provide `/admin/datamart/health` and `/admin/datamart/reset` endpoints that call into `refractive_swan_datamart` (with guard rails + audit logging).  
 - [x] Expose vector backend metadata (`dfps_vector_port`) including backend type, namespace, capacity snapshot, and fallback counters.  
-- [ ] Ensure each mesh entity reports metrics tagged with `mesh_node_id` so observability dashboards can pivot per node.
+- [x] Ensure each mesh entity reports metrics tagged with `mesh_node_id` so observability dashboards can pivot per node.
 
 ### 029-05 – Dataset regression + docs
 
