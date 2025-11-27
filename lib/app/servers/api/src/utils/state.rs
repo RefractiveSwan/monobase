@@ -4,6 +4,7 @@ use chrono::Utc;
 use refractive_swan_contracts::{AdminEvent, AdminEventKind};
 use refractive_swan_mesh_dto::MeshNodeId;
 use refractive_swan_mesh_node::{NodeDataPlane, NodePlaneConfig};
+use refractive_swan_web_dto::EvalRunResponse;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -16,7 +17,7 @@ const ADMIN_EVENTS_LIMIT: usize = 100;
 #[derive(Clone)]
 pub struct ApiState {
     pub(crate) plane: Arc<NodeDataPlane>,
-    pub(crate) latest_eval: Arc<Mutex<Option<crate::dto::EvalRunResponse>>>,
+    pub(crate) latest_eval: Arc<Mutex<Option<EvalRunResponse>>>,
     pub(crate) dataset_registry: Arc<Mutex<DatasetNodeRegistry>>,
     pub(crate) admin_events: Arc<Mutex<Vec<AdminEvent>>>,
 }

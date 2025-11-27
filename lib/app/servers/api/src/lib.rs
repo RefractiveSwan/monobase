@@ -4,7 +4,6 @@
 //! binaries) can spin up the server in-process without binding to a global
 //! executable.
 
-pub mod dto;
 pub mod server;
 pub mod types;
 pub mod utils;

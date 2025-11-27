@@ -4,10 +4,10 @@ use axum::{
     response::IntoResponse,
 };
 use log::info;
+use refractive_swan_web_dto::EvalRunResponse;
 use uuid::Uuid;
 
 use crate::{
-    dto::EvalRunResponse,
     types::{EvalQuery, EvalRunRequest},
     utils::{ApiError, ApiState},
 };
