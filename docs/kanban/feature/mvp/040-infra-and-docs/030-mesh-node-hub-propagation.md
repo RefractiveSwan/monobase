@@ -426,7 +426,7 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P2.4 — Hub-side node registration & health-check loop
 
-- **Status:** INPROGRESS  
+- **Status:** DONE  
 - **Path:** `lib/platform/mesh/hub/src/registry.rs`, `health.rs`
 
 **Tasks**
@@ -457,12 +457,12 @@ We want a **concrete node/hub propagation system** such that:
 
 - [ ] Expose endpoints:
 
-  - [x] `GET /hub/nodes` -> list of `NodeMetadata`.
-  - [x] `GET /hub/nodes/:id` -> node details + last metrics snapshot.
-  - [x] `POST /hub/jobs/analytics/ncit-summary` -> `global_ncit_summary`.
-  - [x] `POST /hub/jobs/eval` -> `federated_eval`.
+ - [x] `GET /hub/nodes` -> list of `NodeMetadata`.
+ - [x] `GET /hub/nodes/:id` -> node details + last metrics snapshot.
+ - [x] `POST /hub/jobs/analytics/ncit-summary` -> `global_ncit_summary`.
+ - [x] `POST /hub/jobs/eval` -> `federated_eval`.
 
-- [ ] Ensure (with tests) hub API uses only official contracts (`refractive_swan_contracts` types).
+- [x] Ensure (with tests) hub API uses only official contracts (`refractive_swan_contracts` types) (hub controllers use federated contract helpers and stub tests cover routes).
 
 ---
 
