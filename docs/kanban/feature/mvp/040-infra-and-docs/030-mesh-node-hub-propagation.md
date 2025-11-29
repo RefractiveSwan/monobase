@@ -383,44 +383,44 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P2.2 — Hub job queue & node dispatch
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/src/job_queue.rs`, `node_registry.rs`
 
 **Tasks**
 
-- [ ] Implement `JobQueue`:
+- [x] Implement `JobQueue`:
 
   - `dispatch(job: MeshJobDescriptor, target_nodes: Option<Vec<MeshNodeId>>) -> Vec<MeshJobResult>`,
   - POST `job` to each `"{node.url}/mesh/job"` using `reqwest::Client`.
 
-- [ ] Apply `HubConfig`:
+- [x] Apply `HubConfig`:
 
   - timeouts, retry/backoff, concurrency (e.g., `futures::stream::buffer_unordered`).
 
-- [ ] Track per-node stats in `NodeRegistry` (success/failure counters, last error).
+- [x] Track per-node stats in `NodeRegistry` (success/failure counters, last error).
 
 ---
 
 #### P2.3 — Federated analytics & eval in hub
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/src/analytics.rs`, `eval.rs`
 
 **Tasks**
 
-- [ ] Implement `global_ncit_summary(queue: &JobQueue) -> AnalyticsSummaryResponse`:
+- [x] Implement `global_ncit_summary(queue: &JobQueue) -> AnalyticsSummaryResponse`:
 
   - build `MeshJobDescriptor { job_type: AnalyticsQuery, parameters: { "query_type": "ncit_summary" } }`,
   - dispatch to all online nodes,
   - aggregate `rows` by `(ncit_id, preferred_name, mapping_state, time_bucket)`.
 
-- [ ] Implement `federated_eval(queue: &JobQueue, dataset: &str) -> FederatedEvalReport`:
+- [x] Implement `federated_eval(queue: &JobQueue, dataset: &str) -> FederatedEvalReport`:
 
   - dispatch `MeshJobType::EvalDataset` to all nodes,
   - aggregate `EvalSummary` metrics (weighted by `total_cases`) into a federated view,
   - include per-node metrics for debugging.
 
-- [ ] Define `FederatedEvalReport` in `refractive_swan_contracts` or hub DTO module.
+- [x] Define `FederatedEvalReport` in `refractive_swan_contracts` or hub DTO module.
 
 ---
 
