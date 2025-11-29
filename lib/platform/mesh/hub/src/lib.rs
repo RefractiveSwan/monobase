@@ -225,4 +225,122 @@ impl JobQueue {
     pub fn registry(&self) -> std::sync::Arc<Mutex<NodeRegistry>> {
         self.registry.clone()
     }
+
+    pub fn http_client(&self) -> reqwest::Client {
+        self.client.clone()
+    }
+}
+
+/// Register a node that proactively advertises its capabilities.
+pub async fn register_node(
+    registry: &Mutex<NodeRegistry>,
+    capabilities: NodeCapabilities,
+    url: Url,
+) {
+    let meta = NodeMetadata {
+        node_id: capabilities.node_id.clone(),
+        url,
+        capabilities,
+        last_seen_ms: Some(now_ms()),
+        status: NodeStatus::Online,
+    };
+    let mut guard = registry.lock().await;
+    guard.upsert(meta);
+}
+
+/// Health check nodes and update registry status/stats.
+pub async fn health_check_nodes(queue: &JobQueue) {
+    let nodes = {
+        let reg = queue.registry.lock().await;
+        reg.all()
+    };
+    let client = queue.http_client();
+    let registry = queue.registry();
+    let mut stream = futures_util::stream::iter(nodes.into_iter().map(|node| {
+        let client = client.clone();
+        let registry = registry.clone();
+        async move {
+            let health_url = match node.url.join("mesh/health") {
+                Ok(url) => url,
+                Err(err) => {
+                    let mut reg = registry.lock().await;
+                    reg.record_failure(&node.node_id, err.to_string());
+                    reg.upsert(NodeMetadata {
+                        status: NodeStatus::Offline,
+                        ..node
+                    });
+                    return;
+                }
+            };
+            let resp = client.get(health_url).send().await;
+            let mut reg = registry.lock().await;
+            match resp {
+                Ok(ok) if ok.status().is_success() => {
+                    reg.record_success(&node.node_id);
+                    reg.upsert(NodeMetadata {
+                        status: NodeStatus::Online,
+                        last_seen_ms: Some(now_ms()),
+                        ..node
+                    });
+                }
+                Ok(failed) => {
+                    reg.record_failure(&node.node_id, failed.status().to_string());
+                    reg.upsert(NodeMetadata {
+                        status: NodeStatus::Offline,
+                        ..node
+                    });
+                }
+                Err(err) => {
+                    reg.record_failure(&node.node_id, err.to_string());
+                    reg.upsert(NodeMetadata {
+                        status: NodeStatus::Offline,
+                        ..node
+                    });
+                }
+            }
+        }
+    }))
+    .buffer_unordered(queue.concurrency);
+
+    while let Some(_) = stream.next().await {}
+}
+
+fn now_ms() -> u128 {
+    use std::time::SystemTime;
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+}
+
+/// Minimal hub runtime wrapper around config/registry/queue.
+#[derive(Clone)]
+pub struct HubRuntime {
+    pub config: HubConfig,
+    pub queue: JobQueue,
+}
+
+impl HubRuntime {
+    pub fn new(config: HubConfig, registry: NodeRegistry) -> Self {
+        let queue = JobQueue::new(registry, config.timeout_secs);
+        Self { config, queue }
+    }
+
+    pub async fn list_nodes(&self) -> Vec<NodeMetadata> {
+        let reg = self.queue.registry.lock().await;
+        reg.all()
+    }
+
+    pub async fn global_ncit_summary(
+        &self,
+    ) -> Result<refractive_swan_contracts::AnalyticsSummaryResponse, HubError> {
+        crate::analytics::global_ncit_summary(&self.queue).await
+    }
+
+    pub async fn federated_eval(
+        &self,
+        dataset: &str,
+    ) -> Result<refractive_swan_contracts::FederatedEvalSummary, HubError> {
+        crate::eval::federated_eval(&self.queue, dataset).await
+    }
 }
