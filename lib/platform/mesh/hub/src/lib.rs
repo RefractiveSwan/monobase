@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use refractive_swan_mesh_dto::{MeshJobDescriptor, MeshJobResult, MeshNodeId, NodeCapabilities};
+use refractive_swan_configuration::load_env;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HubConfig {
@@ -16,6 +17,8 @@ pub struct HubConfig {
 
 impl HubConfig {
     pub fn from_env() -> Self {
+        // Best-effort load of namespaced env; non-strict so hub can start with defaults.
+        let _ = load_env("platform.mesh.hub");
         let hub_id = std::env::var("refractive_swan_HUB_ID").unwrap_or_else(|_| "hub-local".into());
         let base_url = std::env::var("refractive_swan_HUB_BASE_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:8080".into());
@@ -130,7 +133,9 @@ impl JobQueue {
                         output: None,
                         error: Some(refractive_swan_mesh_dto::MeshError {
                             kind: refractive_swan_mesh_dto::MeshErrorKind::NodeUnavailable,
-                            code: refractive_swan_mesh_dto::MeshErrorCode::new("hub_dispatch_error"),
+                            code: refractive_swan_mesh_dto::MeshErrorCode::new(
+                                "hub_dispatch_error",
+                            ),
                             message: err.to_string(),
                             context: None,
                         }),

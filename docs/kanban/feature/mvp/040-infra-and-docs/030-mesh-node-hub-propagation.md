@@ -159,29 +159,29 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P0.2 — Domain helpers for mesh jobs (eval + analytics)
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/domain/meta/pipeline/src/lib.rs`, `lib/domain/meta/evaluation/src/lib.rs`, `lib/platform/data/data-plane/mart/src/lib.rs`
 
 **Tasks**
 
-- [ ] Add or document helpers:
+- [x] Add or document helpers:
 
   - `run_eval_dataset_with_pipeline(store: &FileDatasetStore, dataset: &str, pipeline: &dyn PipelinePort) -> EvalRunResponse`.
   - `node_ncit_summary(datamart: &dyn DatamartSink) -> AnalyticsSummaryResponse`.
   - `node_cohort(datamart: &dyn DatamartSink, filters: CohortFilters) -> CohortResponse`.
 
-- [ ] Make these the **canonical building blocks** used in node mesh job execution.
+- [x] Make these the **canonical building blocks** used in node mesh job execution.
 
 ---
 
 #### P0.3 — Terminology & mapping observability for federated reports
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/domain/ontologies/mapping`, `lib/domain/ontologies/terminology`, `lib/domain/meta/evaluation`
 
 **Tasks**
 
-- [ ] Confirm `MappingSummary` and `EvalSummary` capture:
+- [x] Confirm `MappingSummary` and `EvalSummary` capture:
 
   - distribution by `CodeKind` (`KnownLicensedSystem`, `KnownOpenSystem`, `OboBacked`, etc.),
   - distribution by license tier (`licensed`, `open`, `internal_only`).
@@ -192,7 +192,7 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P0.4 — Config, compliance, observability baselines
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:**  
   - `lib/platform/meta/configuration`  
   - `lib/platform/meta/compliance`  
@@ -200,7 +200,7 @@ We want a **concrete node/hub propagation system** such that:
 
 **Tasks**
 
-- [ ] Standardize env/profile loading usage:
+- [x] Standardize env/profile loading usage:
 
   - Nodes: `load_env("app.web.api")` -> `ApiConfig::from_env()` -> `NodePlaneConfig::from_env("app.web.api")`.
   - Hub: `load_env("platform.mesh.hub")` -> `HubConfig::from_env("platform.mesh.hub")`.
@@ -210,7 +210,7 @@ We want a **concrete node/hub propagation system** such that:
 
 - [ ] Ensure (with tests) `NodeDataPlane` and hub runtime each receive a **pre-built** `Policy`:
   - no domain crate calls `load_policy_from_env` directly.
-- [ ] Ensure (with tests) all mesh endpoints use `PipelineMetrics` + `metrics_snapshot_json` for `/metrics/summary`, `/mesh/health`, `/hub/nodes/:id` views.
+- [x] Ensure (with tests) all mesh endpoints use `PipelineMetrics` + `metrics_snapshot_json` for `/metrics/summary`, `/mesh/health`, `/hub/nodes/:id` views.
 
 ---
 

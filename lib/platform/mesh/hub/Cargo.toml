@@ -12,6 +12,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror.workspace = true
 futures-util.workspace = true
+refractive_swan_configuration = { path = "../../meta/configuration" }
 
 [lib]
 path = "src/lib.rs"
