@@ -34,12 +34,27 @@ impl HubConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NodeStatus {
+    Unknown,
+    Online,
+    Offline,
+}
+
+impl Default for NodeStatus {
+    fn default() -> Self {
+        NodeStatus::Unknown
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct NodeMetadata {
     pub node_id: MeshNodeId,
     pub url: Url,
     pub capabilities: NodeCapabilities,
     pub last_seen_ms: Option<u128>,
+    pub status: NodeStatus,
 }
 
 #[derive(Debug, Default, Clone)]

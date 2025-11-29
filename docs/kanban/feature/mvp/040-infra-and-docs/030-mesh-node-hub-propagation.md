@@ -358,26 +358,26 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P2.1 — Scaffold `refractive_swan_mesh_hub` crate
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/`
 
 **Tasks**
 
-- [ ] Add `Cargo.toml` for `refractive_swan_mesh_hub` with deps:
+- [x] Add `Cargo.toml` for `refractive_swan_mesh_hub` with deps:
 
   - `refractive_swan_contracts` (mesh, analytics, eval),
   - `refractive_swan_mesh_governance` (when implemented),
   - `reqwest`, `tokio`, `serde`, `thiserror`.
 
-- [ ] Implement `HubConfig::from_env("platform.mesh.hub")`:
+- [x] Implement `HubConfig::from_env("platform.mesh.hub")`:
 
   - `hub_id`,
   - HTTP timeout/backoff/concurrency settings,
   - optional discovery config.
 
-- [ ] Implement `NodeRegistry`:
+- [x] Implement `NodeRegistry`:
 
-  - `NodeMetadata` = `MeshNodeId`, `url`, `NodeCapabilities`, `last_seen`, `NodeStatus`, stats.
+  - `NodeMetadata` = `MeshNodeId`, `url`, `NodeCapabilities`, `last_seen`, `NodeStatus`, stats (status defaulted; basic registry in place).
 
 ---
 
