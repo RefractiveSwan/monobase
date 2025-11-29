@@ -354,3 +354,99 @@ impl HubRuntime {
         crate::eval::federated_eval(&self.queue, dataset).await
     }
 }
+
+#[cfg(all(test, feature = "test-util"))]
+mod tests {
+    use super::*;
+    use httpmock::MockServer;
+    use reqwest::Url;
+
+    fn registry_with_node(server: &MockServer, path: &str) -> NodeRegistry {
+        let mut reg = NodeRegistry::default();
+        let capabilities = NodeCapabilities {
+            node_id: MeshNodeId("node-a".into()),
+            vector_backend: "mock".into(),
+            warehouse_backend: "sqlite".into(),
+            compliance_mode: "open".into(),
+            max_dataset_size: 10,
+            tags: vec!["dev".into()],
+        };
+        reg.upsert(NodeMetadata {
+            node_id: capabilities.node_id.clone(),
+            url: Url::parse(&format!("{}{}", server.base_url(), path)).unwrap(),
+            capabilities,
+            last_seen_ms: None,
+            status: NodeStatus::Unknown,
+        });
+        reg
+    }
+
+    #[tokio::test]
+    async fn register_node_inserts_metadata() {
+        let registry = Mutex::new(NodeRegistry::default());
+        let caps = NodeCapabilities {
+            node_id: MeshNodeId("node-reg".into()),
+            vector_backend: "mock".into(),
+            warehouse_backend: "sqlite".into(),
+            compliance_mode: "open".into(),
+            max_dataset_size: 1,
+            tags: vec![],
+        };
+        let url = Url::parse("http://localhost:8080").unwrap();
+        register_node(&registry, caps.clone(), url.clone()).await;
+        let guard = registry.lock().await;
+        let meta = guard.get(&caps.node_id).expect("node present");
+        assert_eq!(meta.node_id, caps.node_id);
+        assert_eq!(meta.url, url);
+        assert_eq!(meta.status, NodeStatus::Online);
+    }
+
+    #[tokio::test]
+    async fn health_check_nodes_marks_online_and_offline() {
+        let server = MockServer::start();
+        let _health_ok = server.mock(|when, then| {
+            when.path("/ok/mesh/health");
+            then.status(200);
+        });
+        let _health_fail = server.mock(|when, then| {
+            when.path("/fail/mesh/health");
+            then.status(500);
+        });
+
+        let mut reg = NodeRegistry::default();
+        let base_caps = NodeCapabilities {
+            node_id: MeshNodeId("node-a".into()),
+            vector_backend: "mock".into(),
+            warehouse_backend: "sqlite".into(),
+            compliance_mode: "open".into(),
+            max_dataset_size: 10,
+            tags: vec![],
+        };
+        reg.upsert(NodeMetadata {
+            node_id: base_caps.node_id.clone(),
+            url: Url::parse(&format!("{}/ok/", server.base_url())).unwrap(),
+            capabilities: base_caps.clone(),
+            last_seen_ms: None,
+            status: NodeStatus::Unknown,
+        });
+        reg.upsert(NodeMetadata {
+            node_id: MeshNodeId("node-b".into()),
+            url: Url::parse(&format!("{}/fail/", server.base_url())).unwrap(),
+            capabilities: base_caps.clone(),
+            last_seen_ms: None,
+            status: NodeStatus::Unknown,
+        });
+
+        let queue = JobQueue::new(reg, 5);
+        health_check_nodes(&queue).await;
+        let guard = queue.registry.lock().await;
+        let node_a = guard.get(&MeshNodeId("node-a".into())).unwrap();
+        let node_b = guard.get(&MeshNodeId("node-b".into())).unwrap();
+        assert_eq!(node_a.status, NodeStatus::Online);
+        assert_eq!(node_b.status, NodeStatus::Offline);
+        let stats_a = guard.stats(&node_a.node_id).unwrap();
+        let stats_b = guard.stats(&node_b.node_id).unwrap();
+        assert!(stats_a.successes >= 1);
+        assert!(stats_b.failures >= 1);
+    }
+}
