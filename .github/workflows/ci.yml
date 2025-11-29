@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      - dev
+      - nightly
+      - canary
+      - stage
+      - test
       - feature/**
   pull_request:
 
@@ -25,3 +30,19 @@ jobs:
 
       - name: Cargo test
         run: cargo test --workspace
+
+  heavy-tests:
+    if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/dev') || startsWith(github.ref, 'refs/heads/nightly') || startsWith(github.ref, 'refs/heads/canary') || startsWith(github.ref, 'refs/heads/stage') || startsWith(github.ref, 'refs/heads/test')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cargo clippy (heavy)
+        run: cargo clippy --workspace --all-targets --features heavy-tests -- -D warnings
+
+      - name: Cargo test (heavy)
+        run: cargo test --workspace --features heavy-tests

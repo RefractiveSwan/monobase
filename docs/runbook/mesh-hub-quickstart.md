@@ -375,3 +375,15 @@ kubectl expose deployment mesh-hub --type=LoadBalancer --port=9000
 - **Governance**: `lib/platform/mesh/governance/README.md`
 - **Mesh Contracts**: `lib/domain/contracts/src/mesh.rs`
 - **Schemas**: Generate/update mesh schemas via `cargo run -p refractive_swan_contracts --bin contracts-schema` (outputs to `ci/contracts`, including `mesh_job_descriptor/result`, `mapping_health_check_report`, `export_job_summary`, `node_introspection_view`).
+
+---
+
+## Testing notes
+
+- Slow/strenuous cases (e.g., large OBO cache eviction, CLI contract streaming) are gated behind the `heavy-tests` feature. Enable with:
+
+```bash
+cargo test --all --features heavy-tests
+```
+
+- Default CI/local runs skip these to keep turn-around fast; use the flag before releases or when touching cache/CLI surfaces.

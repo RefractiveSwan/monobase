@@ -10,18 +10,19 @@ use refractive_swan_compliance::{ComplianceAction, Policy};
 use refractive_swan_contracts::MeshJobDescriptor;
 use refractive_swan_contracts::eval::EvalRunResponse;
 use refractive_swan_contracts::{
-    MeshError, MeshErrorCode, MeshErrorKind, MeshJobResult, MeshJobStatus, MeshJobType,
+    ExportJobSummary, MeshError, MeshErrorCode, MeshErrorKind, MeshJobResult, MeshJobStatus,
+    MeshJobType, NodeIntrospectionView,
 };
 use refractive_swan_datamart::{DatamartSink, SqliteDatamart, WarehouseConfig};
 use refractive_swan_datamart_port::CohortFilters;
+use refractive_swan_eval::DatasetStore;
 use refractive_swan_eval::fake_data::fixtures::{self, Registry};
-use refractive_swan_eval::{DatasetStore, run_eval_with_mapper};
-use refractive_swan_mapping::map_staging_codes_with_summary_and_policy;
 use refractive_swan_mesh_dto::{MeshNodeId, NodeCapabilities};
 use refractive_swan_observability::PipelineMetrics;
 use refractive_swan_observability::metrics_snapshot_json;
 use refractive_swan_pipeline::{
     DefaultPipeline, PipelinePort, PipelineRunConfig, VectorPipelineContext,
+    run_eval_dataset_with_pipeline,
 };
 use refractive_swan_vector_port::VectorBackend;
 use refractive_swan_vector_store::VectorStoreConfig;
@@ -218,25 +219,23 @@ impl NodeDataPlane {
                 "dataset parameter is required".into(),
             )
         })?;
-        let cases = self.dataset_store.load_dataset(&dataset).map_err(|err| {
+        let outcome = run_eval_dataset_with_pipeline(
+            self.dataset_store.as_ref(),
+            &dataset,
+            self.vector_context.as_ref(),
+        )
+        .map_err(|err| {
             MeshError::new(
                 MeshErrorKind::Internal,
-                MeshErrorCode::new("internal:load_dataset"),
+                MeshErrorCode::new("internal:eval_dataset"),
                 err.to_string(),
             )
         })?;
 
-        let summary = run_eval_with_mapper(&cases, |rows| self.map_eval_rows(&rows));
-        let manifest = self
-            .dataset_store
-            .list_manifests()
-            .ok()
-            .and_then(|manifests| manifests.into_iter().find(|m| m.name == dataset));
-
         let response = EvalRunResponse {
-            dataset,
-            manifest,
-            summary,
+            dataset: outcome.dataset,
+            manifest: Some(outcome.manifest),
+            summary: outcome.summary,
         };
 
         let metrics = self.metrics_snapshot_json().await;
@@ -249,15 +248,6 @@ impl NodeDataPlane {
         })
     }
 
-    fn map_eval_rows(
-        &self,
-        rows: &[refractive_swan_core::staging::StgSrCodeExploded],
-    ) -> Vec<refractive_swan_core::mapping::MappingResult> {
-        let (results, _, _) =
-            map_staging_codes_with_summary_and_policy(rows.to_vec(), &self.policy);
-        results
-    }
-
     async fn run_analytics_job(&self, job: &MeshJobDescriptor) -> Result<MeshJobResult, MeshError> {
         let query_type = job
             .parameters
@@ -267,25 +257,30 @@ impl NodeDataPlane {
 
         let output = match query_type {
             "ncit_summary" => {
-                let summary = self.datamart.ncit_summary().await.map_err(|err| {
-                    MeshError::new(
-                        MeshErrorKind::Internal,
-                        MeshErrorCode::new("internal:ncit_summary"),
-                        err.to_string(),
-                    )
-                })?;
+                let summary = refractive_swan_datamart::node_ncit_summary(self.datamart.as_ref())
+                    .await
+                    .map_err(|err| {
+                        MeshError::new(
+                            MeshErrorKind::Internal,
+                            MeshErrorCode::new("internal:ncit_summary"),
+                            err.to_string(),
+                        )
+                    })?;
                 serde_json::to_value(summary).expect("serialize summary")
             }
             "cohort" => {
                 let filters: CohortFilters =
                     serde_json::from_value(job.parameters.clone()).unwrap_or_default();
-                let cohort = self.datamart.cohort(&filters).await.map_err(|err| {
-                    MeshError::new(
-                        MeshErrorKind::Internal,
-                        MeshErrorCode::new("internal:cohort"),
-                        err.to_string(),
-                    )
-                })?;
+                let cohort =
+                    refractive_swan_datamart::node_cohort(self.datamart.as_ref(), &filters)
+                        .await
+                        .map_err(|err| {
+                            MeshError::new(
+                                MeshErrorKind::Internal,
+                                MeshErrorCode::new("internal:cohort"),
+                                err.to_string(),
+                            )
+                        })?;
                 serde_json::to_value(cohort).expect("serialize cohort")
             }
             other => {
@@ -353,20 +348,11 @@ impl NodeDataPlane {
         }
         drop(metrics_handle);
 
-        let persist = self
+        let _persist = self
             .datamart
             .persist(&execution.output, &self.policy)
             .await
             .ok();
-
-        let current_metrics = {
-            let guard = self.metrics.lock().await;
-            guard.clone()
-        };
-        let vector_latency_ms_p95 = metrics_snapshot_json(&current_metrics)
-            .get("metrics")
-            .and_then(|m| m.get("vector_latency_ms_p95"))
-            .cloned();
         let vector_health = match self.vector_context.as_ref() {
             Some(ctx) => {
                 let status = ctx.health().map(|_| "ok").unwrap_or("error");
@@ -377,20 +363,6 @@ impl NodeDataPlane {
                 })
             }
             None => json!({ "status": "disabled", "backend": "disabled" }),
-        };
-        let datamart_health = match (&self.datamart_config, persist.as_ref()) {
-            (None, _) => json!({ "status": "disabled" }),
-            (_, Some(summary)) => json!({
-                "status": "ok",
-                "patients": summary.patients,
-                "encounters": summary.encounters,
-                "codes": summary.codes,
-                "ncit": summary.ncit,
-                "facts": summary.facts
-            }),
-            (Some(_), None) => {
-                json!({ "status": "error", "message": "datamart persist failed or disabled" })
-            }
         };
         let warehouse_health = match self.datamart.ncit_summary().await {
             Ok(_) => json!({ "status": "ok" }),
@@ -404,10 +376,8 @@ impl NodeDataPlane {
             "vector_backend": self.vector_backend_label(),
             "warehouse_backend": self.warehouse_backend_label(),
             "vector_health": vector_health,
-            "vector_latency_ms_p95": vector_latency_ms_p95,
-            "datamart_persisted": persist.is_some(),
-            "datamart_summary": datamart_health,
             "warehouse_health": warehouse_health,
+            "datamart_persisted": _persist.is_some(),
             "auto_mapped": counts.auto_mapped,
             "needs_review": counts.needs_review,
             "no_match": counts.no_match,
@@ -435,39 +405,39 @@ impl NodeDataPlane {
                 ),
             );
         }
-        let summary = match self.datamart.ncit_summary().await {
-            Ok(summary) => summary,
-            Err(err) => {
-                return self.failure(
-                    job,
-                    MeshError::new(
-                        MeshErrorKind::Internal,
-                        MeshErrorCode::new("internal:export_summary"),
-                        err.to_string(),
-                    ),
-                );
-            }
+        let summary = ExportJobSummary {
+            export: "ncit_summary".into(),
+            load_summary: refractive_swan_contracts::LoadSummary::default(),
+            dp_epsilon_used: None,
         };
         let metrics = self.metrics_snapshot_json().await;
         MeshJobResult {
             job_id: job.job_id.clone(),
             status: MeshJobStatus::Success,
             metrics: Some(metrics),
-            output: Some(json!({
-                "export": "ncit_summary",
-                "summary": summary,
-            })),
+            output: Some(serde_json::to_value(summary).expect("serialize export summary")),
             error: None,
         }
     }
 
     async fn node_introspection(&self, job: &MeshJobDescriptor) -> MeshJobResult {
         let metrics = self.metrics_snapshot_json().await;
-        let datasets = self.dataset_store.list_manifests().unwrap_or_default();
-        let output = json!({
-            "capabilities": self.capabilities(""),
-            "datasets": datasets,
-        });
+        let datasets = self
+            .dataset_store
+            .list_manifests()
+            .unwrap_or_default()
+            .into_iter()
+            .map(|m| m.name)
+            .collect();
+        let output = serde_json::to_value(NodeIntrospectionView {
+            metrics: metrics.clone(),
+            vector_usage: self.vector_context.as_ref().map(|ctx| {
+                json!({ "backend": self.vector_backend_label(), "namespace": ctx.namespace() })
+            }),
+            datasets,
+            features: self.tags.clone(),
+        })
+        .unwrap_or_else(|_| metrics.clone());
         MeshJobResult {
             job_id: job.job_id.clone(),
             status: MeshJobStatus::Success,
@@ -500,6 +470,31 @@ impl NodeDataPlane {
     async fn metrics_snapshot_json(&self) -> Value {
         let metrics = self.metrics.lock().await.clone();
         metrics_snapshot_json(&metrics)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use refractive_swan_compliance::ComplianceMode;
+    use std::fs;
+
+    #[test]
+    fn plane_respects_prebuilt_policy_in_config() {
+        let temp_root = std::env::temp_dir().join("mesh-node-policy-test");
+        let _ = fs::create_dir_all(&temp_root);
+        let policy = Policy::default_for_mode(ComplianceMode::OpenSource);
+        let config = NodePlaneConfig {
+            node_id: MeshNodeId::from_string("node-test".into()),
+            policy: policy.clone(),
+            dataset_store: refractive_swan_eval::FileDatasetStore::new(&temp_root),
+            datamart: None,
+            vector: None,
+            max_dataset_size: 1,
+            tags: vec![],
+        };
+        let plane = NodeDataPlane::from_config(config);
+        assert_eq!(plane.policy.mode, policy.mode);
     }
 }
 

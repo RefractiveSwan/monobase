@@ -9,6 +9,8 @@ refractive_swan_eval = { path = "../evaluation" }
 refractive_swan_ingestion = { path = "../ingestion" }
 refractive_swan_pipeline = { path = "../pipeline" }
 refractive_swan_observability = { path = "../../../platform/meta/observability" }
+refractive_swan_mapping = { path = "../../ontologies/mapping" }
+refractive_swan_terminology = { path = "../../ontologies/terminology" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = { version = "0.8.21", features = ["derive"] }

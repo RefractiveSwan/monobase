@@ -211,6 +211,7 @@ We want a **concrete node/hub propagation system** such that:
 - [ ] Ensure (with tests) `NodeDataPlane` and hub runtime each receive a **pre-built** `Policy`:
   - no domain crate calls `load_policy_from_env` directly.
 - [x] Ensure (with tests) all mesh endpoints use `PipelineMetrics` + `metrics_snapshot_json` for `/metrics/summary`, `/mesh/health`, `/hub/nodes/:id` views.
+- [ ] Document `heavy-tests` toggle for slow mesh/CLI tests and align CI usage.
 
 ---
 
@@ -544,6 +545,7 @@ We want a **concrete node/hub propagation system** such that:
 
   - skip nodes that fail hub policy before HTTP calls,
   - mark per-node `MeshJobResult.error` when the hub denies dispatch.
+- [ ] Ensure hub runtime accepts an injected pre-built `Policy`/`NodePolicy` (no env loading inside the hub crate) and add a unit test mirroring the node plane policy coverage.
 
 ---
 
