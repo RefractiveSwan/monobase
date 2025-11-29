@@ -2,7 +2,7 @@
 
 **Path:** `code/docs/system-design/mesh/node-runtime.md`  
 **Scope:** `refractive_swan_mesh_node` architecture and `NodeDataPlane` design  
-**Tracking:** MESH-025 (feature/mesh-data-plane)
+**Tracking:** MESH-025 (feature/mesh-data-plane), MESH-030 (mesh node/hub propagation)
 
 This document describes the design of the **mesh node runtime** (`refractive_swan_mesh_node`), the core component that wires together the domain, platform/data, and platform/store layers into a cohesive node deployment. The `NodeDataPlane` type now lives in `lib/platform/mesh/node/src/plane.rs` so HTTP adapters can depend on it directly.
 
@@ -18,7 +18,7 @@ A **mesh node** is a sovereign deployment unit that:
 4. **Enforces governance policies** (`refractive_swan_compliance`, `refractive_swan_mesh_governance`)
 5. **Reports capabilities** to the mesh hub (if part of a federated deployment)
 
-The `NodeDataPlane` struct is the central orchestration point that binds these components.
+The `NodeDataPlane` struct is the central orchestration point that binds these components and now powers the mesh endpoints exposed by `refractive_swan_api` (`/mesh/health`, `/mesh/capabilities`, `/mesh/governance`).
 
 > Mesh-specific DTOs (node IDs, job descriptors/results) come from the
 > `refractive_swan_mesh_dto` veneer so node/hub runtimes depend on a curated surface rather
@@ -33,48 +33,44 @@ The `NodeDataPlane` struct is the central orchestration point that binds these c
 ```rust
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use refractive_swan_pipeline::PipelinePort;
-use refractive_swan_datamart::DatamartSink;
-use refractive_swan_relational_store::RelationalConfig;
-use refractive_swan_vector_port::VectorStore;
+use refractive_swan_pipeline::{PipelinePort, VectorPipelineContext};
+use refractive_swan_datamart::{DatamartSink, WarehouseConfig};
+use refractive_swan_vector_store::VectorStoreConfig;
 use refractive_swan_compliance::Policy;
 use refractive_swan_eval::DatasetStore;
 use refractive_swan_observability::PipelineMetrics;
-use refractive_swan_mesh_dto::MeshNodeId;
+use refractive_swan_mesh_dto::{MeshNodeId, NodeCapabilities};
 
 pub struct NodeDataPlane {
-    /// Node identity
     pub node_id: MeshNodeId,
-    
-    /// Pipeline orchestration (mapping engine + stages)
-    pub pipeline: Arc<dyn PipelinePort + Send + Sync>,
-    
-    /// Datamart sink (warehouse persistence)
-    pub datamart: Arc<dyn DatamartSink + Send + Sync>,
-    
-    /// Relational store configuration
-    pub relational_cfg: RelationalConfig,
-    
-    /// Vector runtime (implements refractive_swan_vector_port::VectorStore)
-    pub vector_runtime: Arc<dyn VectorStore + Send + Sync>,
-    
-    /// Compliance policy (DP, export licensing, etc.)
-    pub compliance_policy: Policy,
-    
-    /// Dataset store for eval harness
+    pub policy: Policy,
+    pub vector_context: Option<VectorPipelineContext>,
+    pub vector_config: Option<VectorStoreConfig>,
     pub dataset_store: Arc<dyn DatasetStore + Send + Sync>,
-    
-    /// Metrics collector
     pub metrics: Arc<Mutex<PipelineMetrics>>,
+    pub pipeline: Arc<dyn PipelinePort + Send + Sync>,
+    pub datamart: Arc<dyn DatamartSink + Send + Sync>,
+    pub datamart_config: Option<WarehouseConfig>,
+    pub max_dataset_size: u64,
+    pub tags: Vec<String>,
 }
 ```
 
 ### Design Rationale
 
-- **Trait-based dependencies**: All major components use traits (`PipelinePort`, `DatamartSink`, `VectorStore`, `DatasetStore`) for testability and backend flexibility.
-- **Arc wrapping**: Components are `Arc`-wrapped for HTTP handler sharing (Axum/HTTP frameworks clone state).
-- **Mutex for metrics**: Metrics are mutable state, requiring interior mutability.
-- **Node ID**: Each node has a unique identifier for mesh coordination.
+- **Trait-based dependencies**: Pipeline/datamart/vector/dataset handles are trait objects so HTTP adapters stay thin and mocks remain easy to inject in tests.
+- **Arc wrapping**: Components are `Arc`-wrapped for HTTP handler sharing (Axum clones state per request).
+- **Metrics with mesh context**: `PipelineMetrics` is pre-seeded with `mesh_node_id` + `compliance_mode` so `/metrics/summary` and `/mesh/health` can emit tagged snapshots.
+- **Config surface preserved**: `vector_config`, `datamart_config`, `max_dataset_size`, and `tags` are stored alongside live handles to power `NodeCapabilities`.
+- **Deterministic identity**: `node_id` can be set via env (`refractive_swan_MESH_NODE_ID`) or `NodePlaneConfig::from_env_with_node_id` for multi-node tests.
+
+### NodePlaneConfig env seams
+
+- Namespace: `app.web.api` (loaded via `refractive_swan_configuration::load_env`).
+- Mesh identity/capacity: `refractive_swan_MESH_NODE_ID`, `refractive_swan_MESH_NODE_TAGS` (CSV), `refractive_swan_MESH_MAX_DATASET_SIZE`.
+- Compliance: loaded once via `refractive_swan_compliance::ComplianceConfig::from_env`.
+- Vector: `refractive_swan_VECTOR_*` → `VectorStoreConfig` (optional/disabled when `refractive_swan_VECTOR_ENABLED` is false).
+- Datamart: `refractive_swan_WAREHOUSE_URL` (optional; disabled when missing).
 
 ---
 
@@ -82,140 +78,16 @@ pub struct NodeDataPlane {
 
 ### 1. Run Mapping Jobs
 
-```rust
-impl NodeDataPlane {
-    pub async fn run_mapping_job(
-        &self,
-        bundles: &[Bundle],
-    ) -> Result<PipelineOutput, NodeError> {
-        // Run pipeline
-        let output = self.pipeline.run(bundles).await?;
-        
-        // Persist to warehouse (if enabled)
-        if let Ok(summary) = self.datamart.persist(&output).await {
-            tracing::info!("Persisted {} rows to warehouse", summary.rows_inserted);
-        }
-        
-        // Update metrics
-        {
-            let mut metrics = self.metrics.lock().await;
-            metrics.record_pipeline_run(&output);
-        }
-        
-        Ok(output)
-    }
-}
-```
+## Responsibilities
 
-**Inputs**: FHIR ServiceRequest bundles  
-**Outputs**: `PipelineOutput` (mapped codes, confidence scores, etc.)  
-**Side effects**: Warehouse persistence, metrics updates
-
-### 2. Run Analytics Jobs
-
-```rust
-impl NodeDataPlane {
-    pub async fn run_analytics_job(
-        &self,
-        query: AnalyticsQuery,
-    ) -> Result<serde_json::Value, NodeError> {
-        match query {
-            AnalyticsQuery::NcitSummary(filters) => {
-                let response = self.datamart.ncit_summary(&filters).await?;
-                Ok(serde_json::to_value(response)?)
-            }
-            AnalyticsQuery::Cohort(query) => {
-                let response = self.datamart.cohort(&query).await?;
-                Ok(serde_json::to_value(response)?)
-            }
-        }
-    }
-}
-```
-
-**Inputs**: Analytics query descriptor  
-**Outputs**: JSON response (from `refractive_swan_contracts::analytics`)
-
-### 3. Run Eval Jobs
-
-```rust
-impl NodeDataPlane {
-    pub async fn run_eval_job(
-        &self,
-        request: EvalRunRequest,
-    ) -> Result<EvalRunResponse, NodeError> {
-        use refractive_swan_eval::run_eval_with_mapper;
-        
-        // Load dataset
-        let dataset = self.dataset_store.load(&request.dataset_name).await?;
-        
-        // Run eval
-        let report = run_eval_with_mapper(
-            &dataset,
-            &*self.pipeline,
-            request.top_k,
-        ).await?;
-        
-        Ok(EvalRunResponse {
-            dataset_name: request.dataset_name,
-            metrics: report.metrics,
-            calibration: report.calibration,
-        })
-    }
-}
-```
-
-**Inputs**: Eval dataset name, top-k parameter  
-**Outputs**: `EvalRunResponse` (metrics, calibration buckets)
-
-### 4. Enforce Governance
-
-```rust
-impl NodeDataPlane {
-    pub async fn run_job_with_governance(
-        &self,
-        job: &MeshJobDescriptor,
-    ) -> Result<MeshJobResult, NodeError> {
-        use refractive_swan_mesh_governance::GovernanceEngine;
-        
-        // Check if job is allowed
-        let decision = self.governance.evaluate(job, &self.compliance_policy)?;
-        
-        match decision {
-            GovernanceDecision::Allow => {
-                // Execute job
-                let output = match job.job_type {
-                    MeshJobType::EvalDataset => self.run_eval_job(&job.parameters).await?,
-                    MeshJobType::AnalyticsQuery => self.run_analytics_job(&job.parameters).await?,
-                    // ...
-                };
-                
-                Ok(MeshJobResult {
-                    job_id: job.job_id.clone(),
-                    status: MeshJobStatus::Success,
-                    output: Some(output),
-                    error: None,
-                })
-            }
-            GovernanceDecision::Deny(reason) => {
-                Ok(MeshJobResult {
-                    job_id: job.job_id.clone(),
-                    status: MeshJobStatus::Denied,
-                    output: None,
-                    error: Some(MeshError::new(
-                        MeshErrorKind::PolicyDenied,
-                        MeshErrorCode::new("governance_denied"),
-                        reason,
-                    )),
-                })
-            }
-        }
-    }
-}
-```
-
-**Inputs**: `MeshJobDescriptor` (from hub or direct API call)  
-**Outputs**: `MeshJobResult` (success/denied/failed)
+- **Pipeline orchestration** – HTTP controllers reuse the shared `pipeline` + `datamart` handles from the plane (persisting via `SqliteDatamart::from_optional_config` when enabled) and update the shared `metrics` handle.
+- **Mesh capabilities** – `NodeDataPlane::capabilities(&self, base_url)` returns `NodeCapabilities` (vector backend, warehouse backend, compliance mode, max dataset size, tags) for `/mesh/capabilities` and hub discovery.
+- **Health + observability** – `/metrics/summary` and `/mesh/health` expose `MetricsSnapshot` (`metrics_snapshot_json`) tagged with `mesh_node_id` and `compliance_mode`.
+- **Eval datasets** – `dataset_store` and `policy` are shared with eval handlers so dataset manifests respect the same compliance mode.
+- **Mesh jobs** – `NodeDataPlane::run_mesh_job` handles eval datasets, analytics queries, mapping health, and node introspection for `/mesh/job` (governance/export hooks will compose here once `refractive_swan_mesh_governance` lands).
+- **Governance** – `policy` is surfaced via `/mesh/governance`; DP budgets and mesh governance hooks will layer on top.
+- **Regression health** – `MappingHealthCheck` runs the regression bundle (`fhir_bundle_sr`) through the pipeline, records vector usage/latency, attempts datamart persistence, and returns state counts plus backend labels, vector health, and warehouse health.
+- **Mesh job schemas** – JSON schemas for `MeshJobDescriptor` and `MeshJobResult` live under `ci/contracts` and document per-type parameters/outputs.
 
 ---
 

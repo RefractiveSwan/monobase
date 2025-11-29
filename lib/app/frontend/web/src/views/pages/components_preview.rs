@@ -90,7 +90,7 @@ fn render_card_gallery() -> Markup {
                         (helper_text("Helper text anchors forms to requirements."))
                         div class="space-x-2" {
                             (code_badge("MappingResult"))
-                            (code_badge("PipelineMetrics"))
+                            (code_badge("MetricsSnapshot"))
                         }
                     }
                 }))

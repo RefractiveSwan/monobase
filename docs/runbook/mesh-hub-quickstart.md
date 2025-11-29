@@ -121,9 +121,11 @@ Hub periodically health-checks nodes:
 ```bash
 # Hub calls GET /mesh/health on each node
 for node in $(cat nodes.txt); do
-  curl $node/mesh/health
+curl $node/mesh/health
 done
 ```
+
+`/mesh/health` now returns a `MetricsSnapshot` tagged with the node ID, and `/mesh/capabilities` exposes `NodeCapabilities` (vector/warehouse backend, compliance mode, tags, max dataset size) for hub discovery. `POST /mesh/job` includes a `MappingHealthCheck` that runs the regression bundle, reports state counts, vector namespace, latency, and datamart persistence status. `/hub/nodes` and `/hub/nodes/:id` surface node metadata and metrics; `/hub/jobs/analytics/ncit-summary` and `/hub/jobs/eval` dispatch mesh jobs (single-node stub today).
 
 ---
 

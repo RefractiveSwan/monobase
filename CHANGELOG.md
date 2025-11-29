@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 - REFR-024 – Platform README now documents env namespaces + crate responsibilities, and `refractive_swan_test_suite` ships a `TempSqliteWarehouse` helper for temporary datamart instances.
 
 ### Changed
+- MESH-030 – “P1.1/P1.3 mesh node wiring” (checkboxes: deterministic `NodePlaneConfig::from_env_with_node_id`, `/metrics/summary` now emits `MetricsSnapshot`, new `/mesh/health` `/mesh/capabilities` `/mesh/governance` + `/mesh/job` endpoints, `MeshJobType` variants finalized, NodeDataPlane `run_mesh_job` covers eval/analytics/health/export/introspection with regression-based MappingHealthCheck output, and stub hub endpoints for `/hub/nodes`, `/hub/jobs/analytics/ncit-summary`, `/hub/jobs/eval`).
 - BE-029 – “Ensure each mesh entity reports metrics tagged with mesh_node_id so observability dashboards can pivot per node” (checkbox completed).
 - REFR-022 – “Restructure refractive_swan_core into super-domains (primitives/clinical/interop/semantics) with bridges under consumer modules” (checkbox completed).
 - REFR-022 – “Preserve legacy public API paths via lib.rs re-exports and prelude wiring” (checkbox completed).

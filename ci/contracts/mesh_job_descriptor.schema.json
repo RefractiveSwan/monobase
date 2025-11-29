@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MeshJobDescriptor",
+  "type": "object",
+  "required": ["job_id", "job_type"],
+  "properties": {
+    "job_id": { "type": "string", "description": "Unique job identifier assigned by hub/caller." },
+    "job_type": {
+      "type": "string",
+      "enum": [
+        "eval_dataset",
+        "analytics_query",
+        "mapping_health_check",
+        "export_job",
+        "node_introspection"
+      ],
+      "description": "Mesh job type."
+    },
+    "parameters": {
+      "type": ["object", "null"],
+      "description": "Type-specific parameters payload (JSON object)."
+    },
+    "governance_context": {
+      "type": ["object", "null"],
+      "description": "Optional governance payload (requester, reason, DP budgets)."
+    }
+  }
+}

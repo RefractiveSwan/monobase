@@ -246,19 +246,14 @@ impl DatasetError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum DatasetTier {
     Bronze,
     Silver,
     Gold,
+    #[default]
     Uncategorized,
-}
-
-impl Default for DatasetTier {
-    fn default() -> Self {
-        DatasetTier::Uncategorized
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

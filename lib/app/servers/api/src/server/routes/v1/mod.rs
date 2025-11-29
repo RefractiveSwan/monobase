@@ -5,7 +5,9 @@ mod analytics;
 mod datasets;
 mod eval;
 mod health;
+mod hub;
 mod mapping;
+mod mesh;
 
 use crate::server::ApiState;
 
@@ -13,6 +15,8 @@ use crate::server::ApiState;
 ///
 /// Layout:
 /// - Health/metrics: `/health`, `/metrics/summary`
+/// - Mesh: `/mesh/health`, `/mesh/capabilities`, `/mesh/governance`
+/// - Hub (stubbed): `/hub/nodes`, `/hub/nodes/:id`, `/hub/jobs/analytics/ncit-summary`, `/hub/jobs/eval`
 /// - Analytics: `/analytics/ncit-summary`, `/analytics/cohort`
 /// - Mapping: `/map-bundles`
 /// - Evaluation: `/eval/*`
@@ -21,6 +25,8 @@ use crate::server::ApiState;
 pub fn router() -> Router<ApiState> {
     Router::new()
         .merge(health::router())
+        .merge(mesh::router())
+        .merge(hub::router())
         .merge(analytics::router())
         .merge(mapping::router())
         .merge(eval::router())

@@ -50,21 +50,11 @@ pub struct PipelineExecution {
 }
 
 /// Runtime toggles for a pipeline run.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct PipelineRunConfig<'a> {
     pub validation_mode: ValidationMode,
     pub external_validation: ExternalValidationContext<'a>,
     pub mapping: MappingRunConfig,
-}
-
-impl<'a> Default for PipelineRunConfig<'a> {
-    fn default() -> Self {
-        Self {
-            validation_mode: ValidationMode::default(),
-            external_validation: ExternalValidationContext::default(),
-            mapping: MappingRunConfig::default(),
-        }
-    }
 }
 
 impl<'a> PipelineRunConfig<'a> {
@@ -88,7 +78,7 @@ impl<'a> PipelineRunConfig<'a> {
 }
 
 /// Mapping-specific configuration knobs (lexical/vector hints).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct MappingRunConfig {
     pub lexical_only: bool,
 }
@@ -103,14 +93,6 @@ impl MappingRunConfig {
     pub fn with_lexical_only(mut self, enabled: bool) -> Self {
         self.lexical_only = enabled;
         self
-    }
-}
-
-impl Default for MappingRunConfig {
-    fn default() -> Self {
-        Self {
-            lexical_only: false,
-        }
     }
 }
 
@@ -336,6 +318,21 @@ impl VectorPipelineContext {
 
     pub fn config(&self) -> &VectorStoreConfig {
         &self.config
+    }
+
+    /// Health check the underlying vector store for the configured namespace.
+    pub fn health(&self) -> Result<(), VectorStoreError> {
+        self.store.health(&self.config.namespace)
+    }
+
+    /// Namespace used for vector operations.
+    pub fn namespace(&self) -> &str {
+        &self.config.namespace
+    }
+
+    /// Backend configured for this context.
+    pub fn backend(&self) -> VectorBackend {
+        self.config.backend.clone()
     }
 }
 

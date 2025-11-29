@@ -15,7 +15,7 @@ use refractive_swan_core::{
     },
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use refractive_swan_observability::PipelineMetrics;
+use refractive_swan_observability::MetricsSnapshot;
 use refractive_swan_test_suite::{regression, scoped_env_var};
 
 use http_body_util::BodyExt;
@@ -167,12 +167,12 @@ async fn metrics_summary_tracks_processed_bundles() {
         .uri("/metrics/summary")
         .body(Body::empty())
         .expect("metrics request");
-    let (metrics_status, metrics): (StatusCode, PipelineMetrics) =
+    let (metrics_status, metrics): (StatusCode, MetricsSnapshot) =
         send_json(&app, metrics_request).await;
     assert_eq!(metrics_status, StatusCode::OK);
-    assert_eq!(metrics.bundle_count, 1);
-    assert_eq!(metrics.flats_count, 1);
-    assert!(metrics.mapping_count >= 1);
+    assert_eq!(metrics.metrics.bundle_count, 1);
+    assert_eq!(metrics.metrics.flats_count, 1);
+    assert!(metrics.metrics.mapping_count >= 1);
 
     let health_request = Request::builder()
         .method("GET")
@@ -210,8 +210,8 @@ async fn ci_smoke_server_runs_endpoints() {
         .await
         .expect("metrics response");
     assert_eq!(metrics_resp.status(), ReqwestStatusCode::OK);
-    let metrics: PipelineMetrics = metrics_resp.json().await.expect("metrics body");
-    assert!(metrics.bundle_count >= 1);
+    let metrics: MetricsSnapshot = metrics_resp.json().await.expect("metrics body");
+    assert!(metrics.metrics.bundle_count >= 1);
 
     let health_resp = client
         .get(format!("{base}/health"))

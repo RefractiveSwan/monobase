@@ -155,7 +155,7 @@ where
     I: Iterator<Item = PipelineOutput>,
 {
     let mut agg = LoadSummary::default();
-    while let Some(output) = outputs.next() {
+    for output in outputs.by_ref() {
         let chunk = load_from_pipeline_output(pool, &output, policy).await?;
         agg.accumulate(&chunk);
     }

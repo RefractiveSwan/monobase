@@ -286,10 +286,10 @@ where
         if self.map.contains_key(&key) {
             self.touch(&key);
         } else {
-            if self.map.len() >= self.capacity {
-                if let Some(oldest) = self.order.pop_front() {
-                    self.map.remove(&oldest);
-                }
+            if self.map.len() >= self.capacity
+                && let Some(oldest) = self.order.pop_front()
+            {
+                self.map.remove(&oldest);
             }
             self.order.push_back(key.clone());
         }

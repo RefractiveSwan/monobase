@@ -2615,11 +2615,13 @@ dependencies = [
  "refractive_swan_eval",
  "refractive_swan_mapping",
  "refractive_swan_mesh_dto",
+ "refractive_swan_mesh_hub",
  "refractive_swan_mesh_node",
  "refractive_swan_observability",
  "refractive_swan_pipeline",
  "refractive_swan_terminology",
  "refractive_swan_web_dto",
+ "reqwest",
  "serde",
  "serde_json",
  "sha2",
@@ -2794,19 +2796,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "refractive_swan_mesh_hub"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "refractive_swan_contracts",
+ "refractive_swan_mesh_dto",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "tokio",
+]
+
+[[package]]
 name = "refractive_swan_mesh_node"
 version = "0.1.0"
 dependencies = [
  "refractive_swan_compliance",
  "refractive_swan_configuration",
+ "refractive_swan_contracts",
+ "refractive_swan_core",
  "refractive_swan_datamart",
  "refractive_swan_datamart_port",
  "refractive_swan_eval",
+ "refractive_swan_mapping",
  "refractive_swan_mesh_dto",
  "refractive_swan_observability",
  "refractive_swan_pipeline",
  "refractive_swan_vector_port",
  "refractive_swan_vector_store",
+ "serde_json",
  "thiserror 2.0.17",
  "tokio",
 ]

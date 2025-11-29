@@ -56,11 +56,11 @@ fn render_vector_card(ctx: &PageContext) -> Markup {
         (card_body(html! {
             @if let Some(metrics) = &ctx.metrics {
                     div class="grid gap-3 text-sm" {
-                        (metric_row("Queries", metrics.vector_queries))
-                        (metric_row("Hits", metrics.vector_hits))
-                        (metric_row("Fallbacks", metrics.vector_fallbacks))
+                        (metric_row("Queries", metrics.metrics.vector_queries))
+                        (metric_row("Hits", metrics.metrics.vector_hits))
+                        (metric_row("Fallbacks", metrics.metrics.vector_fallbacks))
                         div class="rounded-md border border-gray-100 bg-gray-50 p-3 text-xs text-gray-600 space-y-1" {
-                            p { (format!("Latency p95: {} ms", metrics.vector_latency_ms_p95.map(|v| v.to_string()).unwrap_or_else(|| "n/a".into()))) }
+                            p { (format!("Latency p95: {} ms", metrics.metrics.vector_latency_ms_p95.map(|v| v.to_string()).unwrap_or_else(|| "n/a".into()))) }
                         }
                     }
             } @else {

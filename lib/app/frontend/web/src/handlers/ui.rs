@@ -19,7 +19,7 @@ pub async fn components_preview(state: web::Data<AppState>) -> Result<HttpRespon
 #[cfg(test)]
 mod tests {
     use actix_web::{App, test, web};
-    use refractive_swan_observability::PipelineMetrics;
+    use refractive_swan_observability::{PipelineMetrics, metrics_snapshot};
     use std::{sync::Arc, time::Duration};
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
@@ -45,7 +45,10 @@ mod tests {
             .await;
         Mock::given(method("GET"))
             .and(path("/metrics/summary"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(PipelineMetrics::default()))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(metrics_snapshot(&PipelineMetrics::default())),
+            )
             .mount(&backend)
             .await;
         Mock::given(method("GET"))

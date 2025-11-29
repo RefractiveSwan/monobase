@@ -1,20 +1,26 @@
 use refractive_swan_compliance::{ComplianceConfig, ComplianceError, Policy};
-use refractive_swan_configuration::EnvLoadError;
+use refractive_swan_configuration::{EnvLoadError, EnvValueError, string_var, u64_var};
 use refractive_swan_datamart::sql::{WarehouseConfig, WarehouseConfigError};
 use refractive_swan_eval::{
     FileDatasetStore,
     config::{EvalConfigError, EvalDatasetConfig},
 };
+use refractive_swan_mesh_dto::MeshNodeId;
 use refractive_swan_vector_store::{VectorStoreConfig, VectorStoreConfigError, config_from_env};
 use thiserror::Error;
+
+const DEFAULT_MAX_DATASET_SIZE: u64 = 50_000;
 
 /// Configuration inputs required to build a [`NodeDataPlane`].
 #[derive(Debug, Clone)]
 pub struct NodePlaneConfig {
+    pub(crate) node_id: MeshNodeId,
     pub(crate) policy: Policy,
     pub(crate) dataset_store: FileDatasetStore,
     pub(crate) datamart: Option<WarehouseConfig>,
     pub(crate) vector: Option<VectorStoreConfig>,
+    pub(crate) max_dataset_size: u64,
+    pub(crate) tags: Vec<String>,
 }
 
 impl NodePlaneConfig {
@@ -22,6 +28,17 @@ impl NodePlaneConfig {
     pub fn from_env(namespace: &str) -> Result<Self, NodePlaneConfigError> {
         load_plane_env(namespace)?;
 
+        let node_id = string_var("refractive_swan_MESH_NODE_ID")
+            .map_err(NodePlaneConfigError::EnvValue)?
+            .and_then(|value| {
+                let trimmed = value.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(MeshNodeId::from_string(trimmed.to_string()))
+                }
+            })
+            .unwrap_or_else(MeshNodeId::new_random);
         let compliance = ComplianceConfig::from_env().map_err(NodePlaneConfigError::Compliance)?;
         let policy = compliance
             .load_policy()
@@ -43,12 +60,37 @@ impl NodePlaneConfig {
             Err(err) => return Err(NodePlaneConfigError::Datamart(err)),
         };
 
+        let max_dataset_size = u64_var("refractive_swan_MESH_MAX_DATASET_SIZE")
+            .map_err(NodePlaneConfigError::EnvValue)?
+            .unwrap_or(DEFAULT_MAX_DATASET_SIZE);
+        let tags = string_var("refractive_swan_MESH_NODE_TAGS")
+            .map_err(NodePlaneConfigError::EnvValue)?
+            .and_then(parse_tags)
+            .unwrap_or_else(|| vec!["dev".into()]);
+
         Ok(Self {
+            node_id,
             policy,
             dataset_store,
             datamart,
             vector,
+            max_dataset_size,
+            tags,
         })
+    }
+
+    /// Load configuration and override the node identifier (useful for tests or multi-node setups).
+    pub fn from_env_with_node_id(
+        namespace: &str,
+        node_id: MeshNodeId,
+    ) -> Result<Self, NodePlaneConfigError> {
+        let mut config = Self::from_env(namespace)?;
+        config.node_id = node_id;
+        Ok(config)
+    }
+
+    pub fn node_id(&self) -> &MeshNodeId {
+        &self.node_id
     }
 
     pub fn dataset_store(&self) -> FileDatasetStore {
@@ -66,6 +108,14 @@ impl NodePlaneConfig {
     pub fn policy(&self) -> &Policy {
         &self.policy
     }
+
+    pub fn max_dataset_size(&self) -> u64 {
+        self.max_dataset_size
+    }
+
+    pub fn tags(&self) -> Vec<String> {
+        self.tags.clone()
+    }
 }
 
 fn load_plane_env(namespace: &str) -> Result<(), NodePlaneConfigError> {
@@ -80,6 +130,8 @@ fn load_plane_env(namespace: &str) -> Result<(), NodePlaneConfigError> {
 pub enum NodePlaneConfigError {
     #[error("environment error: {0}")]
     Env(#[from] EnvLoadError),
+    #[error("environment value error: {0}")]
+    EnvValue(#[from] EnvValueError),
     #[error("compliance configuration error: {0}")]
     Compliance(#[from] ComplianceError),
     #[error("evaluation dataset config error: {0}")]
@@ -88,4 +140,14 @@ pub enum NodePlaneConfigError {
     Vector(#[from] VectorStoreConfigError),
     #[error("warehouse configuration error: {0}")]
     Datamart(#[from] WarehouseConfigError),
+}
+
+fn parse_tags(raw: String) -> Option<Vec<String>> {
+    let tags: Vec<String> = raw
+        .split(',')
+        .map(|tag| tag.trim())
+        .filter(|tag| !tag.is_empty())
+        .map(|tag| tag.to_string())
+        .collect();
+    if tags.is_empty() { None } else { Some(tags) }
 }

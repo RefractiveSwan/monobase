@@ -7,19 +7,14 @@ use fake::Dummy;
 ///
 /// Modeled loosely on FHIR `request-intent`.
 #[cfg_attr(feature = "dummy", derive(Dummy))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ServiceRequestIntent {
     Proposal,
     Plan,
+    #[default]
     Order,
     OriginalOrder,
     ReflexOrder,
     FillerOrder,
-}
-
-impl Default for ServiceRequestIntent {
-    fn default() -> Self {
-        ServiceRequestIntent::Order
-    }
 }

@@ -1,6 +1,7 @@
 use maud::{Markup, html};
-use refractive_swan_contracts::{PipelineMetrics, ValidationSeverity};
+use refractive_swan_contracts::ValidationSeverity;
 
+use crate::client::MetricsSnapshot;
 use crate::templates;
 use crate::vector::VectorMode;
 use crate::views::components::{badge::*, button::*, card::*, input::*, typography::*};
@@ -82,11 +83,11 @@ fn render_hero_status_badges(ctx: &PageContext) -> Markup {
     }
 }
 
-fn render_quick_metrics(metrics: &PipelineMetrics) -> Markup {
+fn render_quick_metrics(metrics: &MetricsSnapshot) -> Markup {
     html! {
         div class="text-xs text-slate-500 font-mono text-right" {
-            div { (format!("Bundles: {}", metrics.bundle_count)) }
-            div { (format!("Mapped: {}", metrics.auto_mapped)) }
+            div { (format!("Bundles: {}", metrics.metrics.bundle_count)) }
+            div { (format!("Mapped: {}", metrics.metrics.auto_mapped)) }
         }
     }
 }
@@ -103,12 +104,12 @@ fn render_hero_error(ctx: &PageContext) -> Markup {
 
 fn render_compliance_warning(ctx: &PageContext) -> Markup {
     if let Some(metrics) = &ctx.metrics {
-        if let Some(mode) = metrics.compliance_mode.as_deref() {
-            let (message, class) = if metrics.license_blocked > 0 {
+        if let Some(mode) = metrics.metrics.compliance_mode.as_deref() {
+            let (message, class) = if metrics.metrics.license_blocked > 0 {
                 (
                     format!(
                         "Compliance mode {} blocked {} mapping(s). Export limited to licensed tiers.",
-                        mode, metrics.license_blocked
+                        mode, metrics.metrics.license_blocked
                     ),
                     "bg-rose-50 text-rose-900 border-rose-100",
                 )

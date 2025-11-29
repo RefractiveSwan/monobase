@@ -1,0 +1,116 @@
+digraph MeshLogic {
+  rankdir=LR;
+  fontname="Helvetica";
+
+  // Frontend
+  subgraph cluster_frontend {
+    label="Web Frontend";
+    style="rounded";
+    color="gray70";
+
+    FE [label="Mesh Dashboard / Admin UI", shape=box, style=rounded];
+  }
+
+  // API
+  subgraph cluster_api {
+    label="refractive_swan_api (Axum)";
+    style="rounded";
+    color="gray70";
+
+    A1 [label="/api/v1/**", shape=folder];
+    A2 [label="/mesh/**", shape=folder];
+    A3 [label="/hub/** (if in hub-mode)", shape=folder];
+  }
+
+  // Frontend → API
+  FE -> A1 [label="HTTP", fontsize=10];
+  FE -> A2 [label="HTTP", fontsize=10];
+  FE -> A3 [label="HTTP", fontsize=10];
+
+  // Node
+  subgraph cluster_node {
+    label="Mesh Node (refractive_swan_mesh_node + platform/data/meta)";
+    style="rounded";
+    color="gray70";
+
+    // NodeDataPlane
+    subgraph cluster_plane {
+      label="NodeDataPlane";
+      style="rounded";
+      color="gray80";
+
+      INJ  [label="refractive_swan_ingestion", shape=box];
+      MAP  [label="refractive_swan_mapping", shape=box];
+      PIPE [label="refractive_swan_pipeline", shape=box];
+      DM   [label="refractive_swan_datamart\n(SqliteDatamart)", shape=box];
+      VCTX [label="VectorPipelineContext\nrefractive_swan_vector_store", shape=box];
+      METR [label="PipelineMetrics\nrefractive_swan_observability", shape=box];
+    }
+
+    CFG  [label="refractive_swan_configuration", shape=box];
+    COMP [label="refractive_swan_compliance", shape=box];
+    TERM [label="refractive_swan_terminology", shape=box];
+  }
+
+  // Treat Node & Plane as logical nodes for edges
+  Node  [label="Node", shape=ellipse, style=dashed];
+  Plane [label="NodeDataPlane", shape=ellipse, style=dashed];
+
+  // API → Node
+  A2 -> Node [label="/mesh/job, /mesh/health, /mesh/capabilities", fontsize=10];
+  A1 -> Node [label="/api/v1/map-bundles", fontsize=10];
+
+  // Data Plane
+  subgraph cluster_dataplane {
+    label="Platform Data Plane";
+    style="rounded";
+    color="gray70";
+
+    subgraph cluster_operational {
+      label="Operational Mart";
+      style="rounded";
+      color="gray80";
+
+      MART [label="platform/data/data-plane/mart\nSqliteDatamart", shape=box];
+      REL  [label="platform/data/data-stores/relational_store\n(future)", shape=box];
+    }
+
+    subgraph cluster_lake {
+      label="Lake / Warehouse (future)";
+      style="rounded";
+      color="gray80";
+
+      DW   [label="platform/data/data-plane/warehouse\nWarehouseLoader/Analytics", shape=box];
+      LAKE [label="platform/data/data-plane/lake\nLakeWriter/LakeReader", shape=box];
+    }
+
+    VSTORE [label="platform/data/data-stores/vector_store\n(Qdrant/PgVector)", shape=box];
+    CACHE  [label="platform/data/data-stores/cache_store\n(future)", shape=box];
+  }
+
+  // Plane → DataPlane edges
+  Plane -> MART   [label="persist PipelineOutput", fontsize=10];
+  Plane -> VSTORE [label="vector search", fontsize=10];
+  Node  -> LAKE   [label="export snapshots", fontsize=10];
+  LAKE  -> DW     [label="ingest", fontsize=10];
+
+  // Hub
+  subgraph cluster_hub {
+    label="Mesh Hub (refractive_swan_mesh_hub)";
+    style="rounded";
+    color="gray70";
+
+    REG   [label="NodeRegistry (multi-node + health)", shape=box];
+    JQ    [label="JobQueue (concurrent dispatch)", shape=box];
+    GOV   [label="Governance (stub/DP hooks)", shape=box];
+    HUBRT [label="HubRuntime\nglobal_ncit_summary\nfederated_eval", shape=box];
+  }
+
+  Hub [label="Hub", shape=ellipse, style=dashed];
+
+  // API ↔ Hub
+  A3  -> Hub   [label="/hub/**", fontsize=10];
+  Hub -> Node  [label="POST /mesh/job", fontsize=10];
+  Hub -> LAKE  [label="read snapshots", fontsize=10];
+  Hub -> DW    [label="global analytics", fontsize=10];
+}

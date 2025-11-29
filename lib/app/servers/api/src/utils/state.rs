@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use refractive_swan_contracts::{AdminEvent, AdminEventKind};
-use refractive_swan_mesh_dto::MeshNodeId;
 use refractive_swan_mesh_node::{NodeDataPlane, NodePlaneConfig};
 use refractive_swan_web_dto::EvalRunResponse;
 use tokio::sync::Mutex;
@@ -24,7 +23,7 @@ pub struct ApiState {
 
 impl ApiState {
     pub fn from_plane_config(config: NodePlaneConfig) -> Self {
-        let plane = NodeDataPlane::from_config(MeshNodeId::new_random(), config);
+        let plane = NodeDataPlane::from_config(config);
         Self {
             plane: Arc::new(plane),
             latest_eval: Arc::new(Mutex::new(None)),

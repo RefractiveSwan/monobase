@@ -306,7 +306,7 @@ mod tests {
         MappingThresholds, PipelineOutput, StgServiceRequestFlat, StgSrCodeExploded,
     };
     use refractive_swan_core::order::{ServiceRequestIntent, ServiceRequestStatus};
-    use refractive_swan_observability::PipelineMetrics;
+    use refractive_swan_observability::{PipelineMetrics, metrics_snapshot};
     use serde_json::json;
     use std::{sync::Arc, time::Duration};
     use wiremock::{
@@ -375,29 +375,31 @@ mod tests {
             .await;
         Mock::given(method("GET"))
             .and(path("/metrics/summary"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(PipelineMetrics {
-                bundle_count: 1,
-                flats_count: 1,
-                exploded_count: 1,
-                mapping_count: 1,
-                auto_mapped: 1,
-                needs_review: 0,
-                no_match: 0,
-                license_blocked: 0,
-                vector_queries: 0,
-                vector_hits: 0,
-                vector_fallbacks: 0,
-                vector_latency_ms_p95: None,
-                vector_capacity_geom_rm: None,
-                vector_capacity_geom_dm: None,
-                vector_capacity_geom_rm_sqrt_dm: None,
-                vector_capacity_cap_alpha_sim: None,
-                analytics_requests: 0,
-                cohort_queries: 0,
-                cohort_results_total: 0,
-                avg_cohort_size: None,
-                ..PipelineMetrics::default()
-            }))
+            .respond_with(ResponseTemplate::new(200).set_body_json(metrics_snapshot(
+                &PipelineMetrics {
+                    bundle_count: 1,
+                    flats_count: 1,
+                    exploded_count: 1,
+                    mapping_count: 1,
+                    auto_mapped: 1,
+                    needs_review: 0,
+                    no_match: 0,
+                    license_blocked: 0,
+                    vector_queries: 0,
+                    vector_hits: 0,
+                    vector_fallbacks: 0,
+                    vector_latency_ms_p95: None,
+                    vector_capacity_geom_rm: None,
+                    vector_capacity_geom_dm: None,
+                    vector_capacity_geom_rm_sqrt_dm: None,
+                    vector_capacity_cap_alpha_sim: None,
+                    analytics_requests: 0,
+                    cohort_queries: 0,
+                    cohort_results_total: 0,
+                    avg_cohort_size: None,
+                    ..PipelineMetrics::default()
+                },
+            )))
             .mount(&backend)
             .await;
         Mock::given(method("GET"))

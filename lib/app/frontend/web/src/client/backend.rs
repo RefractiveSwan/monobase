@@ -9,6 +9,7 @@ use super::error::{BackendError, ClientError};
 use super::types::{HealthResponse, MapBundlesResponse};
 use crate::{config::AppConfig, vector::VectorMode};
 
+pub use refractive_swan_observability::MetricsSnapshot;
 pub use refractive_swan_web_dto::{
     AdminEvent, AdminEventKind, AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse,
     CohortRow, DatasetListEntry, DatasetManifest, EvalRunResponse, EvalSummary, PipelineMetrics,
@@ -43,7 +44,7 @@ impl BackendClient {
         Self::handle_json(response).await
     }
 
-    pub async fn metrics_summary(&self) -> Result<PipelineMetrics, ClientError> {
+    pub async fn metrics_summary(&self) -> Result<MetricsSnapshot, ClientError> {
         let response = self
             .send(self.client.get(self.endpoint("/metrics/summary")))
             .await?;

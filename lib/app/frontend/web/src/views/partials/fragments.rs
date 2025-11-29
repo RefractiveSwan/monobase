@@ -1,6 +1,6 @@
 use maud::{Markup, html};
-use refractive_swan_contracts::PipelineMetrics;
 
+use crate::client::MetricsSnapshot;
 use crate::views::components::{card::*, typography::*};
 use crate::views::models::{AlertMessage, PageContext};
 use crate::views::pages::workbench::{
@@ -35,12 +35,12 @@ fn render_results(ctx: &PageContext) -> Markup {
     }
 }
 
-pub(crate) fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Markup {
+pub(crate) fn render_metrics_dashboard(metrics: Option<&MetricsSnapshot>) -> Markup {
     html! {
         (card(html! {
             (card_header("Pipeline Metrics", Some(html! {
                 span class="text-xs font-mono text-gray-500" {
-                    @if let Some(mode) = metrics.and_then(|m| m.compliance_mode.as_deref()) {
+                    @if let Some(mode) = metrics.and_then(|m| m.metrics.compliance_mode.as_deref()) {
                         (format!("Compliance Mode: {}", mode))
                     } @else {
                         "Live Snapshot"
@@ -52,22 +52,22 @@ pub(crate) fn render_metrics_dashboard(metrics: Option<&PipelineMetrics>) -> Mar
                 (card_body(html! {
                     div class="space-y-6" {
                         div class="grid gap-4 md:grid-cols-3" {
-                            (metric_card("Bundles Processed", &metrics.bundle_count.to_string(), None))
-                            (metric_card("Flattened Rows", &metrics.flats_count.to_string(), None))
-                            (metric_card("Mapping Attempts", &metrics.mapping_count.to_string(), None))
+                            (metric_card("Bundles Processed", &metrics.metrics.bundle_count.to_string(), None))
+                            (metric_card("Flattened Rows", &metrics.metrics.flats_count.to_string(), None))
+                            (metric_card("Mapping Attempts", &metrics.metrics.mapping_count.to_string(), None))
                         }
 
                         div class="grid gap-4 md:grid-cols-3" {
-                            (state_metric_card("AutoMapped", metrics.auto_mapped, "bg-emerald-50 text-emerald-800 border-emerald-100", "High confidence matches"))
-                            (state_metric_card("Needs Review", metrics.needs_review, "bg-amber-50 text-amber-800 border-amber-100", "Requires validation"))
-                            (state_metric_card("No Match", metrics.no_match, "bg-rose-50 text-rose-800 border-rose-100", "Unresolved concepts"))
+                            (state_metric_card("AutoMapped", metrics.metrics.auto_mapped, "bg-emerald-50 text-emerald-800 border-emerald-100", "High confidence matches"))
+                            (state_metric_card("Needs Review", metrics.metrics.needs_review, "bg-amber-50 text-amber-800 border-amber-100", "Requires validation"))
+                            (state_metric_card("No Match", metrics.metrics.no_match, "bg-rose-50 text-rose-800 border-rose-100", "Unresolved concepts"))
                         }
 
                         div class="grid gap-4 md:grid-cols-4 pt-4 border-t border-gray-100" {
-                            (secondary_metric("License Blocked", metrics.license_blocked, "text-rose-700"))
-                            (secondary_metric("Vector Queries", metrics.vector_queries, "text-gray-700"))
-                            (secondary_metric("Cohort Queries", metrics.cohort_queries, "text-gray-700"))
-                            (secondary_metric_avg("Avg Cohort Size", metrics.avg_cohort_size.map(|v| v as f64), "text-gray-700"))
+                            (secondary_metric("License Blocked", metrics.metrics.license_blocked, "text-rose-700"))
+                            (secondary_metric("Vector Queries", metrics.metrics.vector_queries, "text-gray-700"))
+                            (secondary_metric("Cohort Queries", metrics.metrics.cohort_queries, "text-gray-700"))
+                            (secondary_metric_avg("Avg Cohort Size", metrics.metrics.avg_cohort_size.map(|v| v as f64), "text-gray-700"))
                         }
                     }
                 }))

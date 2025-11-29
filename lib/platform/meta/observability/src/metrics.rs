@@ -104,10 +104,10 @@ impl PipelineMetrics {
         self.vector_queries += other.vector_queries;
         self.vector_hits += other.vector_hits;
         self.vector_fallbacks += other.vector_fallbacks;
-        if let Some(mode) = other.compliance_mode.as_ref() {
-            if self.compliance_mode.is_none() {
-                self.compliance_mode = Some(mode.clone());
-            }
+        if let Some(mode) = other.compliance_mode.as_ref()
+            && self.compliance_mode.is_none()
+        {
+            self.compliance_mode = Some(mode.clone());
         }
         if let Some(node_id) = other.mesh_node_id.as_ref() {
             self.mesh_node_id = Some(node_id.clone());

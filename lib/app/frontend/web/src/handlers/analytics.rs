@@ -133,7 +133,7 @@ fn build_cohort_csv(cohort: &crate::client::CohortResponse) -> String {
 #[cfg(test)]
 mod tests {
     use actix_web::{App, test, web};
-    use refractive_swan_observability::PipelineMetrics;
+    use refractive_swan_observability::{PipelineMetrics, metrics_snapshot};
     use std::{sync::Arc, time::Duration};
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
@@ -162,12 +162,14 @@ mod tests {
             .await;
         Mock::given(method("GET"))
             .and(path("/metrics/summary"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(PipelineMetrics {
-                analytics_requests: 2,
-                cohort_queries: 1,
-                avg_cohort_size: Some(1.0),
-                ..PipelineMetrics::default()
-            }))
+            .respond_with(ResponseTemplate::new(200).set_body_json(metrics_snapshot(
+                &PipelineMetrics {
+                    analytics_requests: 2,
+                    cohort_queries: 1,
+                    avg_cohort_size: Some(1.0),
+                    ..PipelineMetrics::default()
+                },
+            )))
             .mount(&backend)
             .await;
         Mock::given(method("GET"))
@@ -249,7 +251,10 @@ mod tests {
             .await;
         Mock::given(method("GET"))
             .and(path("/metrics/summary"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(PipelineMetrics::default()))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(metrics_snapshot(&PipelineMetrics::default())),
+            )
             .mount(&backend)
             .await;
         Mock::given(method("GET"))

@@ -1,8 +1,8 @@
 use axum::{Json, extract::Query, response::IntoResponse};
 use log::{info, warn};
-use uuid::Uuid;
 use refractive_swan_datamart::{CohortFilters, DatamartError};
 use refractive_swan_web_dto::{AnalyticsSummaryResponse, CohortResponse};
+use uuid::Uuid;
 
 use crate::{
     types::CohortQuery,

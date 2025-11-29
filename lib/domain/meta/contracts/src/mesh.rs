@@ -10,6 +10,7 @@
 //! node-local and use existing contracts (analytics, eval, pipeline).
 
 use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 use std::fmt;
 use uuid::Uuid;
 
@@ -21,7 +22,7 @@ use uuid::Uuid;
 ///
 /// Each node in a mesh deployment has a unique ID assigned at startup. The ID
 /// is typically a UUID or a stable string derived from node configuration.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct MeshNodeId(pub String);
 
@@ -52,7 +53,7 @@ impl fmt::Display for MeshNodeId {
 ///
 /// Describes the backends, compliance mode, and capacity constraints for a
 /// node. The hub uses this metadata to route jobs appropriately.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct NodeCapabilities {
     /// Node identifier.
     pub node_id: MeshNodeId,
@@ -82,7 +83,7 @@ pub struct NodeCapabilities {
 ///
 /// Defines the category of work being requested. Each type corresponds to a
 /// specific set of parameters in `MeshJobDescriptor`.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum MeshJobType {
     /// Run an eval dataset against the mapping pipeline.
@@ -106,7 +107,7 @@ pub enum MeshJobType {
 /// Encapsulates all parameters needed to execute a job on a node. The hub or
 /// orchestrator sends this to a node via HTTP/gRPC, and the node's runtime
 /// (NodeDataPlane) dispatches it to the appropriate handler.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct MeshJobDescriptor {
     /// Unique job ID (assigned by hub or caller).
     pub job_id: String,
@@ -131,7 +132,7 @@ pub struct MeshJobDescriptor {
 ///
 /// Returned by a node after executing a job. Contains status, optional
 /// metrics snapshot, and structured output or error.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct MeshJobResult {
     /// Job ID (echoes the descriptor).
     pub job_id: String,
@@ -157,7 +158,7 @@ pub struct MeshJobResult {
 }
 
 /// Mesh job execution status.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum MeshJobStatus {
     /// Job completed successfully.
@@ -184,7 +185,7 @@ pub enum MeshJobStatus {
 ///
 /// Helps the hub or orchestrator understand whether a failure is retryable,
 /// a policy denial, or a node-unavailable situation.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum MeshErrorKind {
     /// Node is unavailable or unreachable.
@@ -209,7 +210,7 @@ pub enum MeshErrorKind {
 /// - `"node_unavailable:timeout"`
 /// - `"policy_denied:dp_budget_exceeded"`
 /// - `"internal:vector_store_down"`
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct MeshErrorCode(pub String);
 
@@ -232,7 +233,7 @@ impl fmt::Display for MeshErrorCode {
 /// Mesh error details.
 ///
 /// Structured error information returned in `MeshJobResult::error`.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct MeshError {
     /// Error kind (category).
     pub kind: MeshErrorKind,

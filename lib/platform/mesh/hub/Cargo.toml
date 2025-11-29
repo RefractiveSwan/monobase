@@ -1,0 +1,17 @@
+[package]
+name = "refractive_swan_mesh_hub"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+refractive_swan_contracts = { path = "../../../domain/meta/contracts" }
+refractive_swan_mesh_dto = { path = "../../../dto/mesh" }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror.workspace = true
+futures-util.workspace = true
+
+[lib]
+path = "src/lib.rs"

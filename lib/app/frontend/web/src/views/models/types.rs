@@ -1,9 +1,9 @@
 use refractive_swan_contracts::{
-    PipelineMetrics,
     eval::{DatasetListEntry, EvalSummary},
     pipeline::{MappingState, ValidationSeverity},
 };
 
+use crate::client::MetricsSnapshot;
 use crate::{client::CohortFilters, vector::VectorMode, views::layout::ViewChrome};
 
 /// Default the API cannot list available eval datasets.
@@ -14,7 +14,7 @@ pub const DEFAULT_EVAL_DATASET: &str = "gold_pet_ct_small";
 pub struct PageContext {
     pub health: Option<HealthOverview>,
     pub health_error: Option<String>,
-    pub metrics: Option<PipelineMetrics>,
+    pub metrics: Option<MetricsSnapshot>,
     pub alert: Option<AlertMessage>,
     pub results: Option<MappingResultsView>,
     pub eval: Option<EvalContext>,
@@ -499,5 +499,5 @@ pub struct EnvVarView {
 #[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct DiagnosticsView {
     pub health: Option<crate::client::HealthResponse>,
-    pub metrics: Option<crate::client::PipelineMetrics>,
+    pub metrics: Option<crate::client::MetricsSnapshot>,
 }

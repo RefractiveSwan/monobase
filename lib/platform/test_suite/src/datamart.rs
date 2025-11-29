@@ -9,6 +9,12 @@ pub struct TempSqliteWarehouse {
     config: WarehouseConfig,
 }
 
+impl Default for TempSqliteWarehouse {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TempSqliteWarehouse {
     /// Create a new temporary warehouse (file-backed SQLite URL).
     pub fn new() -> Self {

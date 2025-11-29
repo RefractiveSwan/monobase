@@ -1,11 +1,31 @@
+//! Mesh node data-plane orchestration shared by HTTP adapters.
+//!
+//! See:
+//! - docs/system-design/mesh/node-runtime.md
+//! - docs/kanban/feature/mvp/040-infra-and-docs/030-mesh-node-hub-propagation.md
+
 use std::sync::Arc;
 
-use refractive_swan_compliance::Policy;
-use refractive_swan_datamart::{DatamartSink, SqliteDatamart};
-use refractive_swan_eval::DatasetStore;
-use refractive_swan_mesh_dto::MeshNodeId;
+use refractive_swan_compliance::{ComplianceAction, Policy};
+use refractive_swan_contracts::MeshJobDescriptor;
+use refractive_swan_contracts::eval::EvalRunResponse;
+use refractive_swan_contracts::{
+    MeshError, MeshErrorCode, MeshErrorKind, MeshJobResult, MeshJobStatus, MeshJobType,
+};
+use refractive_swan_datamart::{DatamartSink, SqliteDatamart, WarehouseConfig};
+use refractive_swan_datamart_port::CohortFilters;
+use refractive_swan_eval::fake_data::fixtures::{self, Registry};
+use refractive_swan_eval::{DatasetStore, run_eval_with_mapper};
+use refractive_swan_mapping::map_staging_codes_with_summary_and_policy;
+use refractive_swan_mesh_dto::{MeshNodeId, NodeCapabilities};
 use refractive_swan_observability::PipelineMetrics;
-use refractive_swan_pipeline::{DefaultPipeline, PipelinePort, VectorPipelineContext};
+use refractive_swan_observability::metrics_snapshot_json;
+use refractive_swan_pipeline::{
+    DefaultPipeline, PipelinePort, PipelineRunConfig, VectorPipelineContext,
+};
+use refractive_swan_vector_port::VectorBackend;
+use refractive_swan_vector_store::VectorStoreConfig;
+use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
 use crate::{config::NodePlaneConfig, vector::vector_context_from_config};
@@ -18,24 +38,33 @@ pub struct NodeDataPlane {
     node_id: MeshNodeId,
     policy: Policy,
     vector_context: Option<VectorPipelineContext>,
+    vector_config: Option<VectorStoreConfig>,
     dataset_store: Arc<dyn DatasetStore + Send + Sync>,
     metrics: Arc<Mutex<PipelineMetrics>>,
     pipeline: Arc<dyn PipelinePort + Send + Sync>,
     datamart: Arc<dyn DatamartSink + Send + Sync>,
+    datamart_config: Option<WarehouseConfig>,
+    max_dataset_size: u64,
+    tags: Vec<String>,
 }
 
 impl NodeDataPlane {
     /// Build a plane using defaults for pipeline/datamart/vector contexts.
-    pub fn from_config(node_id: MeshNodeId, config: NodePlaneConfig) -> Self {
+    pub fn from_config(config: NodePlaneConfig) -> Self {
         let NodePlaneConfig {
+            node_id,
             policy,
             dataset_store,
             datamart,
             vector,
+            max_dataset_size,
+            tags,
         } = config;
         let dataset_store: Arc<dyn DatasetStore + Send + Sync> = Arc::new(dataset_store);
+        let vector_config = vector.clone();
         let vector_context = vector.as_ref().and_then(vector_context_from_config);
         let pipeline: Arc<dyn PipelinePort + Send + Sync> = Arc::new(DefaultPipeline);
+        let datamart_config = datamart.clone();
         let datamart: Arc<dyn DatamartSink + Send + Sync> =
             Arc::new(SqliteDatamart::from_optional_config(datamart));
         Self::new(
@@ -45,6 +74,10 @@ impl NodeDataPlane {
             pipeline,
             datamart,
             vector_context,
+            vector_config,
+            datamart_config,
+            max_dataset_size,
+            tags,
         )
     }
 
@@ -56,19 +89,29 @@ impl NodeDataPlane {
         pipeline: Arc<dyn PipelinePort + Send + Sync>,
         datamart: Arc<dyn DatamartSink + Send + Sync>,
         vector_context: Option<VectorPipelineContext>,
+        vector_config: Option<VectorStoreConfig>,
+        datamart_config: Option<WarehouseConfig>,
+        max_dataset_size: u64,
+        tags: Vec<String>,
     ) -> Self {
         let node_id_str = node_id.to_string();
+        let compliance_mode = policy.mode.as_str().to_string();
         Self {
             node_id,
             policy,
             vector_context,
+            vector_config,
             dataset_store,
             metrics: Arc::new(Mutex::new(PipelineMetrics {
                 mesh_node_id: Some(node_id_str),
+                compliance_mode: Some(compliance_mode),
                 ..PipelineMetrics::default()
             })),
             pipeline,
             datamart,
+            datamart_config,
+            max_dataset_size,
+            tags,
         }
     }
 
@@ -108,4 +151,381 @@ impl NodeDataPlane {
     pub fn pipeline(&self) -> Arc<dyn PipelinePort + Send + Sync> {
         Arc::clone(&self.pipeline)
     }
+
+    /// Node capabilities advertised to hubs or dashboards.
+    pub fn capabilities(&self, _base_url: &str) -> NodeCapabilities {
+        NodeCapabilities {
+            node_id: self.node_id.clone(),
+            vector_backend: self.vector_backend_label(),
+            warehouse_backend: self.warehouse_backend_label(),
+            compliance_mode: self.policy.mode.as_str().to_string(),
+            max_dataset_size: self.max_dataset_size,
+            tags: self.tags.clone(),
+        }
+    }
+
+    fn vector_backend_label(&self) -> String {
+        match self.vector_config.as_ref().map(|cfg| cfg.backend.clone()) {
+            Some(VectorBackend::Qdrant) => "qdrant".into(),
+            Some(VectorBackend::PgVector) => "pgvector".into(),
+            Some(VectorBackend::Milvus) => "milvus".into(),
+            Some(VectorBackend::Mock) => "mock".into(),
+            None => "disabled".into(),
+        }
+    }
+
+    fn warehouse_backend_label(&self) -> String {
+        match &self.datamart_config {
+            Some(cfg) => {
+                let url = cfg.url.to_ascii_lowercase();
+                if url.starts_with("sqlite://") || url.starts_with("sqlite:") {
+                    "sqlite".into()
+                } else if url.starts_with("postgres://") || url.starts_with("postgresql://") {
+                    "postgres".into()
+                } else {
+                    "external".into()
+                }
+            }
+            None => "disabled".into(),
+        }
+    }
+
+    /// Execute a mesh job descriptor and return a structured result.
+    pub async fn run_mesh_job(&self, job: &MeshJobDescriptor) -> MeshJobResult {
+        match job.job_type {
+            MeshJobType::EvalDataset => self
+                .run_eval_dataset_job(job)
+                .await
+                .unwrap_or_else(|err| self.failure(job, err)),
+            MeshJobType::AnalyticsQuery => self
+                .run_analytics_job(job)
+                .await
+                .unwrap_or_else(|err| self.failure(job, err)),
+            MeshJobType::MappingHealthCheck => self.mapping_health(job).await,
+            MeshJobType::ExportJob => self.run_export_job(job).await,
+            MeshJobType::NodeIntrospection => self.node_introspection(job).await,
+        }
+    }
+
+    async fn run_eval_dataset_job(
+        &self,
+        job: &MeshJobDescriptor,
+    ) -> Result<MeshJobResult, MeshError> {
+        let dataset = parse_dataset_name(&job.parameters).ok_or_else(|| {
+            MeshError::new(
+                MeshErrorKind::InvalidRequest,
+                MeshErrorCode::new("invalid_request:missing_dataset"),
+                "dataset parameter is required".into(),
+            )
+        })?;
+        let cases = self.dataset_store.load_dataset(&dataset).map_err(|err| {
+            MeshError::new(
+                MeshErrorKind::Internal,
+                MeshErrorCode::new("internal:load_dataset"),
+                err.to_string(),
+            )
+        })?;
+
+        let summary = run_eval_with_mapper(&cases, |rows| self.map_eval_rows(&rows));
+        let manifest = self
+            .dataset_store
+            .list_manifests()
+            .ok()
+            .and_then(|manifests| manifests.into_iter().find(|m| m.name == dataset));
+
+        let response = EvalRunResponse {
+            dataset,
+            manifest,
+            summary,
+        };
+
+        let metrics = self.metrics_snapshot_json().await;
+        Ok(MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Success,
+            metrics: Some(metrics),
+            output: Some(serde_json::to_value(response).expect("serialize eval response")),
+            error: None,
+        })
+    }
+
+    fn map_eval_rows(
+        &self,
+        rows: &[refractive_swan_core::staging::StgSrCodeExploded],
+    ) -> Vec<refractive_swan_core::mapping::MappingResult> {
+        let (results, _, _) =
+            map_staging_codes_with_summary_and_policy(rows.to_vec(), &self.policy);
+        results
+    }
+
+    async fn run_analytics_job(&self, job: &MeshJobDescriptor) -> Result<MeshJobResult, MeshError> {
+        let query_type = job
+            .parameters
+            .get("query_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("ncit_summary");
+
+        let output = match query_type {
+            "ncit_summary" => {
+                let summary = self.datamart.ncit_summary().await.map_err(|err| {
+                    MeshError::new(
+                        MeshErrorKind::Internal,
+                        MeshErrorCode::new("internal:ncit_summary"),
+                        err.to_string(),
+                    )
+                })?;
+                serde_json::to_value(summary).expect("serialize summary")
+            }
+            "cohort" => {
+                let filters: CohortFilters =
+                    serde_json::from_value(job.parameters.clone()).unwrap_or_default();
+                let cohort = self.datamart.cohort(&filters).await.map_err(|err| {
+                    MeshError::new(
+                        MeshErrorKind::Internal,
+                        MeshErrorCode::new("internal:cohort"),
+                        err.to_string(),
+                    )
+                })?;
+                serde_json::to_value(cohort).expect("serialize cohort")
+            }
+            other => {
+                return Err(MeshError::new(
+                    MeshErrorKind::InvalidRequest,
+                    MeshErrorCode::new("invalid_request:unknown_query"),
+                    format!("unsupported analytics query_type '{other}'"),
+                ));
+            }
+        };
+
+        let metrics = self.metrics_snapshot_json().await;
+        Ok(MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Success,
+            metrics: Some(metrics),
+            output: Some(output),
+            error: None,
+        })
+    }
+
+    async fn mapping_health(&self, job: &MeshJobDescriptor) -> MeshJobResult {
+        let bundle = match fixtures::bundles::load(&Registry::default(), "fhir_bundle_sr") {
+            Ok(bundle) => bundle,
+            Err(err) => {
+                return self.failure(
+                    job,
+                    MeshError::new(
+                        MeshErrorKind::Internal,
+                        MeshErrorCode::new("internal:health_fixture"),
+                        format!("failed to load regression bundle: {err}"),
+                    ),
+                );
+            }
+        };
+
+        let pipeline_result = self.pipeline.map_bundle_with_validation(
+            &bundle,
+            &PipelineRunConfig::default(),
+            self.vector_context.as_ref(),
+        );
+
+        let execution = match pipeline_result {
+            Ok(exec) => exec,
+            Err(err) => {
+                return self.failure(
+                    job,
+                    MeshError::new(
+                        MeshErrorKind::Internal,
+                        MeshErrorCode::new("internal:mapping_health"),
+                        err.to_string(),
+                    ),
+                );
+            }
+        };
+
+        let mut metrics_handle = self.metrics.lock().await;
+        metrics_handle.record(
+            &execution.output.flats,
+            &execution.output.exploded_codes,
+            &execution.output.mapping_results,
+        );
+        if let Some(usage) = execution.output.vector_usage.clone() {
+            metrics_handle.record_vector_usage(usage, None);
+        }
+        drop(metrics_handle);
+
+        let persist = self
+            .datamart
+            .persist(&execution.output, &self.policy)
+            .await
+            .ok();
+
+        let current_metrics = {
+            let guard = self.metrics.lock().await;
+            guard.clone()
+        };
+        let vector_latency_ms_p95 = metrics_snapshot_json(&current_metrics)
+            .get("metrics")
+            .and_then(|m| m.get("vector_latency_ms_p95"))
+            .cloned();
+        let vector_health = match self.vector_context.as_ref() {
+            Some(ctx) => {
+                let status = ctx.health().map(|_| "ok").unwrap_or("error");
+                json!({
+                    "status": status,
+                    "backend": self.vector_backend_label(),
+                    "namespace": ctx.namespace(),
+                })
+            }
+            None => json!({ "status": "disabled", "backend": "disabled" }),
+        };
+        let datamart_health = match (&self.datamart_config, persist.as_ref()) {
+            (None, _) => json!({ "status": "disabled" }),
+            (_, Some(summary)) => json!({
+                "status": "ok",
+                "patients": summary.patients,
+                "encounters": summary.encounters,
+                "codes": summary.codes,
+                "ncit": summary.ncit,
+                "facts": summary.facts
+            }),
+            (Some(_), None) => {
+                json!({ "status": "error", "message": "datamart persist failed or disabled" })
+            }
+        };
+        let warehouse_health = match self.datamart.ncit_summary().await {
+            Ok(_) => json!({ "status": "ok" }),
+            Err(err) => json!({ "status": "error", "message": err.to_string() }),
+        };
+
+        let counts = state_counts(&execution.output.mapping_results);
+        let metrics = self.metrics_snapshot_json().await;
+        let output = json!({
+            "status": "ok",
+            "vector_backend": self.vector_backend_label(),
+            "warehouse_backend": self.warehouse_backend_label(),
+            "vector_health": vector_health,
+            "vector_latency_ms_p95": vector_latency_ms_p95,
+            "datamart_persisted": persist.is_some(),
+            "datamart_summary": datamart_health,
+            "warehouse_health": warehouse_health,
+            "auto_mapped": counts.auto_mapped,
+            "needs_review": counts.needs_review,
+            "no_match": counts.no_match,
+            "flats": execution.output.flats.len(),
+            "exploded": execution.output.exploded_codes.len(),
+        });
+
+        MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Success,
+            metrics: Some(metrics),
+            output: Some(output),
+            error: None,
+        }
+    }
+
+    async fn run_export_job(&self, job: &MeshJobDescriptor) -> MeshJobResult {
+        if !self.policy.is_action_allowed(ComplianceAction::Export) {
+            return self.denied(
+                job,
+                MeshError::new(
+                    MeshErrorKind::PolicyDenied,
+                    MeshErrorCode::new("policy_denied:export"),
+                    "export blocked by compliance policy".into(),
+                ),
+            );
+        }
+        let summary = match self.datamart.ncit_summary().await {
+            Ok(summary) => summary,
+            Err(err) => {
+                return self.failure(
+                    job,
+                    MeshError::new(
+                        MeshErrorKind::Internal,
+                        MeshErrorCode::new("internal:export_summary"),
+                        err.to_string(),
+                    ),
+                );
+            }
+        };
+        let metrics = self.metrics_snapshot_json().await;
+        MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Success,
+            metrics: Some(metrics),
+            output: Some(json!({
+                "export": "ncit_summary",
+                "summary": summary,
+            })),
+            error: None,
+        }
+    }
+
+    async fn node_introspection(&self, job: &MeshJobDescriptor) -> MeshJobResult {
+        let metrics = self.metrics_snapshot_json().await;
+        let datasets = self.dataset_store.list_manifests().unwrap_or_default();
+        let output = json!({
+            "capabilities": self.capabilities(""),
+            "datasets": datasets,
+        });
+        MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Success,
+            metrics: Some(metrics),
+            output: Some(output),
+            error: None,
+        }
+    }
+
+    fn failure(&self, job: &MeshJobDescriptor, error: MeshError) -> MeshJobResult {
+        MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Failed,
+            metrics: None,
+            output: None,
+            error: Some(error),
+        }
+    }
+
+    fn denied(&self, job: &MeshJobDescriptor, error: MeshError) -> MeshJobResult {
+        MeshJobResult {
+            job_id: job.job_id.clone(),
+            status: MeshJobStatus::Denied,
+            metrics: None,
+            output: None,
+            error: Some(error),
+        }
+    }
+
+    async fn metrics_snapshot_json(&self) -> Value {
+        let metrics = self.metrics.lock().await.clone();
+        metrics_snapshot_json(&metrics)
+    }
+}
+
+fn parse_dataset_name(value: &Value) -> Option<String> {
+    value
+        .get("dataset")
+        .or_else(|| value.get("dataset_name"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
+#[derive(Default)]
+struct MappingStateCounts {
+    auto_mapped: usize,
+    needs_review: usize,
+    no_match: usize,
+}
+
+fn state_counts(results: &[refractive_swan_core::mapping::MappingResult]) -> MappingStateCounts {
+    let mut counts = MappingStateCounts::default();
+    for result in results {
+        match result.state {
+            refractive_swan_core::mapping::MappingState::AutoMapped => counts.auto_mapped += 1,
+            refractive_swan_core::mapping::MappingState::NeedsReview => counts.needs_review += 1,
+            refractive_swan_core::mapping::MappingState::NoMatch => counts.no_match += 1,
+        }
+    }
+    counts
 }

@@ -8,6 +8,7 @@ use std::{
 
 use refractive_swan_contracts::{
     AnalyticsSummaryResponse, CohortResponse, ErrorCode, ErrorKind, EvalRunResponse, LoadSummary,
+    MeshJobDescriptor, MeshJobResult,
 };
 use schemars::{JsonSchema, schema_for};
 use serde_json::to_writer_pretty;
@@ -46,6 +47,8 @@ fn export_all(out_dir: &Path) -> io::Result<()> {
     write_schema::<CohortResponse>(out_dir, "cohort_response.schema.json")?;
     write_schema::<EvalRunResponse>(out_dir, "eval_run_response.schema.json")?;
     write_schema::<LoadSummary>(out_dir, "load_summary.schema.json")?;
+    write_schema::<MeshJobDescriptor>(out_dir, "mesh_job_descriptor.schema.json")?;
+    write_schema::<MeshJobResult>(out_dir, "mesh_job_result.schema.json")?;
     write_enum_values(out_dir, "error_kinds.json", &ErrorKind::variant_names())?;
     write_enum_values(out_dir, "error_codes.json", &ErrorCode::variant_names())?;
     Ok(())

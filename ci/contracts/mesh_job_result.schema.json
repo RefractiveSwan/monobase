@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MeshJobResult",
+  "type": "object",
+  "required": ["job_id", "status"],
+  "properties": {
+    "job_id": { "type": "string", "description": "Echoes the descriptor job_id." },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "denied", "in_progress", "cancelled"],
+      "description": "Execution status."
+    },
+    "metrics": {
+      "description": "Optional metrics snapshot captured during execution.",
+      "type": ["object", "array", "string", "number", "boolean", "null"]
+    },
+    "output": {
+      "description": "Job-type specific output (EvalRunResponse, AnalyticsSummaryResponse, etc).",
+      "type": ["object", "array", "string", "number", "boolean", "null"]
+    },
+    "error": {
+      "$ref": "#/definitions/MeshError",
+      "description": "Error details when status is Failed or Denied."
+    }
+  },
+  "definitions": {
+    "MeshError": {
+      "type": "object",
+      "required": ["kind", "code", "message"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "node_unavailable",
+            "job_rejected",
+            "policy_denied",
+            "internal",
+            "invalid_request"
+          ]
+        },
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "context": {
+          "description": "Optional contextual payload describing the error.",
+          "type": ["object", "array", "string", "number", "boolean", "null"]
+        }
+      }
+    }
+  }
+}

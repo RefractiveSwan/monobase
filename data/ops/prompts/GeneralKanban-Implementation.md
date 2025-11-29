@@ -115,10 +115,11 @@ For each card listed in `IMPLEMENTATION-SCOPE`:
 
 OUTPUT FORMAT
 
-You MUST output **two blocks** in this order:
+You MUST output **three blocks** in this order:
 
 1. **CODE-CHANGES** – a *summary* of updated/added files and key changes
 2. **CHAT-OVERVIEW** – a short narrative summary for the human
+3. **recommended-next-steps** - a short list of possible next steps.
 
 ### 1) Code changes (summary, not full files)
 
@@ -146,7 +147,6 @@ Describe what you have actually changed on disk. Use:
 Rules:
 
 * Always list **every file you modified or created**, with a short bullet list of substantive changes. 
-* You MAY include small code snippets in the summary if it clarifies an API, but you do not need to print full files.
 * Do not mention files you did not actually touch.
 
 ### 2) Chat overview
@@ -192,6 +192,15 @@ VI. Git Commit Markdown
 
 CHAT-OVERVIEW-END>>>
 
+```
+
+### 3) Short next steps
+
+```
+Next Steps:
+  1.) Ipsum lorem
+  2.) Ipsum lorem
+  3.) Ipsum lorem
 ```
 
 ----
