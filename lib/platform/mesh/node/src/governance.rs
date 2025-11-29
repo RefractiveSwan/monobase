@@ -131,3 +131,60 @@ impl GovernanceEngine {
         policy.dp_budget_consumed += epsilon;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use refractive_swan_contracts::MeshJobType;
+
+    fn job(job_type: MeshJobType, expected_cardinality: Option<u64>) -> MeshJobDescriptor {
+        MeshJobDescriptor {
+            job_id: "job-1".into(),
+            job_type,
+            parameters: match expected_cardinality {
+                Some(card) => serde_json::json!({ "expected_cardinality": card }),
+                None => serde_json::json!({}),
+            },
+            governance_context: None,
+        }
+    }
+
+    #[test]
+    fn analytics_requires_dp_when_cardinality_high() {
+        let policy = NodePolicy {
+            dp_budget_daily: 1.0,
+            dp_budget_consumed: 0.0,
+            max_cardinality_no_dp: 10,
+            export_allowed: true,
+            hub_registration_allowed: true,
+        };
+        let descriptor = QueryDescriptor::from_job(&job(MeshJobType::AnalyticsQuery, Some(100)));
+        let decision = GovernanceEngine::evaluate(&descriptor, &policy);
+        match decision {
+            GovernanceDecision::AllowWithNoise { epsilon } => {
+                assert!(epsilon > 0.0);
+            }
+            other => panic!("expected AllowWithNoise, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn export_denies_when_not_allowed() {
+        let policy = NodePolicy {
+            export_allowed: false,
+            ..NodePolicy::default()
+        };
+        let descriptor = QueryDescriptor::from_job(&job(MeshJobType::ExportJob, None));
+        let decision = GovernanceEngine::evaluate(&descriptor, &policy);
+        assert!(matches!(decision, GovernanceDecision::Deny(_)));
+    }
+
+    #[test]
+    fn budget_consumption_accumulates() {
+        let mut policy = NodePolicy::default();
+        GovernanceEngine::consume_budget(&mut policy, 0.2);
+        assert_eq!(policy.dp_budget_consumed, 0.2);
+        GovernanceEngine::consume_budget(&mut policy, 0.3);
+        assert!((policy.dp_budget_consumed - 0.5).abs() < f64::EPSILON);
+    }
+}

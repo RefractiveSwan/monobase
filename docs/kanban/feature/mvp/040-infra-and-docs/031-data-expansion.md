@@ -39,6 +39,8 @@ We need a cohesive data-plane story across node and hub:
 - [ ] Decide reporting warehouse backend (`Sqlite` precursor or Postgres/DuckDB) and add a minimal `WarehouseAnalytics` trait.
 - [ ] Implement lake ingestion stubs in `refractive_swan_mesh_hub` using lake reader + governance checks (DP required).
 - [ ] Add contracts for `WarehouseSnapshot`/`IngestSummary` (align with lake design) and export JSON schemas.
+- [ ] Stub `WarehouseLoader` / `WarehouseAnalytics` traits in `refractive_swan_datawarehouse` (design crate) aligned to lake README; keep operational mart as precursor implementation.
+- [ ] Extend `MeshJobType::ExportJob` path to use optional lake hooks (`LakeWriter`/`LakeReader`) when available; document DP/governance checks.
 
 ### P3 — Env/config/policy consistency
 
