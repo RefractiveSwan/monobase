@@ -426,19 +426,19 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P2.4 — Hub-side node registration & health-check loop
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/src/registry.rs`, `health.rs`
 
 **Tasks**
 
-- [ ] Implement `register_node(NodeCapabilities)` for nodes that proactively register.
+- [x] Implement `register_node(NodeCapabilities)` for nodes that proactively register.
 
-- [ ] Implement `health_check_nodes()`:
+- [x] Implement `health_check_nodes()`:
 
   - call `GET /mesh/health` and optionally `/mesh/capabilities`,
   - update `NodeStatus`, `last_seen`, error info.
 
-- [ ] Add `HubRuntime` owning `HubConfig`, `NodeRegistry`, `JobQueue`:
+- [x] Add `HubRuntime` owning `HubConfig`, `NodeRegistry`, `JobQueue`:
 
   - methods: `list_nodes`, `global_ncit_summary`, `federated_eval`.
 
