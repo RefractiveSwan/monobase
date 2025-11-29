@@ -331,6 +331,16 @@ impl HubRuntime {
         reg.all()
     }
 
+    /// Register a node proactively.
+    pub async fn register_node(&self, capabilities: NodeCapabilities, url: Url) {
+        crate::register_node(&self.queue.registry, capabilities, url).await;
+    }
+
+    /// Poll mesh node health and update registry status/stats.
+    pub async fn health_check_nodes(&self) {
+        crate::health_check_nodes(&self.queue).await;
+    }
+
     pub async fn global_ncit_summary(
         &self,
     ) -> Result<refractive_swan_contracts::AnalyticsSummaryResponse, HubError> {
