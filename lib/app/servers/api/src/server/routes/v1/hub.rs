@@ -1,4 +1,7 @@
-use axum::{body::to_bytes, Router, routing::{get, post}};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::server::ApiState;
 use crate::server::handlers;
@@ -7,6 +10,8 @@ use crate::server::router_with_state;
 
 #[cfg(test)]
 use crate::utils::ApiState as TestState;
+#[cfg(test)]
+use axum::body::to_bytes;
 #[cfg(test)]
 use axum::http::StatusCode;
 #[cfg(test)]

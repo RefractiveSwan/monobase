@@ -27,11 +27,14 @@ members = [
     
     "lib/platform/data/data-plane/mart",
     "lib/platform/data/data-stores/vector_store",
+
     "lib/platform/meta/compliance",
     "lib/platform/meta/configuration",
     "lib/platform/meta/observability",
+
     "lib/platform/mesh/node",
     "lib/platform/mesh/hub",
+    
     "lib/platform/test_suite",
 
     "tools/layer_lint",

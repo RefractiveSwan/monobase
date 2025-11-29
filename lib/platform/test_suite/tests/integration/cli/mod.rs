@@ -36,6 +36,7 @@ fn cli_command(bin: &str) -> Command {
     cmd
 }
 
+#[cfg_attr(not(feature = "heavy-tests"), ignore)]
 #[test]
 fn map_bundles_streams_contract_rows() {
     init_environment().expect("refractive_swan_test_suite env");
@@ -83,6 +84,7 @@ fn map_bundles_streams_contract_rows() {
     assert!(metrics_seen, "expected metrics_summary");
 }
 
+#[cfg_attr(not(feature = "heavy-tests"), ignore)]
 #[test]
 fn load_datamart_emits_contract_summary() {
     init_environment().expect("refractive_swan_test_suite env");

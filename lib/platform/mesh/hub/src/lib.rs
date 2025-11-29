@@ -5,8 +5,8 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use refractive_swan_mesh_dto::{MeshJobDescriptor, MeshJobResult, MeshNodeId, NodeCapabilities};
 use refractive_swan_configuration::load_env;
+use refractive_swan_mesh_dto::{MeshJobDescriptor, MeshJobResult, MeshNodeId, NodeCapabilities};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HubConfig {

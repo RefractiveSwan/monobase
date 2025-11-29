@@ -97,6 +97,7 @@ fn runtime_loader_reads_external_obo_files() {
     assert!(graph.nodes.iter().any(|node| node.iri == "NCIT:C19951"));
 }
 
+#[cfg_attr(not(feature = "heavy-tests"), ignore)]
 #[test]
 fn cache_evicts_entries_for_large_graphs() {
     let graph = synthetic_graph(DEFAULT_CACHE_CAPACITY * 3);

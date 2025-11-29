@@ -186,7 +186,9 @@ We want a **concrete node/hub propagation system** such that:
   - distribution by `CodeKind` (`KnownLicensedSystem`, `KnownOpenSystem`, `OboBacked`, etc.),
   - distribution by license tier (`licensed`, `open`, `internal_only`).
 
-- [ ] Decide which slices of these metrics are meaningful at **hub** level (e.g., aggregated by system, by tier) and consider exposing them via `refractive_swan_contracts` if the hub needs a typed federated summary.
+- [x] Decide which slices of these metrics are meaningful at **hub** level (e.g., aggregated by system, by tier) and consider exposing them via `refractive_swan_contracts` if the hub needs a typed federated summary.
+  - Added federated contracts/helpers: `MappingSummarySlice`, `FederatedMappingSummary`, `FederatedEvalSummary`, `aggregate_mapping_summaries`, `aggregate_eval_summaries` in `refractive_swan_contracts::federated`.
+  - Hub eval endpoint aggregates per-node eval summaries and returns aggregated + per-node payloads; mapping aggregation ready for hub wiring.
 
 ---
 

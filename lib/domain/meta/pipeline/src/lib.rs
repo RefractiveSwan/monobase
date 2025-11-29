@@ -14,7 +14,7 @@ use refractive_swan_core::{
     mapping::{DimNCITConcept, MappingResult},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
-use refractive_swan_eval::{EvalRunOutcome, FileDatasetStore, run_eval_with_mapper};
+use refractive_swan_eval::{DatasetStore, EvalRunOutcome, run_eval_with_mapper};
 use refractive_swan_ingestion::{
     ExternalValidationContext, ValidatedBundle, ValidationMode, bundle_to_staging_from_validated,
     bundle_to_staging_with_validation, validation::ValidationReport,
@@ -52,7 +52,7 @@ pub struct PipelineExecution {
 
 /// Evaluate a dataset using the pipeline's mapping path (lexical with optional vector context).
 pub fn run_eval_dataset_with_pipeline(
-    store: &FileDatasetStore,
+    store: &dyn DatasetStore,
     dataset: &str,
     vector: Option<&VectorPipelineContext>,
 ) -> Result<EvalRunOutcome, refractive_swan_eval::DatasetError> {

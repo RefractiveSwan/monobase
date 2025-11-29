@@ -2694,8 +2694,10 @@ dependencies = [
  "refractive_swan_core",
  "refractive_swan_eval",
  "refractive_swan_ingestion",
+ "refractive_swan_mapping",
  "refractive_swan_observability",
  "refractive_swan_pipeline",
+ "refractive_swan_terminology",
  "schemars",
  "serde",
  "serde_json",
@@ -2800,6 +2802,7 @@ name = "refractive_swan_mesh_hub"
 version = "0.1.0"
 dependencies = [
  "futures-util",
+ "refractive_swan_configuration",
  "refractive_swan_contracts",
  "refractive_swan_mesh_dto",
  "reqwest",
@@ -2850,6 +2853,7 @@ version = "0.1.0"
 dependencies = [
  "log",
  "refractive_swan_core",
+ "refractive_swan_eval",
  "refractive_swan_ingestion",
  "refractive_swan_mapping",
  "refractive_swan_observability",
