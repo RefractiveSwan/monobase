@@ -16,6 +16,7 @@ pub struct QueryDescriptor {
     pub class: QueryClass,
     pub expected_cardinality: Option<u64>,
     pub requester: Option<String>,
+    pub time_range: Option<TimeRange>,
 }
 
 impl QueryDescriptor {
@@ -31,6 +32,7 @@ impl QueryDescriptor {
             .parameters
             .get("expected_cardinality")
             .and_then(|v| v.as_u64());
+        let time_range = TimeRange::from_params(&job.parameters);
         let requester = job
             .governance_context
             .as_ref()
@@ -41,6 +43,31 @@ impl QueryDescriptor {
             class,
             expected_cardinality,
             requester,
+            time_range,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TimeRange {
+    pub start: Option<String>,
+    pub end: Option<String>,
+}
+
+impl TimeRange {
+    pub fn from_params(params: &serde_json::Value) -> Option<Self> {
+        let start = params
+            .get("start_date")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let end = params
+            .get("end_date")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        if start.is_some() || end.is_some() {
+            Some(TimeRange { start, end })
+        } else {
+            None
         }
     }
 }
@@ -143,7 +170,7 @@ mod tests {
             job_type,
             parameters: match expected_cardinality {
                 Some(card) => serde_json::json!({ "expected_cardinality": card }),
-                None => serde_json::json!({}),
+                None => serde_json::json!({ "start_date": "2025-01-01", "end_date": "2025-01-31" }),
             },
             governance_context: None,
         }
@@ -166,6 +193,15 @@ mod tests {
             }
             other => panic!("expected AllowWithNoise, got {:?}", other),
         }
+    }
+
+    #[test]
+    fn descriptor_extracts_time_range() {
+        let descriptor = QueryDescriptor::from_job(&job(MeshJobType::AnalyticsQuery, None));
+        assert!(descriptor.time_range.is_some());
+        let range = descriptor.time_range.unwrap();
+        assert_eq!(range.start.as_deref(), Some("2025-01-01"));
+        assert_eq!(range.end.as_deref(), Some("2025-01-31"));
     }
 
     #[test]
