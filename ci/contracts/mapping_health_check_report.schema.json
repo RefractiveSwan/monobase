@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MappingHealthCheckReport",
+  "description": "Health report emitted by nodes when handling `MeshJobType::MappingHealthCheck`.",
+  "type": "object",
+  "required": [
+    "auto_mapped",
+    "needs_review",
+    "no_match",
+    "ok"
+  ],
+  "properties": {
+    "auto_mapped": {
+      "description": "Count of AutoMapped codes in the regression bundle.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "needs_review": {
+      "description": "Count of NeedsReview codes in the regression bundle.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "no_match": {
+      "description": "Count of NoMatch codes in the regression bundle.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "notes": {
+      "description": "Optional implementation-defined notes.",
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ok": {
+      "description": "Overall pipeline health flag.",
+      "type": "boolean"
+    },
+    "vector_status": {
+      "description": "Vector backend availability and any diagnostics.",
+      "default": null
+    },
+    "warehouse_status": {
+      "description": "Warehouse/datamart availability and any diagnostics.",
+      "default": null
+    }
+  }
+}

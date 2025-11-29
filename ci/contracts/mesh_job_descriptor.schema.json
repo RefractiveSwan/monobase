@@ -1,28 +1,74 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MeshJobDescriptor",
+  "description": "Mesh job descriptor.\n\nEncapsulates all parameters needed to execute a job on a node. The hub or orchestrator sends this to a node via HTTP/gRPC, and the node's runtime (NodeDataPlane) dispatches it to the appropriate handler.",
   "type": "object",
-  "required": ["job_id", "job_type"],
+  "required": [
+    "job_id",
+    "job_type"
+  ],
   "properties": {
-    "job_id": { "type": "string", "description": "Unique job identifier assigned by hub/caller." },
+    "governance_context": {
+      "description": "Governance context (optional): requesting node ID, reason, etc.",
+      "default": null
+    },
+    "job_id": {
+      "description": "Unique job ID (assigned by hub or caller).",
+      "type": "string"
+    },
     "job_type": {
-      "type": "string",
-      "enum": [
-        "eval_dataset",
-        "analytics_query",
-        "mapping_health_check",
-        "export_job",
-        "node_introspection"
-      ],
-      "description": "Mesh job type."
+      "description": "Job type.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/MeshJobType"
+        }
+      ]
     },
     "parameters": {
-      "type": ["object", "null"],
-      "description": "Type-specific parameters payload (JSON object)."
-    },
-    "governance_context": {
-      "type": ["object", "null"],
-      "description": "Optional governance payload (requester, reason, DP budgets)."
+      "description": "Type-specific parameters (JSON blob).\n\nFor `EvalDataset`: `{ \"dataset_name\": \"...\", \"top_k\": 10 }` For `AnalyticsQuery`: `{ \"query_type\": \"ncit_summary\", \"filters\": {...} }` For `MappingHealthCheck`: `{}`",
+      "default": null
+    }
+  },
+  "definitions": {
+    "MeshJobType": {
+      "description": "Mesh job type.\n\nDefines the category of work being requested. Each type corresponds to a specific set of parameters in `MeshJobDescriptor`.",
+      "oneOf": [
+        {
+          "description": "Run an eval dataset against the mapping pipeline.",
+          "type": "string",
+          "enum": [
+            "eval_dataset"
+          ]
+        },
+        {
+          "description": "Execute an analytics query (NCIt summary, cohort).",
+          "type": "string",
+          "enum": [
+            "analytics_query"
+          ]
+        },
+        {
+          "description": "Perform a mapping health check (verify pipeline/vector runtime).",
+          "type": "string",
+          "enum": [
+            "mapping_health_check"
+          ]
+        },
+        {
+          "description": "Export aggregated data (with DP noise, if required).",
+          "type": "string",
+          "enum": [
+            "export_job"
+          ]
+        },
+        {
+          "description": "Node introspection (metrics, capacity, status).",
+          "type": "string",
+          "enum": [
+            "node_introspection"
+          ]
+        }
+      ]
     }
   }
 }

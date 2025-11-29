@@ -87,7 +87,7 @@ pub struct NodeDataPlane {
 - **Mesh jobs** – `NodeDataPlane::run_mesh_job` handles eval datasets, analytics queries, mapping health, and node introspection for `/mesh/job` (governance/export hooks will compose here once `refractive_swan_mesh_governance` lands).
 - **Governance** – `policy` is surfaced via `/mesh/governance`; DP budgets and mesh governance hooks will layer on top.
 - **Regression health** – `MappingHealthCheck` runs the regression bundle (`fhir_bundle_sr`) through the pipeline, records vector usage/latency, attempts datamart persistence, and returns state counts plus backend labels, vector health, and warehouse health.
-- **Mesh job schemas** – JSON schemas for `MeshJobDescriptor` and `MeshJobResult` live under `ci/contracts` and document per-type parameters/outputs.
+- **Mesh job schemas** – JSON schemas for `MeshJobDescriptor`, `MeshJobResult`, and per-type outputs (`mapping_health_check_report`, `export_job_summary`, `node_introspection_view`) live under `ci/contracts` (generate via `cargo run -p refractive_swan_contracts --bin contracts-schema`).
 
 ---
 

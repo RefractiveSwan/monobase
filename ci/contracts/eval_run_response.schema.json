@@ -96,6 +96,10 @@
         "version"
       ],
       "properties": {
+        "disabled": {
+          "default": false,
+          "type": "boolean"
+        },
         "license": {
           "type": [
             "string",
@@ -126,10 +130,27 @@
             "null"
           ]
         },
+        "tier": {
+          "default": "uncategorized",
+          "allOf": [
+            {
+              "$ref": "#/definitions/DatasetTier"
+            }
+          ]
+        },
         "version": {
           "type": "string"
         }
       }
+    },
+    "DatasetTier": {
+      "type": "string",
+      "enum": [
+        "bronze",
+        "silver",
+        "gold",
+        "uncategorized"
+      ]
     },
     "EvalCase": {
       "type": "object",

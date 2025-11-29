@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NodeIntrospectionView",
+  "description": "Node introspection view emitted for `MeshJobType::NodeIntrospection`.",
+  "type": "object",
+  "required": [
+    "metrics"
+  ],
+  "properties": {
+    "datasets": {
+      "description": "Dataset manifests available to the node.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "features": {
+      "description": "Feature toggles or tags currently active.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "description": "Pipeline metrics snapshot (reuses node surface schema)."
+    },
+    "vector_usage": {
+      "description": "Optional vector usage snapshot (backend-defined).",
+      "default": null
+    }
+  }
+}

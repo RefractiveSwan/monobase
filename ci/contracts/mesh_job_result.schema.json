@@ -1,50 +1,157 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MeshJobResult",
+  "description": "Mesh job result.\n\nReturned by a node after executing a job. Contains status, optional metrics snapshot, and structured output or error.",
   "type": "object",
-  "required": ["job_id", "status"],
+  "required": [
+    "job_id",
+    "status"
+  ],
   "properties": {
-    "job_id": { "type": "string", "description": "Echoes the descriptor job_id." },
-    "status": {
-      "type": "string",
-      "enum": ["success", "failed", "denied", "in_progress", "cancelled"],
-      "description": "Execution status."
+    "error": {
+      "description": "Error details if status is Failed or Denied.",
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/MeshError"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "job_id": {
+      "description": "Job ID (echoes the descriptor).",
+      "type": "string"
     },
     "metrics": {
       "description": "Optional metrics snapshot captured during execution.",
-      "type": ["object", "array", "string", "number", "boolean", "null"]
+      "default": null
     },
     "output": {
-      "description": "Job-type specific output (EvalRunResponse, AnalyticsSummaryResponse, etc).",
-      "type": ["object", "array", "string", "number", "boolean", "null"]
+      "description": "Structured output (job-type specific).\n\nFor `EvalDataset`: `EvalRunResponse` For `AnalyticsQuery`: `AnalyticsSummaryResponse` or `CohortResponse` For `MappingHealthCheck`: `{ \"ok\": true, \"latency_ms\": 123 }`",
+      "default": null
     },
-    "error": {
-      "$ref": "#/definitions/MeshError",
-      "description": "Error details when status is Failed or Denied."
+    "status": {
+      "description": "Execution status.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/MeshJobStatus"
+        }
+      ]
     }
   },
   "definitions": {
     "MeshError": {
+      "description": "Mesh error details.\n\nStructured error information returned in `MeshJobResult::error`.",
       "type": "object",
-      "required": ["kind", "code", "message"],
+      "required": [
+        "code",
+        "kind",
+        "message"
+      ],
       "properties": {
+        "code": {
+          "description": "Machine-readable error code.",
+          "type": "string"
+        },
+        "context": {
+          "description": "Optional additional context (e.g., stack trace, node logs).",
+          "default": null
+        },
         "kind": {
-          "type": "string",
-          "enum": [
-            "node_unavailable",
-            "job_rejected",
-            "policy_denied",
-            "internal",
-            "invalid_request"
+          "description": "Error kind (category).",
+          "allOf": [
+            {
+              "$ref": "#/definitions/MeshErrorKind"
+            }
           ]
         },
-        "code": { "type": "string" },
-        "message": { "type": "string" },
-        "context": {
-          "description": "Optional contextual payload describing the error.",
-          "type": ["object", "array", "string", "number", "boolean", "null"]
+        "message": {
+          "description": "Human-readable error message.",
+          "type": "string"
         }
       }
+    },
+    "MeshErrorKind": {
+      "description": "Mesh error kind (category).\n\nHelps the hub or orchestrator understand whether a failure is retryable, a policy denial, or a node-unavailable situation.",
+      "oneOf": [
+        {
+          "description": "Node is unavailable or unreachable.",
+          "type": "string",
+          "enum": [
+            "node_unavailable"
+          ]
+        },
+        {
+          "description": "Job was rejected by the node (e.g., queue full, unsupported job type).",
+          "type": "string",
+          "enum": [
+            "job_rejected"
+          ]
+        },
+        {
+          "description": "Governance policy denied the request.",
+          "type": "string",
+          "enum": [
+            "policy_denied"
+          ]
+        },
+        {
+          "description": "Internal error during job execution.",
+          "type": "string",
+          "enum": [
+            "internal"
+          ]
+        },
+        {
+          "description": "Invalid job parameters.",
+          "type": "string",
+          "enum": [
+            "invalid_request"
+          ]
+        }
+      ]
+    },
+    "MeshJobStatus": {
+      "description": "Mesh job execution status.",
+      "oneOf": [
+        {
+          "description": "Job completed successfully.",
+          "type": "string",
+          "enum": [
+            "success"
+          ]
+        },
+        {
+          "description": "Job failed due to internal error.",
+          "type": "string",
+          "enum": [
+            "failed"
+          ]
+        },
+        {
+          "description": "Job was rejected by governance policy.",
+          "type": "string",
+          "enum": [
+            "denied"
+          ]
+        },
+        {
+          "description": "Job is still running (used for async/polling workflows).",
+          "type": "string",
+          "enum": [
+            "in_progress"
+          ]
+        },
+        {
+          "description": "Job was cancelled.",
+          "type": "string",
+          "enum": [
+            "cancelled"
+          ]
+        }
+      ]
     }
   }
 }

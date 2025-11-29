@@ -126,7 +126,7 @@ We want a **concrete node/hub propagation system** such that:
 
 **Tasks**
 
-- [ ] Ensure (with tests) `MeshJobType` variants map directly onto existing contracts:
+- [x] Ensure (with tests) `MeshJobType` variants map directly onto existing contracts:
 
   - `EvalDataset` -> `EvalRunResponse` (dataset name + `EvalSummary`).
   - `AnalyticsQuery` -> `AnalyticsSummaryResponse` / `CohortResponse`.
@@ -134,16 +134,26 @@ We want a **concrete node/hub propagation system** such that:
   - `ExportJob` -> `LoadSummary` / export metadata.
   - `NodeIntrospection` -> JSON view combining `PipelineMetrics` + `VectorUsageSnapshot` + any node-local state (dataset manifests, feature toggles).
 
-- [ ] Document expected `MeshJobDescriptor.parameters` shapes per job type.
+  - [x] Document expected `MeshJobDescriptor.parameters` shapes per job type.
   - `EvalDataset`: `{ "dataset": "bronze_pet_ct_small", "top_k": 5 }`
   - `AnalyticsQuery`: `{ "query_type": "ncit_summary" }` or `{ "query_type": "cohort", "filters": { ... } }`
   - `MappingHealthCheck`: `{}`
   - `ExportJob`: `{ "export": "ncit_summary" }` (DP/export policy applies)
   - `NodeIntrospection`: `{}`
   - [x] Publish JSON schema for `MeshJobResult.output` per job type under `ci/contracts`.
-- [ ] Define a minimal canonical schema for `MeshJobResult.output` per `MeshJobType` (JSON schemas can live under `ci/contracts`).
+  - Parameters/output reference:
+
+    | MeshJobType            | Parameters example                                            | Output schema / contract                              |
+    | ---------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+    | `EvalDataset`          | `{ "dataset": "bronze_pet_ct_small", "top_k": 5 }`            | `eval_run_response.schema.json` (`EvalRunResponse`)   |
+    | `AnalyticsQuery`       | `{ "query_type": "ncit_summary" }` or `{ "query_type": "cohort", "filters": { ... } }` | `analytics_summary_response.schema.json` / `cohort_response.schema.json` |
+    | `MappingHealthCheck`   | `{}`                                                          | `mapping_health_check_report.schema.json`             |
+    | `ExportJob`            | `{ "export": "ncit_summary" }`                                | `export_job_summary.schema.json` (`LoadSummary`-backed) |
+    | `NodeIntrospection`    | `{}`                                                          | `node_introspection_view.schema.json`                 |
+    
+- [x] Define a minimal canonical schema for `MeshJobResult.output` per `MeshJobType` (JSON schemas can live under `ci/contracts`).
   - [x] Generate `mesh_job_descriptor.schema.json` and `mesh_job_result.schema.json` via `contracts_schema` bin; add parameters table above.
-  - [ ] Add meshes doc cross-reference from `node-runtime.md` and schema generator runbook.
+  - [x] Add meshes doc cross-reference from `node-runtime.md` and schema generator runbook.
 
 ---
 

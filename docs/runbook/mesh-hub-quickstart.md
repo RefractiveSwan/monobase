@@ -374,3 +374,4 @@ kubectl expose deployment mesh-hub --type=LoadBalancer --port=9000
 - **Node Runtime**: `docs/system-design/mesh/node-runtime.md`
 - **Governance**: `lib/platform/mesh/governance/README.md`
 - **Mesh Contracts**: `lib/domain/contracts/src/mesh.rs`
+- **Schemas**: Generate/update mesh schemas via `cargo run -p refractive_swan_contracts --bin contracts-schema` (outputs to `ci/contracts`, including `mesh_job_descriptor/result`, `mapping_health_check_report`, `export_job_summary`, `node_introspection_view`).

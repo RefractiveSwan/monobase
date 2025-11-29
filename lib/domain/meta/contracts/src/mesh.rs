@@ -9,8 +9,11 @@
 //! these contracts (via the `refractive_swan_mesh_dto` veneer). Apps/CLIs remain
 //! node-local and use existing contracts (analytics, eval, pipeline).
 
-use serde::{Deserialize, Serialize};
+use crate::warehouse::LoadSummary;
+#[cfg(test)]
+use crate::{analytics::AnalyticsSummaryResponse, eval::EvalRunResponse};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
 
@@ -155,6 +158,56 @@ pub struct MeshJobResult {
     /// Error details if status is Failed or Denied.
     #[serde(default)]
     pub error: Option<MeshError>,
+}
+
+/// Health report emitted by nodes when handling `MeshJobType::MappingHealthCheck`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct MappingHealthCheckReport {
+    /// Overall pipeline health flag.
+    pub ok: bool,
+    /// Count of AutoMapped codes in the regression bundle.
+    pub auto_mapped: u64,
+    /// Count of NeedsReview codes in the regression bundle.
+    pub needs_review: u64,
+    /// Count of NoMatch codes in the regression bundle.
+    pub no_match: u64,
+    /// Vector backend availability and any diagnostics.
+    #[serde(default)]
+    pub vector_status: Option<serde_json::Value>,
+    /// Warehouse/datamart availability and any diagnostics.
+    #[serde(default)]
+    pub warehouse_status: Option<serde_json::Value>,
+    /// Optional implementation-defined notes.
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+/// Export summary emitted by nodes when handling `MeshJobType::ExportJob`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ExportJobSummary {
+    /// Export kind (e.g., "ncit_summary").
+    pub export: String,
+    /// Aggregated load summary for rows written.
+    pub load_summary: LoadSummary,
+    /// Optional DP epsilon consumed for this export.
+    #[serde(default)]
+    pub dp_epsilon_used: Option<f64>,
+}
+
+/// Node introspection view emitted for `MeshJobType::NodeIntrospection`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct NodeIntrospectionView {
+    /// Pipeline metrics snapshot (reuses node surface schema).
+    pub metrics: serde_json::Value,
+    /// Optional vector usage snapshot (backend-defined).
+    #[serde(default)]
+    pub vector_usage: Option<serde_json::Value>,
+    /// Dataset manifests available to the node.
+    #[serde(default)]
+    pub datasets: Vec<String>,
+    /// Feature toggles or tags currently active.
+    #[serde(default)]
+    pub features: Vec<String>,
 }
 
 /// Mesh job execution status.
@@ -344,6 +397,100 @@ mod tests {
         let json = serde_json::to_string_pretty(&result).unwrap();
         let parsed: MeshJobResult = serde_json::from_str(&json).unwrap();
         assert_eq!(result, parsed);
+    }
+
+    #[test]
+    fn test_mesh_job_type_outputs_align_with_contracts() {
+        // EvalDataset -> EvalRunResponse
+        let eval_output = serde_json::to_value(EvalRunResponse {
+            dataset: "bronze_pet_ct_small".to_string(),
+            manifest: None,
+            summary: refractive_swan_eval::EvalSummary::default(),
+        })
+        .unwrap();
+        let eval_result = MeshJobResult {
+            job_id: "job-eval".into(),
+            status: MeshJobStatus::Success,
+            metrics: None,
+            output: Some(eval_output.clone()),
+            error: None,
+        };
+        assert_eq!(
+            serde_json::from_value::<EvalRunResponse>(eval_result.output.unwrap())
+                .unwrap()
+                .dataset,
+            "bronze_pet_ct_small"
+        );
+
+        // AnalyticsQuery -> AnalyticsSummaryResponse
+        let analytics = AnalyticsSummaryResponse { rows: vec![] };
+        let analytics_json = serde_json::to_value(&analytics).unwrap();
+        let parsed_analytics: AnalyticsSummaryResponse =
+            serde_json::from_value(analytics_json.clone()).unwrap();
+        assert_eq!(parsed_analytics.rows.len(), analytics.rows.len());
+
+        // MappingHealthCheck -> MappingHealthCheckReport
+        let mhc = MappingHealthCheckReport {
+            ok: true,
+            auto_mapped: 1,
+            needs_review: 2,
+            no_match: 0,
+            vector_status: None,
+            warehouse_status: None,
+            notes: Some("ok".into()),
+        };
+        let mhc_json = serde_json::to_value(&mhc).unwrap();
+        let parsed_mhc: MappingHealthCheckReport =
+            serde_json::from_value(mhc_json.clone()).unwrap();
+        assert!(parsed_mhc.ok);
+
+        // ExportJob -> LoadSummary within ExportJobSummary
+        let export = ExportJobSummary {
+            export: "ncit_summary".into(),
+            load_summary: LoadSummary {
+                patients: 1,
+                encounters: 2,
+                codes: 3,
+                ncit: 4,
+                facts: 5,
+            },
+            dp_epsilon_used: Some(0.1),
+        };
+        let export_json = serde_json::to_value(&export).unwrap();
+        let parsed_export: ExportJobSummary = serde_json::from_value(export_json.clone()).unwrap();
+        assert_eq!(parsed_export.export, "ncit_summary");
+
+        // NodeIntrospection -> NodeIntrospectionView
+        let introspection = NodeIntrospectionView {
+            metrics: serde_json::json!({ "auto_mapped": 1 }),
+            vector_usage: Some(serde_json::json!({ "vector_backend": "mock" })),
+            datasets: vec!["bronze_pet_ct_small".into()],
+            features: vec!["dev".into()],
+        };
+        let introspection_json = serde_json::to_value(&introspection).unwrap();
+        let parsed_introspection: NodeIntrospectionView =
+            serde_json::from_value(introspection_json.clone()).unwrap();
+        assert_eq!(parsed_introspection.datasets.len(), 1);
+
+        // Round-trip each output inside MeshJobResult for coverage.
+        for (job_id, payload) in [
+            ("job-eval", eval_output),
+            ("job-analytics", analytics_json),
+            ("job-mhc", mhc_json),
+            ("job-export", export_json),
+            ("job-introspect", introspection_json),
+        ] {
+            let result = MeshJobResult {
+                job_id: job_id.into(),
+                status: MeshJobStatus::Success,
+                metrics: None,
+                output: Some(payload),
+                error: None,
+            };
+            let json = serde_json::to_string(&result).unwrap();
+            let parsed: MeshJobResult = serde_json::from_str(&json).unwrap();
+            assert!(parsed.output.is_some());
+        }
     }
 
     #[test]

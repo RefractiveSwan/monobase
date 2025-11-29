@@ -7,8 +7,9 @@ use std::{
 };
 
 use refractive_swan_contracts::{
-    AnalyticsSummaryResponse, CohortResponse, ErrorCode, ErrorKind, EvalRunResponse, LoadSummary,
-    MeshJobDescriptor, MeshJobResult,
+    AnalyticsSummaryResponse, CohortResponse, ErrorCode, ErrorKind, EvalRunResponse,
+    ExportJobSummary, LoadSummary, MappingHealthCheckReport, MeshJobDescriptor, MeshJobResult,
+    NodeIntrospectionView,
 };
 use schemars::{JsonSchema, schema_for};
 use serde_json::to_writer_pretty;
@@ -16,7 +17,13 @@ use tempfile::tempdir;
 
 fn workspace_root() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest.join("../../..")
+    manifest
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|p| p.parent())
+        .and_then(|p| p.parent())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| manifest.to_path_buf())
 }
 
 fn contracts_dir() -> PathBuf {
@@ -47,6 +54,9 @@ fn export_all(out_dir: &Path) -> io::Result<()> {
     write_schema::<CohortResponse>(out_dir, "cohort_response.schema.json")?;
     write_schema::<EvalRunResponse>(out_dir, "eval_run_response.schema.json")?;
     write_schema::<LoadSummary>(out_dir, "load_summary.schema.json")?;
+    write_schema::<MappingHealthCheckReport>(out_dir, "mapping_health_check_report.schema.json")?;
+    write_schema::<ExportJobSummary>(out_dir, "export_job_summary.schema.json")?;
+    write_schema::<NodeIntrospectionView>(out_dir, "node_introspection_view.schema.json")?;
     write_schema::<MeshJobDescriptor>(out_dir, "mesh_job_descriptor.schema.json")?;
     write_schema::<MeshJobResult>(out_dir, "mesh_job_result.schema.json")?;
     write_enum_values(out_dir, "error_kinds.json", &ErrorKind::variant_names())?;

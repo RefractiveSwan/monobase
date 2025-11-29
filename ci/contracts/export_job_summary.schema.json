@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExportJobSummary",
+  "description": "Export summary emitted by nodes when handling `MeshJobType::ExportJob`.",
+  "type": "object",
+  "required": [
+    "export",
+    "load_summary"
+  ],
+  "properties": {
+    "dp_epsilon_used": {
+      "description": "Optional DP epsilon consumed for this export.",
+      "default": null,
+      "type": [
+        "number",
+        "null"
+      ],
+      "format": "double"
+    },
+    "export": {
+      "description": "Export kind (e.g., \"ncit_summary\").",
+      "type": "string"
+    },
+    "load_summary": {
+      "description": "Aggregated load summary for rows written.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/LoadSummary"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "LoadSummary": {
+      "description": "Summary of rows inserted or updated during a warehouse load.",
+      "type": "object",
+      "required": [
+        "codes",
+        "encounters",
+        "facts",
+        "ncit",
+        "patients"
+      ],
+      "properties": {
+        "codes": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "encounters": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "facts": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "ncit": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "patients": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}
