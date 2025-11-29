@@ -446,14 +446,14 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P2.5 — Hub HTTP surface (API server for frontend)
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:**  
   - either new `lib/app/servers/mesh_hub_api`,  
   - or hub-mode router inside `refractive_swan_api`.
 
 **Tasks**
 
-- [ ] Decide deployment: standalone hub API vs `HUB_MODE` env flag in `refractive_swan_api`.
+- [x] Decide deployment: hub-mode router inside `refractive_swan_api` with toggle `refractive_swan_API_ENABLE_HUB` (default enabled).
 
 - [ ] Expose endpoints:
 

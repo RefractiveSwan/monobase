@@ -23,13 +23,21 @@ use crate::server::ApiState;
 /// - Dataset admin: `/datasets/*`
 /// - Admin/insights: `/admin/*`
 pub fn router() -> Router<ApiState> {
-    Router::new()
+    let mut router = Router::new()
         .merge(health::router())
         .merge(mesh::router())
-        .merge(hub::router())
         .merge(analytics::router())
         .merge(mapping::router())
         .merge(eval::router())
         .merge(datasets::router())
-        .merge(admin::router())
+        .merge(admin::router());
+
+    let hub_enabled = std::env::var("refractive_swan_API_ENABLE_HUB")
+        .map(|v| v.to_ascii_lowercase() != "false")
+        .unwrap_or(true);
+    if hub_enabled {
+        router = router.merge(hub::router());
+    }
+
+    router
 }
