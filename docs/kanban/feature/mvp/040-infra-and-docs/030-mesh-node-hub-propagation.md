@@ -140,9 +140,10 @@ We want a **concrete node/hub propagation system** such that:
   - `MappingHealthCheck`: `{}`
   - `ExportJob`: `{ "export": "ncit_summary" }` (DP/export policy applies)
   - `NodeIntrospection`: `{}`
-  - [ ] Publish JSON schema for `MeshJobResult.output` per job type under `ci/contracts`.
+  - [x] Publish JSON schema for `MeshJobResult.output` per job type under `ci/contracts`.
 - [ ] Define a minimal canonical schema for `MeshJobResult.output` per `MeshJobType` (JSON schemas can live under `ci/contracts`).
   - [x] Generate `mesh_job_descriptor.schema.json` and `mesh_job_result.schema.json` via `contracts_schema` bin; add parameters table above.
+  - [ ] Add meshes doc cross-reference from `node-runtime.md` and schema generator runbook.
 
 ---
 
