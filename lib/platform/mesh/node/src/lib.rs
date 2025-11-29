@@ -6,6 +6,7 @@
 
 mod config;
 pub mod plane;
+mod lake;
 mod vector;
 
 pub use config::{NodePlaneConfig, NodePlaneConfigError};

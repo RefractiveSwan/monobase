@@ -20,3 +20,4 @@ refractive_swan_configuration = { path = "../../meta/configuration" }
 tokio = { workspace = true, features = ["sync"] }
 thiserror.workspace = true
 serde_json.workspace = true
+serde = { workspace = true, features = ["derive"] }

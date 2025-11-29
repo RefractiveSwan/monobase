@@ -242,6 +242,7 @@ We want a **concrete node/hub propagation system** such that:
 
   - current: `app.web.api`,
   - optional future: `app.mesh.node.<suffix>`.
+  - Documented in `docs/system-design/mesh/node-runtime.md` (env seams section).
 
 - [x] Add `NodePlaneConfig::from_env_with_node_id(namespace: &str, node_id: MeshNodeId)` to allow deterministic IDs.
 
@@ -327,7 +328,7 @@ We want a **concrete node/hub propagation system** such that:
 
 #### P1.4 — Node data-plane alignment: mart / warehouse / vector / lake hooks
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:**  
   - `lib/platform/data/data-plane/mart` (`refractive_swan_datamart`)  
   - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` – design)  
@@ -336,20 +337,20 @@ We want a **concrete node/hub propagation system** such that:
 
 **Tasks**
 
-- [ ] Confirm `SqliteDatamart::from_optional_config(NodePlaneConfig::datamart_config())` is the node’s primary `DatamartSink`.
+- [x] Confirm `SqliteDatamart::from_optional_config(NodePlaneConfig::datamart_config())` is the node’s primary `DatamartSink` (tests cover disabled/enabled warehouse label).
 
-- [ ] Ensure (with tests) `VectorPipelineContext` is constructed from:
+- [x] Ensure (with tests) `VectorPipelineContext` is constructed from:
 
   - `VectorStoreConfig` via `config_from_env()`,
   - concrete store (`QdrantVectorStore::from_config` or `PgVectorStore::from_config`),
   - `top_k` defaults defined in mapping/vector ranker types.
 
-- [ ] Prepare for `ExportJob` integration with `refractive_swan_datalake`:
+- [x] Prepare for `ExportJob` integration with `refractive_swan_datalake`:
 
   - treat `LakeWriter` / `LakeReader` as optional injection points in `NodeDataPlane`,
   - design `WarehouseSnapshot` (`fact_rows`, `dim_rows`) based on `fact_service_request` / dims.
 
-- [ ] Document how node roles map to `WarehouseRole::Operational` (mart) vs future `Reporting`/`Archival`.
+- [x] Document how node roles map to `WarehouseRole::Operational` (mart) vs future `Reporting`/`Archival`.
 
 ---
 

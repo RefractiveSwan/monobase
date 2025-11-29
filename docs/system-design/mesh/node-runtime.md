@@ -67,6 +67,7 @@ pub struct NodeDataPlane {
 ### NodePlaneConfig env seams
 
 - Namespace: `app.web.api` (loaded via `refractive_swan_configuration::load_env`).
+- Optional namespacing for multi-node setups: `app.mesh.node.<suffix>` (reserve for future per-node overrides).
 - Mesh identity/capacity: `refractive_swan_MESH_NODE_ID`, `refractive_swan_MESH_NODE_TAGS` (CSV), `refractive_swan_MESH_MAX_DATASET_SIZE`.
 - Compliance: loaded once via `refractive_swan_compliance::ComplianceConfig::from_env`.
 - Vector: `refractive_swan_VECTOR_*` → `VectorStoreConfig` (optional/disabled when `refractive_swan_VECTOR_ENABLED` is false).
@@ -88,6 +89,7 @@ pub struct NodeDataPlane {
 - **Governance** – `policy` is surfaced via `/mesh/governance`; DP budgets and mesh governance hooks will layer on top.
 - **Regression health** – `MappingHealthCheck` runs the regression bundle (`fhir_bundle_sr`) through the pipeline, records vector usage/latency, attempts datamart persistence, and returns state counts plus backend labels, vector health, and warehouse health.
 - **Mesh job schemas** – JSON schemas for `MeshJobDescriptor`, `MeshJobResult`, and per-type outputs (`mapping_health_check_report`, `export_job_summary`, `node_introspection_view`) live under `ci/contracts` (generate via `cargo run -p refractive_swan_contracts --bin contracts-schema`).
+- **Warehouse roles** – Node datamart runs in `Operational` role (sqlite mart via `SqliteDatamart::from_optional_config`). Future `Reporting` / `Archival` roles will attach to a hub reporting warehouse or lake exports; lake hooks (`LakeWriter`/`LakeReader`) are optional injection points.
 
 ---
 

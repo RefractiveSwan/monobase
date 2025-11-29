@@ -29,6 +29,7 @@ use refractive_swan_vector_store::VectorStoreConfig;
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
+use crate::lake::{LakeReader, LakeWriter};
 use crate::{config::NodePlaneConfig, vector::vector_context_from_config};
 
 /// Shared orchestration surface for node-local data plane operations.
@@ -45,6 +46,10 @@ pub struct NodeDataPlane {
     pipeline: Arc<dyn PipelinePort + Send + Sync>,
     datamart: Arc<dyn DatamartSink + Send + Sync>,
     datamart_config: Option<WarehouseConfig>,
+    #[allow(dead_code)]
+    lake_writer: Option<Arc<dyn LakeWriter + Send + Sync>>,
+    #[allow(dead_code)]
+    lake_reader: Option<Arc<dyn LakeReader + Send + Sync>>,
     max_dataset_size: u64,
     tags: Vec<String>,
 }
@@ -79,6 +84,8 @@ impl NodeDataPlane {
             datamart_config,
             max_dataset_size,
             tags,
+            None,
+            None,
         )
     }
 
@@ -94,6 +101,8 @@ impl NodeDataPlane {
         datamart_config: Option<WarehouseConfig>,
         max_dataset_size: u64,
         tags: Vec<String>,
+        lake_writer: Option<Arc<dyn LakeWriter + Send + Sync>>,
+        lake_reader: Option<Arc<dyn LakeReader + Send + Sync>>,
     ) -> Self {
         let node_id_str = node_id.to_string();
         let compliance_mode = policy.mode.as_str().to_string();
@@ -111,6 +120,8 @@ impl NodeDataPlane {
             pipeline,
             datamart,
             datamart_config,
+            lake_writer,
+            lake_reader,
             max_dataset_size,
             tags,
         }
@@ -495,6 +506,34 @@ mod tests {
         };
         let plane = NodeDataPlane::from_config(config);
         assert_eq!(plane.policy.mode, policy.mode);
+    }
+
+    #[test]
+    fn warehouse_backend_label_reflects_datamart_config() {
+        let temp_root = std::env::temp_dir().join("mesh-node-datamart-test");
+        let _ = fs::create_dir_all(&temp_root);
+        let base_config = NodePlaneConfig {
+            node_id: MeshNodeId::from_string("node-test".into()),
+            policy: Policy::default_for_mode(ComplianceMode::OpenSource),
+            dataset_store: refractive_swan_eval::FileDatasetStore::new(&temp_root),
+            datamart: None,
+            vector: None,
+            max_dataset_size: 1,
+            tags: vec![],
+        };
+        let disabled = NodeDataPlane::from_config(base_config.clone());
+        assert_eq!(disabled.warehouse_backend_label(), "disabled");
+
+        let cfg = refractive_swan_datamart::WarehouseConfig {
+            url: "sqlite://test.db".into(),
+            schema: None,
+            max_connections: 5,
+        };
+        let enabled_plane = NodeDataPlane::from_config(NodePlaneConfig {
+            datamart: Some(cfg),
+            ..base_config
+        });
+        assert_eq!(enabled_plane.warehouse_backend_label(), "sqlite");
     }
 }
 

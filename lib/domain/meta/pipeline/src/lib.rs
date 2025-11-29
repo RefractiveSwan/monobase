@@ -350,6 +350,10 @@ impl VectorPipelineContext {
         self
     }
 
+    pub fn top_k(&self) -> usize {
+        self.top_k
+    }
+
     pub fn config(&self) -> &VectorStoreConfig {
         &self.config
     }

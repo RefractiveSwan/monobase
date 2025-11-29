@@ -21,3 +21,24 @@ pub fn vector_context_from_config(config: &VectorStoreConfig) -> Option<VectorPi
 
     Some(VectorPipelineContext::new(store, config.clone()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_vector_context_from_mock_config() {
+        let config = VectorStoreConfig {
+            backend: VectorBackend::Mock,
+            url: None,
+            namespace: "test-ns".into(),
+            pool_max: 2,
+            health_timeout_ms: 1000,
+            enabled: true,
+        };
+        let ctx = vector_context_from_config(&config).expect("context");
+        assert_eq!(ctx.backend(), VectorBackend::Mock);
+        assert_eq!(ctx.top_k(), 5);
+        assert_eq!(ctx.namespace(), "test-ns");
+    }
+}
