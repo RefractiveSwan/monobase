@@ -5,8 +5,8 @@
 //! same wiring from domain ports → platform stores.
 
 mod config;
-pub mod plane;
 mod lake;
+pub mod plane;
 mod vector;
 
 pub use config::{NodePlaneConfig, NodePlaneConfigError};

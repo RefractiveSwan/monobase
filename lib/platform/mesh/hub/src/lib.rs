@@ -1,12 +1,19 @@
 use std::collections::HashMap;
 
-use futures_util::future::join_all;
+use futures_util::StreamExt;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::sync::Mutex;
 
 use refractive_swan_configuration::load_env;
-use refractive_swan_mesh_dto::{MeshJobDescriptor, MeshJobResult, MeshNodeId, NodeCapabilities};
+use refractive_swan_mesh_dto::{
+    MeshError, MeshErrorCode, MeshErrorKind, MeshJobDescriptor, MeshJobResult, MeshJobStatus,
+    MeshNodeId, NodeCapabilities,
+};
+
+pub mod analytics;
+pub mod eval;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HubConfig {
@@ -48,7 +55,7 @@ impl Default for NodeStatus {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct NodeMetadata {
     pub node_id: MeshNodeId,
     pub url: Url,
@@ -60,6 +67,7 @@ pub struct NodeMetadata {
 #[derive(Debug, Default, Clone)]
 pub struct NodeRegistry {
     nodes: HashMap<MeshNodeId, NodeMetadata>,
+    stats: HashMap<MeshNodeId, NodeStats>,
 }
 
 impl NodeRegistry {
@@ -80,6 +88,29 @@ impl NodeRegistry {
             self.upsert(meta);
         }
     }
+
+    pub fn record_success(&mut self, node_id: &MeshNodeId) {
+        let entry = self.stats.entry(node_id.clone()).or_default();
+        entry.successes += 1;
+        entry.last_error = None;
+    }
+
+    pub fn record_failure(&mut self, node_id: &MeshNodeId, error: String) {
+        let entry = self.stats.entry(node_id.clone()).or_default();
+        entry.failures += 1;
+        entry.last_error = Some(error);
+    }
+
+    pub fn stats(&self, node_id: &MeshNodeId) -> Option<&NodeStats> {
+        self.stats.get(node_id)
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct NodeStats {
+    pub successes: u64,
+    pub failures: u64,
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, Error)]
@@ -93,7 +124,8 @@ pub enum HubError {
 #[derive(Clone)]
 pub struct JobQueue {
     client: reqwest::Client,
-    registry: NodeRegistry,
+    registry: std::sync::Arc<Mutex<NodeRegistry>>,
+    concurrency: usize,
 }
 
 impl JobQueue {
@@ -102,7 +134,16 @@ impl JobQueue {
             .timeout(std::time::Duration::from_secs(timeout_secs))
             .build()
             .expect("build http client");
-        Self { client, registry }
+        Self {
+            client,
+            registry: std::sync::Arc::new(Mutex::new(registry)),
+            concurrency: 4,
+        }
+    }
+
+    pub fn with_concurrency(mut self, concurrency: usize) -> Self {
+        self.concurrency = concurrency.max(1);
+        self
     }
 
     pub async fn dispatch(
@@ -110,54 +151,78 @@ impl JobQueue {
         job: &MeshJobDescriptor,
         targets: Option<Vec<MeshNodeId>>,
     ) -> Result<Vec<MeshJobResult>, HubError> {
-        let nodes: Vec<NodeMetadata> = match targets {
-            Some(ids) => ids
-                .into_iter()
-                .filter_map(|id| self.registry.get(&id))
-                .collect(),
-            None => self.registry.all(),
+        let nodes: Vec<NodeMetadata> = {
+            let registry = self.registry.lock().await;
+            match targets {
+                Some(ids) => ids.into_iter().filter_map(|id| registry.get(&id)).collect(),
+                None => registry.all(),
+            }
         };
-        let futures = nodes.into_iter().map(|node| async move {
-            let url = node
-                .url
-                .join("mesh/job")
-                .map_err(|err| HubError::InvalidUrl(err.to_string()))?;
-            let resp = self
-                .client
-                .post(url)
-                .json(job)
-                .send()
-                .await
-                .map_err(|err| HubError::Http(err.to_string()))?;
-            let parsed: MeshJobResult = resp
-                .json()
-                .await
-                .map_err(|err| HubError::Http(err.to_string()))?;
-            Ok::<MeshJobResult, HubError>(parsed)
-        });
-        let joined = join_all(futures).await;
+
+        let client = self.client.clone();
+        let registry = self.registry.clone();
+        let job_id = job.job_id.clone();
+
+        let mut stream = futures_util::stream::iter(nodes.into_iter().map(|node| {
+            let client = client.clone();
+            let registry = registry.clone();
+            let job = job.clone();
+            async move {
+                let node_id = node.node_id.clone();
+                let result: Result<MeshJobResult, HubError> = async {
+                    let url = node
+                        .url
+                        .join("mesh/job")
+                        .map_err(|err| HubError::InvalidUrl(err.to_string()))?;
+                    let resp = client
+                        .post(url)
+                        .json(&job)
+                        .send()
+                        .await
+                        .map_err(|err| HubError::Http(err.to_string()))?;
+                    let parsed: MeshJobResult = resp
+                        .json()
+                        .await
+                        .map_err(|err| HubError::Http(err.to_string()))?;
+                    Ok(parsed)
+                }
+                .await;
+
+                let mut reg = registry.lock().await;
+                match &result {
+                    Ok(_) => reg.record_success(&node_id),
+                    Err(err) => reg.record_failure(&node_id, err.to_string()),
+                }
+                result.map_err(|e| (node_id, e))
+            }
+        }))
+        .buffer_unordered(self.concurrency);
+
         let mut results = Vec::new();
-        for item in joined {
+        while let Some(item) = stream.next().await {
             match item {
                 Ok(result) => results.push(result),
-                Err(err) => {
-                    results.push(MeshJobResult {
-                        job_id: job.job_id.clone(),
-                        status: refractive_swan_mesh_dto::MeshJobStatus::Failed,
-                        metrics: None,
-                        output: None,
-                        error: Some(refractive_swan_mesh_dto::MeshError {
-                            kind: refractive_swan_mesh_dto::MeshErrorKind::NodeUnavailable,
-                            code: refractive_swan_mesh_dto::MeshErrorCode::new(
-                                "hub_dispatch_error",
-                            ),
-                            message: err.to_string(),
-                            context: None,
-                        }),
-                    });
-                }
+                Err((node_id, err)) => results.push(MeshJobResult {
+                    job_id: job_id.clone(),
+                    status: MeshJobStatus::Failed,
+                    metrics: None,
+                    output: None,
+                    error: Some(MeshError {
+                        kind: MeshErrorKind::NodeUnavailable,
+                        code: MeshErrorCode::new("hub_dispatch_error"),
+                        message: format!("{}: {}", node_id, err),
+                        context: None,
+                    }),
+                }),
             }
         }
+
         Ok(results)
+    }
+}
+
+impl JobQueue {
+    pub fn registry(&self) -> std::sync::Arc<Mutex<NodeRegistry>> {
+        self.registry.clone()
     }
 }

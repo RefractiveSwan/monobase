@@ -7,7 +7,7 @@ edition.workspace = true
 refractive_swan_contracts = { path = "../../../domain/meta/contracts" }
 refractive_swan_mesh_dto = { path = "../../../dto/mesh" }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror.workspace = true

@@ -1,14 +1,14 @@
 use axum::Json;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::utils::ApiState;
 use axum::response::IntoResponse;
 use log::info;
-use refractive_swan_contracts::{
-    EvalRunResponse, FederatedEvalSummary, MeshJobResult, aggregate_eval_summaries,
+use refractive_swan_contracts::{AnalyticsSummaryResponse, FederatedEvalSummary};
+use refractive_swan_mesh_hub::{
+    analytics::global_ncit_summary, eval::federated_eval as hub_federated_eval, HubConfig,
+    JobQueue, NodeMetadata, NodeRegistry, NodeStatus,
 };
-use refractive_swan_mesh_hub::{HubConfig, JobQueue, NodeMetadata, NodeRegistry};
 use reqwest::Url;
 
 #[derive(Debug, Serialize)]
@@ -72,18 +72,11 @@ pub async fn node_details(
 pub async fn federated_ncit_summary(
     state: axum::extract::State<ApiState>,
 ) -> impl axum::response::IntoResponse {
-    let job = refractive_swan_contracts::MeshJobDescriptor {
-        job_id: Uuid::new_v4().to_string(),
-        job_type: refractive_swan_contracts::MeshJobType::AnalyticsQuery,
-        parameters: serde_json::json!({ "query_type": "ncit_summary" }),
-        governance_context: None,
-    };
     let queue = local_queue(&state);
-    let results = queue
-        .dispatch(&job, None)
+    let aggregated = global_ncit_summary(&queue)
         .await
-        .unwrap_or_else(|err| vec![error_result(job.job_id.clone(), err.to_string())]);
-    Json(results)
+        .unwrap_or_else(|err| AnalyticsSummaryResponse { rows: vec![] });
+    Json(aggregated)
 }
 
 /// Federated eval (single-node stub) requiring `dataset` query parameter.
@@ -91,22 +84,11 @@ pub async fn federated_eval(
     state: axum::extract::State<ApiState>,
     axum::extract::Query(query): axum::extract::Query<EvalQuery>,
 ) -> impl axum::response::IntoResponse {
-    let job = refractive_swan_contracts::MeshJobDescriptor {
-        job_id: Uuid::new_v4().to_string(),
-        job_type: refractive_swan_contracts::MeshJobType::EvalDataset,
-        parameters: serde_json::json!({ "dataset": query.dataset }),
-        governance_context: None,
-    };
     let queue = local_queue(&state);
-    let results: Vec<MeshJobResult> = queue
-        .dispatch(&job, None)
+    let aggregated = hub_federated_eval(&queue, &query.dataset)
         .await
-        .unwrap_or_else(|err| vec![error_result(job.job_id.clone(), err.to_string())]);
-    let aggregated = aggregate_eval_results(&results, &state);
-    Json(serde_json::json!({
-        "aggregated": aggregated,
-        "results": results,
-    }))
+        .unwrap_or_else(|_| FederatedEvalSummary::default());
+    Json(aggregated)
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,6 +107,7 @@ fn local_queue(state: &ApiState) -> JobQueue {
         url,
         capabilities,
         last_seen_ms: None,
+        status: NodeStatus::Unknown,
     };
     let mut registry = NodeRegistry::default();
     registry.upsert(meta);
@@ -150,25 +133,5 @@ fn error_result(job_id: String, message: String) -> refractive_swan_contracts::M
             message,
             context: None,
         }),
-    }
-}
-
-fn aggregate_eval_results(
-    results: &[MeshJobResult],
-    state: &ApiState,
-) -> Option<FederatedEvalSummary> {
-    let node_id = state.plane.capabilities("").node_id.to_string();
-    let mut per_node = Vec::new();
-    for result in results {
-        if let Some(output) = &result.output {
-            if let Ok(eval) = serde_json::from_value::<EvalRunResponse>(output.clone()) {
-                per_node.push((node_id.clone(), eval.summary));
-            }
-        }
-    }
-    if per_node.is_empty() {
-        None
-    } else {
-        Some(aggregate_eval_summaries(per_node))
     }
 }
