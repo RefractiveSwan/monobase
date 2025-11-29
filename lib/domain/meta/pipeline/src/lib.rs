@@ -14,6 +14,7 @@ use refractive_swan_core::{
     mapping::{DimNCITConcept, MappingResult},
     staging::{StgServiceRequestFlat, StgSrCodeExploded},
 };
+use refractive_swan_eval::{EvalRunOutcome, FileDatasetStore, run_eval_with_mapper};
 use refractive_swan_ingestion::{
     ExternalValidationContext, ValidatedBundle, ValidationMode, bundle_to_staging_from_validated,
     bundle_to_staging_with_validation, validation::ValidationReport,
@@ -47,6 +48,39 @@ pub struct PipelineExecution {
     pub output: PipelineOutput,
     pub validation: ValidationReport,
     pub metrics: PipelineMetrics,
+}
+
+/// Evaluate a dataset using the pipeline's mapping path (lexical with optional vector context).
+pub fn run_eval_dataset_with_pipeline(
+    store: &FileDatasetStore,
+    dataset: &str,
+    vector: Option<&VectorPipelineContext>,
+) -> Result<EvalRunOutcome, refractive_swan_eval::DatasetError> {
+    let outcome = store.load_dataset_with_manifest(dataset)?;
+    let summary = run_eval_with_mapper(&outcome.cases, |rows| {
+        if let Some(ctx) = vector {
+            map_staging_codes_with_vector(
+                rows.clone(),
+                Arc::new(ErasedVectorStore::new(Arc::clone(&ctx.store))),
+                ctx.config.clone(),
+                DeterministicEmbeddingProvider::new(),
+                ctx.top_k,
+            )
+            .map(|(results, _dims, _summary, _usage)| results)
+            .unwrap_or_else(|_| {
+                let (results, _dims) = map_staging_codes(rows.clone());
+                results
+            })
+        } else {
+            let (results, _dims) = map_staging_codes(rows.clone());
+            results
+        }
+    });
+    Ok(EvalRunOutcome {
+        dataset: outcome.manifest.name.clone(),
+        manifest: outcome.manifest,
+        summary,
+    })
 }
 
 /// Runtime toggles for a pipeline run.

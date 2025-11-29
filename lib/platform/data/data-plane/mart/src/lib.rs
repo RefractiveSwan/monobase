@@ -19,6 +19,7 @@ pub use fact::*;
 pub use keys::*;
 pub use port::SqliteDatamart;
 pub use refractive_swan_contracts::LoadSummary;
+use refractive_swan_contracts::{AnalyticsSummaryResponse, CohortResponse};
 pub use refractive_swan_datamart_port::{CohortFilters, DatamartError, DatamartSink};
 pub use sql::{
     LoadError, WarehouseConfig, cohort, connect_sqlite, ddl_statements, load_from_pipeline_output,
@@ -140,6 +141,21 @@ pub fn from_pipeline_output(output: &PipelineOutput) -> (Dims, Vec<FactServiceRe
     };
 
     (dims, facts)
+}
+
+/// Helper: run NCIt summary against a datamart sink (node-facing mesh job building block).
+pub async fn node_ncit_summary(
+    datamart: &dyn DatamartSink,
+) -> Result<AnalyticsSummaryResponse, DatamartError> {
+    datamart.ncit_summary().await
+}
+
+/// Helper: run cohort query against a datamart sink (node-facing mesh job building block).
+pub async fn node_cohort(
+    datamart: &dyn DatamartSink,
+    filters: &CohortFilters,
+) -> Result<CohortResponse, DatamartError> {
+    datamart.cohort(filters).await
 }
 
 fn mapping_state_label(state: MappingState) -> &'static str {

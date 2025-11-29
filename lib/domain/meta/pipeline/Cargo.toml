@@ -9,6 +9,7 @@ refractive_swan_mapping = { path = "../../ontologies/mapping" }
 refractive_swan_core = { path = "../../core" }
 refractive_swan_observability = { path = "../../../platform/meta/observability" }
 refractive_swan_vector_port = { path = "../../ports/data/data-store/vector" }
+refractive_swan_eval = { path = "../evaluation" }
 serde = { workspace = true }
 serde_json.workspace = true
 thiserror = "2.0.17"

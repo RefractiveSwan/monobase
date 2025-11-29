@@ -421,6 +421,14 @@ pub struct EvalSummary {
     pub results: Vec<EvalResult>,
 }
 
+/// Convenience response when running eval datasets end-to-end.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct EvalRunOutcome {
+    pub dataset: String,
+    pub manifest: DatasetManifest,
+    pub summary: EvalSummary,
+}
+
 /// Metrics-only view of an evaluation summary (no `EvalResult` payloads).
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct EvalMetrics {
