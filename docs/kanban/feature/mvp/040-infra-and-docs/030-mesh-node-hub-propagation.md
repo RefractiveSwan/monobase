@@ -510,12 +510,12 @@ We want a **concrete node/hub propagation system** such that:
 
   - map job type + parameters to class/cardinality/time range/requester.
 
-- [ ] Implement `NodePolicy` loading from env:
+- [x] Implement `NodePolicy` loading from env:
 
   - per-node `dp_budget_daily`, `dp_budget_consumed`,
   - `max_cardinality_no_dp`, `export_allowed`, `hub_registration_allowed`.
 
-- [ ] Wrap `NodeDataPlane::run_mesh_job` with `GovernanceEngine`:
+- [x] Wrap `NodeDataPlane::run_mesh_job` with `GovernanceEngine`:
 
   - evaluate descriptor + policy,
   - for `AllowWithNoise { epsilon }`:

@@ -29,6 +29,7 @@ use refractive_swan_vector_store::VectorStoreConfig;
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
+use crate::governance::{GovernanceDecision, GovernanceEngine, NodePolicy, QueryDescriptor};
 use crate::lake::{LakeReader, LakeWriter};
 use crate::{config::NodePlaneConfig, vector::vector_context_from_config};
 
@@ -50,6 +51,7 @@ pub struct NodeDataPlane {
     lake_writer: Option<Arc<dyn LakeWriter + Send + Sync>>,
     #[allow(dead_code)]
     lake_reader: Option<Arc<dyn LakeReader + Send + Sync>>,
+    node_policy: Option<NodePolicy>,
     max_dataset_size: u64,
     tags: Vec<String>,
 }
@@ -73,6 +75,7 @@ impl NodeDataPlane {
         let datamart_config = datamart.clone();
         let datamart: Arc<dyn DatamartSink + Send + Sync> =
             Arc::new(SqliteDatamart::from_optional_config(datamart));
+        let node_policy = Some(NodePolicy::from_env());
         Self::new(
             node_id,
             policy,
@@ -86,6 +89,7 @@ impl NodeDataPlane {
             tags,
             None,
             None,
+            node_policy,
         )
     }
 
@@ -103,6 +107,7 @@ impl NodeDataPlane {
         tags: Vec<String>,
         lake_writer: Option<Arc<dyn LakeWriter + Send + Sync>>,
         lake_reader: Option<Arc<dyn LakeReader + Send + Sync>>,
+        node_policy: Option<NodePolicy>,
     ) -> Self {
         let node_id_str = node_id.to_string();
         let compliance_mode = policy.mode.as_str().to_string();
@@ -122,6 +127,7 @@ impl NodeDataPlane {
             datamart_config,
             lake_writer,
             lake_reader,
+            node_policy,
             max_dataset_size,
             tags,
         }
@@ -204,6 +210,27 @@ impl NodeDataPlane {
 
     /// Execute a mesh job descriptor and return a structured result.
     pub async fn run_mesh_job(&self, job: &MeshJobDescriptor) -> MeshJobResult {
+        if let Some(policy) = self.node_policy.clone() {
+            let descriptor = QueryDescriptor::from_job(job);
+            match GovernanceEngine::evaluate(&descriptor, &policy) {
+                GovernanceDecision::Deny(reason) => {
+                    return self.denied(
+                        job,
+                        MeshError::new(
+                            MeshErrorKind::PolicyDenied,
+                            MeshErrorCode::new("policy_denied"),
+                            reason,
+                        ),
+                    );
+                }
+                GovernanceDecision::AllowWithNoise { epsilon } => {
+                    // Budget consumption only; DP noise hook would be applied in analytics/export paths.
+                    let mut policy_mut = policy.clone();
+                    GovernanceEngine::consume_budget(&mut policy_mut, epsilon);
+                }
+                GovernanceDecision::Allow => {}
+            }
+        }
         match job.job_type {
             MeshJobType::EvalDataset => self
                 .run_eval_dataset_job(job)

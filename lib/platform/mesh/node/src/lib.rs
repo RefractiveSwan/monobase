@@ -5,6 +5,7 @@
 //! same wiring from domain ports → platform stores.
 
 mod config;
+mod governance;
 mod lake;
 pub mod plane;
 mod vector;
