@@ -7,7 +7,7 @@
     }
   },
   "remoteUser": "root",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "runArgs": [
     "--privileged",
     "--volume=/var/run/docker.sock:/var/run/docker.sock",
@@ -18,7 +18,7 @@
     "refractive_swan_EVAL_DATA_ROOT": "/workspace/lib/domain/meta/evaluation/data"
   },
   "forwardPorts": [8080, 8081, 8082, 8090, 6379],
-  "postCreateCommand": "rustup component add clippy rustfmt && cargo install cargo-make --locked",
+  "postCreateCommand": "cd ${containerWorkspaceFolder} && bash data/ops/scripts/install_rust_tooling.sh",
   "customizations": {
     "vscode": {
       "settings": {
