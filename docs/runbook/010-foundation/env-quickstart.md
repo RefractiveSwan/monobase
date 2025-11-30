@@ -42,6 +42,7 @@ To bootstrap a new namespace, drop a `.env.<namespace>.example` file in `data/en
 | `refractive_swan_API_CLIENT_TIMEOUT_SECS` | Frontend | Reqwest timeout (seconds). |
 | `refractive_swan_DOCS_URL` | Frontend | Optional URL that `/docs` should redirect to (e.g., `http://127.0.0.1:3000`). |
 | `refractive_swan_GITHUB_URL` | Frontend | Optional GitHub URL surfaced in the navbar/footer (`https://github.com/RefractiveSwan/monobase` by default). |
+| `refractive_swan_EVAL_DATA_ROOT` | Eval harness / test suite | Optional dataset root override. Points at the directory containing `.manifest.json` files; also accepts the parent `.../data` directory and falls back to `lib/domain/meta/evaluation/data/eval` when unset or the override path is missing. |
 
 Each namespace-specific `.env` file can also hold logging directives (`RUST_LOG`), telemetry endpoints, or other secrets that surfaces consume.
 

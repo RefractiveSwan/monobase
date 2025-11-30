@@ -27,7 +27,7 @@ impl EvalDatasetConfig {
         let root = match refractive_swan_configuration::string_var("refractive_swan_EVAL_DATA_ROOT")
             .map_err(EvalConfigError::EnvValue)?
         {
-            Some(raw) if !raw.trim().is_empty() => resolve_path(raw.trim())?,
+            Some(raw) if !raw.trim().is_empty() => resolve_dataset_root(raw.trim())?,
             _ => default_data_root(),
         };
 
@@ -38,6 +38,35 @@ impl EvalDatasetConfig {
     pub fn dataset_store(&self) -> FileDatasetStore {
         FileDatasetStore::new(self.root.clone())
     }
+}
+
+fn resolve_dataset_root(raw: &str) -> Result<PathBuf, EvalConfigError> {
+    let candidate = resolve_path(raw)?;
+    if candidate.is_dir() {
+        return Ok(normalize_data_dir(candidate));
+    }
+
+    let nested = candidate.join("eval");
+    if nested.is_dir() {
+        return Ok(nested);
+    }
+
+    Ok(default_data_root())
+}
+
+fn normalize_data_dir(dir: PathBuf) -> PathBuf {
+    if dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| name.eq_ignore_ascii_case("data"))
+        .unwrap_or(false)
+    {
+        let nested = dir.join("eval");
+        if nested.is_dir() {
+            return nested;
+        }
+    }
+    dir
 }
 
 fn resolve_path(raw: &str) -> Result<PathBuf, EvalConfigError> {
@@ -92,6 +121,34 @@ mod tests {
         let cfg = EvalDatasetConfig::from_env().expect("config loads");
         let workspace = refractive_swan_configuration::workspace_root().expect("workspace root");
         assert_eq!(cfg.root, workspace.join(relative));
+        unset_root();
+    }
+
+    #[test]
+    fn config_accepts_parent_data_directory() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        let workspace = refractive_swan_configuration::workspace_root().expect("workspace root");
+        let data_dir = workspace.join("lib/domain/meta/evaluation/data");
+        unsafe {
+            env::set_var(
+                "refractive_swan_EVAL_DATA_ROOT",
+                data_dir.to_string_lossy().to_string(),
+            );
+        }
+        let cfg = EvalDatasetConfig::from_env().expect("config loads");
+        assert_eq!(cfg.root, data_dir.join("eval"));
+        unset_root();
+    }
+
+    #[test]
+    fn config_falls_back_when_override_missing() {
+        let _guard = ENV_GUARD.lock().unwrap();
+        let missing = "/tmp/refractive_swan_eval_missing_path";
+        unsafe {
+            env::set_var("refractive_swan_EVAL_DATA_ROOT", missing);
+        }
+        let cfg = EvalDatasetConfig::from_env().expect("config loads");
+        assert_eq!(cfg.root, default_data_root());
         unset_root();
     }
 }

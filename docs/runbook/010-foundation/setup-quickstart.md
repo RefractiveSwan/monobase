@@ -31,6 +31,31 @@ cargo make test
 
 ---
 
+## Optional: Production Shell Bootstrap (zsh + Oh My Zsh)
+
+Need a consistent terminal with Git/Rust/Docker helpers and a Powerlevel10k prompt? Run the shell bootstrap script before diving into the rest of the guide:
+
+```bash
+bash data/ops/scripts/setup_shell.sh
+```
+
+> **Devcontainer note:** the custom `.devcontainer/Dockerfile` pre-installs `zsh` + Rust tooling and sets it as the VS Code default shell. BuildKit cache mounts and persistent volumes for Cargo registry/git/target keep rebuilds fast—after the first build, most layers are reused. Rebuild only when you modify the Dockerfile or `install_rust_tooling.sh`.
+
+What the script does:
+- Installs/upgrades **Oh My Zsh**, **Powerlevel10k**, `zsh-autosuggestions`, and `zsh-syntax-highlighting`
+- Drops a reproducible `.zshrc` tuned for Git, Rust (`cargo`/`rustup`), Docker, devcontainers, and Codex CLI utilities
+- Installs Meslo Nerd Fonts locally (Linux/macOS) and refreshes `fc-cache` when needed
+- Creates a matching `.p10k.zsh` so the prompt renders consistently without running the interactive wizard
+
+After the script completes:
+- Run `chsh -s "$(command -v zsh)"` if you want zsh to be your default shell
+- Set your terminal profile to use the `MesloLGS NF` font family
+- Restart the terminal to pick up the new config
+
+Re-running the script is safe—existing dotfiles are backed up as `*.bak.<timestamp>` before being replaced.
+
+---
+
 ## Step-by-Step Guide
 
 ### 1. Install Rust Toolchain & Development Tools
@@ -121,6 +146,8 @@ Verify the build is working correctly:
 ```bash
 cargo make test
 ```
+
+> The `refractive_swan_test_suite` now auto-detects eval fixtures even when `refractive_swan_EVAL_DATA_ROOT` is unset or accidentally points at the parent `.../data` directory. Override the root only if you store custom NDJSON/manifest files elsewhere, and ensure that directory exists.
 
 **Snapshot tests:**
 If snapshot tests fail (expected after UI changes), review and update them:

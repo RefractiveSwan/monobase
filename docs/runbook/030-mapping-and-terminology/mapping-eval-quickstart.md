@@ -5,7 +5,7 @@ against the gold NDJSON fixtures.
 
 ## Prerequisites
 - Rust toolchain (install via `data/scripts/install_rust_tooling.sh`).
-- Gold dataset: `lib/domain/meta/evaluation/data/eval/pet_ct_small.ndjson` (or your custom NDJSON with `EvalCase` rows). Override the root with `refractive_swan_EVAL_DATA_ROOT` if you keep datasets elsewhere. Each dataset ships with `<name>.manifest.json`; the CLI builds a `refractive_swan_eval::FileDatasetStore` from the configured root and warns if the manifest checksum drifts.
+- Gold dataset: `lib/domain/meta/evaluation/data/eval/pet_ct_small.ndjson` (or your custom NDJSON with `EvalCase` rows). Override the root with `refractive_swan_EVAL_DATA_ROOT` if you keep datasets elsewhere; the loader also tolerates overrides that point at the parent `.../data` directory or missing paths by falling back to the bundled fixtures. Each dataset ships with `<name>.manifest.json`; the CLI builds a `refractive_swan_eval::FileDatasetStore` from the configured root and warns if the manifest checksum drifts.
 - Tiered splits: bronze/silver/gold datasets (e.g., `bronze_pet_ct_small`, `silver_pet_ct_extended`, `gold_pet_ct_comprehensive`) live under `lib/domain/meta/evaluation/data/eval/README.md`.
 
 ## Steps

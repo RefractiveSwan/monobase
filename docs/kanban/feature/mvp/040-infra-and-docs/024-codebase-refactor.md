@@ -819,6 +819,7 @@ Add doc examples:
 - [x] Add CI guidance:
   - [x] Document which features (`backend-pgvector`, external validation mocks) must be enabled for the full suite.
   - [x] Provide recommended command lines (`cargo test -p refractive_swan_test_suite --features backend-pgvector`) to reproduce CI locally.
+- [x] Harden eval dataset root detection so `ensure_eval_data_root` falls back to the bundled fixtures when overrides are missing or point at the parent `.../data` directory, and document the behavior across the setup/env quickstarts.
 
 ---
 
