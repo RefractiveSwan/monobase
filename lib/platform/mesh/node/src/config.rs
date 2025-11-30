@@ -1,3 +1,4 @@
+use refractive_swan_cache_store::{CacheBackend, CacheConfig, CacheConfigError};
 use refractive_swan_compliance::{ComplianceConfig, ComplianceError, Policy};
 use refractive_swan_configuration::{EnvLoadError, EnvValueError, string_var, u64_var};
 use refractive_swan_datamart::sql::{WarehouseConfig, WarehouseConfigError};
@@ -19,6 +20,7 @@ pub struct NodePlaneConfig {
     pub(crate) dataset_store: FileDatasetStore,
     pub(crate) datamart: Option<WarehouseConfig>,
     pub(crate) vector: Option<VectorStoreConfig>,
+    pub(crate) cache: Option<CacheConfig>,
     pub(crate) max_dataset_size: u64,
     pub(crate) tags: Vec<String>,
 }
@@ -59,6 +61,12 @@ impl NodePlaneConfig {
             Err(WarehouseConfigError::MissingUrl) => None,
             Err(err) => return Err(NodePlaneConfigError::Datamart(err)),
         };
+        let cache_cfg = CacheConfig::from_env().map_err(NodePlaneConfigError::Cache)?;
+        let cache = if cache_cfg.backend == CacheBackend::Disabled {
+            None
+        } else {
+            Some(cache_cfg)
+        };
 
         let max_dataset_size = u64_var("refractive_swan_MESH_MAX_DATASET_SIZE")
             .map_err(NodePlaneConfigError::EnvValue)?
@@ -74,6 +82,7 @@ impl NodePlaneConfig {
             dataset_store,
             datamart,
             vector,
+            cache,
             max_dataset_size,
             tags,
         })
@@ -103,6 +112,10 @@ impl NodePlaneConfig {
 
     pub fn vector_config(&self) -> Option<VectorStoreConfig> {
         self.vector.clone()
+    }
+
+    pub fn cache_config(&self) -> Option<CacheConfig> {
+        self.cache.clone()
     }
 
     pub fn policy(&self) -> &Policy {
@@ -140,6 +153,8 @@ pub enum NodePlaneConfigError {
     Vector(#[from] VectorStoreConfigError),
     #[error("warehouse configuration error: {0}")]
     Datamart(#[from] WarehouseConfigError),
+    #[error("cache configuration error: {0}")]
+    Cache(#[from] CacheConfigError),
 }
 
 fn parse_tags(raw: String) -> Option<Vec<String>> {

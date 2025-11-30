@@ -17,7 +17,12 @@ refractive_swan_pipeline = { path = "../../../domain/meta/pipeline" }
 refractive_swan_observability = { path = "../../meta/observability" }
 refractive_swan_vector_store = { path = "../../data/data-stores/vector_store" }
 refractive_swan_configuration = { path = "../../meta/configuration" }
+refractive_swan_cache_store = { path = "../../data/data-stores/cache_store" }
+refractive_swan_terminology = { path = "../../../domain/ontologies/terminology" }
 tokio = { workspace = true, features = ["sync"] }
 thiserror.workspace = true
 serde_json.workspace = true
 serde = { workspace = true, features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+log = "0.4"
+sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "sqlite"] }

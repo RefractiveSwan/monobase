@@ -37,8 +37,14 @@ pub struct DatamartHealthView {
     pub detail: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FeatureTogglesView {
     pub vector_enabled: bool,
     pub mesh_node_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MeshFeatureTogglesView {
+    pub vector: FeatureTogglesView,
+    pub mesh: refractive_swan_web_dto::MeshTogglesView,
 }

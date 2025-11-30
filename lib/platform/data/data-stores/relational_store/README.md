@@ -21,6 +21,13 @@ This directory represents the **planned home** for relational database connectio
 
 ---
 
+## Migration note (P3.3)
+
+- `WarehouseConfig` (used by `SqliteDatamart`) maps 1:1 onto a future `RelationalConfig` (`backend`, `url`, `pool_max`, `schema`). The mesh node and hub can switch from SQLite to Postgres/DuckDB by swapping the backend without changing domain DTOs.
+- `CacheStore` + DP budget hot-cache now persist budgets durably via this crate (sqlite today) into `mesh_dp_budget`; Postgres/DuckDB backends will take over once wired.
+
+---
+
 ## Trait Design
 
 ### RelationalBackend

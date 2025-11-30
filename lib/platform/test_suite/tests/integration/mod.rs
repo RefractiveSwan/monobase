@@ -7,3 +7,4 @@ pub mod ingestion;
 pub mod mapping;
 pub mod regression;
 pub mod vector;
+pub mod mesh;

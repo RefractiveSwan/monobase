@@ -1,4 +1,4 @@
-# 030 — Mesh node/hub propagation & server/frontend integration
+﻿# 030: Mesh node/hub propagation & server/frontend integration
 
 **Theme:** Mesh node/hub propagation & server/frontend integration  
 **Branch:** `feature/app/BE-029-backend-expansion`  
@@ -26,11 +26,11 @@
   - `lib/platform/mesh/governance` (`refractive_swan_mesh_governance`)
   - `lib/app/servers/api` (`refractive_swan_api`)
   - `lib/platform/data/data-plane/mart` (`refractive_swan_datamart`)
-  - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` – design)
-  - `lib/platform/data/data-plane/lake` (`refractive_swan_datalake` – design)
+  - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` â€“ design)
+  - `lib/platform/data/data-plane/lake` (`refractive_swan_datalake` â€“ design)
   - `lib/platform/data/data-stores/vector_store` (`refractive_swan_vector_store`)
-  - `lib/platform/data/data-stores/relational_store` (`refractive_swan_relational_store` – design)
-  - `lib/platform/data/data-stores/cache_store` (`refractive_swan_cache_store` – design)
+  - `lib/platform/data/data-stores/relational_store` (`refractive_swan_relational_store` â€“ design)
+  - `lib/platform/data/data-stores/cache_store` (`refractive_swan_cache_store` â€“ design)
 
 - **Platform / meta**
   - `lib/platform/meta/configuration` (`refractive_swan_configuration`)
@@ -38,7 +38,7 @@
   - `lib/platform/meta/observability` (`refractive_swan_observability`)
 
 - **Frontend**
-  - Web frontend (“mesh dashboard”) consuming `/api/v1/**`, `/mesh/**`, `/hub/**`
+  - Web frontend (â€œmesh dashboardâ€) consuming `/api/v1/**`, `/mesh/**`, `/hub/**`
 
 ---
 
@@ -83,7 +83,7 @@ We want a **concrete node/hub propagation system** such that:
      - run local or federated analytics/eval jobs,
      - inspect mesh topology and admin events.
 
-**Success =** A dev can spin up ≥2 nodes + 1 hub, hit the existing API/mesh/hub endpoints, and:
+**Success =** A dev can spin up â‰¥2 nodes + 1 hub, hit the existing API/mesh/hub endpoints, and:
 
 - map bundles at each node independently,
 - run **federated NCIt summary** across nodes,
@@ -104,12 +104,12 @@ We want a **concrete node/hub propagation system** such that:
 
 ## 3. High-level phases
 
-0. **P0 — Domain, contracts, config & cross-cutting alignment**  
-1. **P1 — Node mesh surface & node data-plane wiring**  
-2. **P2 — Hub runtime crate & reporting warehouse/lake integration**  
-3. **P3 — Governance & DP budgets integration (node + hub)**  
-4. **P4 — Frontend mesh dashboard (server ↔ frontend connection)**  
-5. **P5 — E2E multi-node/hub test harness & runbook**
+0. **P0: Domain, contracts, config & cross-cutting alignment**  
+1. **P1: Node mesh surface & node data-plane wiring**  
+2. **P2: Hub runtime crate & reporting warehouse/lake integration**  
+3. **P3: Governance & DP budgets integration (node + hub)**  
+4. **P4: Frontend mesh dashboard (server â†” frontend connection)**  
+5. **P5: E2E multi-node/hub test harness & runbook**
 
 ---
 
@@ -117,9 +117,9 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-### P0 — Domain, contracts, config & cross-cutting alignment
+### P0: Domain, contracts, config & cross-cutting alignment
 
-#### P0.1 — Mesh contracts ↔ domain contracts mapping
+#### P0.1: Mesh contracts â†” domain contracts mapping
 
 - **Status:** TODO  
 - **Path:** `lib/domain/meta/contracts/src/mesh.rs`, `{analytics,eval,pipeline}.rs`
@@ -157,7 +157,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P0.2 — Domain helpers for mesh jobs (eval + analytics)
+#### P0.2: Domain helpers for mesh jobs (eval + analytics)
 
 - **Status:** INPROGRESS  
 - **Path:** `lib/domain/meta/pipeline/src/lib.rs`, `lib/domain/meta/evaluation/src/lib.rs`, `lib/platform/data/data-plane/mart/src/lib.rs`
@@ -174,7 +174,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P0.3 — Terminology & mapping observability for federated reports
+#### P0.3: Terminology & mapping observability for federated reports
 
 - **Status:** INPROGRESS  
 - **Path:** `lib/domain/ontologies/mapping`, `lib/domain/ontologies/terminology`, `lib/domain/meta/evaluation`
@@ -192,7 +192,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P0.4 — Config, compliance, observability baselines
+#### P0.4: Config, compliance, observability baselines
 
 - **Status:** INPROGRESS  
 - **Path:**  
@@ -217,9 +217,9 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-### P1 — Node mesh surface & node data-plane wiring
+### P1: Node mesh surface & node data-plane wiring
 
-#### P1.1 — Extract mesh node config + state wiring
+#### P1.1: Extract mesh node config + state wiring
 
 - **Status:** INPROGRESS  
 - **Path:**  
@@ -250,7 +250,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P1.2 — Mesh node capabilities DTO & `/mesh` API wiring
+#### P1.2: Mesh node capabilities DTO & `/mesh` API wiring
 
 - **Status:** INPROGRESS  
 - **Path:**  
@@ -279,7 +279,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P1.3 — Generic mesh job endpoint at node
+#### P1.3: Generic mesh job endpoint at node
 
 - **Status:** INPROGRESS  
 - **Path:** Contracts: `mesh.rs`; Node: `refractive_swan_mesh_node`; API: mesh job handler & controller.
@@ -311,7 +311,7 @@ We want a **concrete node/hub propagation system** such that:
     - summarize metrics (e.g., `auto_mapped`, `no_match`, errors) into a health JSON, plus vector namespace/latency and datamart persistence status.
 
   - `ExportJob` (v1):
-    - call `ncit_summary` and package into an “export summary” (later: call lake writer); enforce compliance export policy.
+    - call `ncit_summary` and package into an â€œexport summaryâ€ (later: call lake writer); enforce compliance export policy.
 
   - `NodeIntrospection`:
     - return `PipelineMetrics` snapshot + vector usage + dataset manifests.
@@ -326,18 +326,18 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P1.4 — Node data-plane alignment: mart / warehouse / vector / lake hooks
+#### P1.4: Node data-plane alignment: mart / warehouse / vector / lake hooks
 
 - **Status:** INPROGRESS  
 - **Path:**  
   - `lib/platform/data/data-plane/mart` (`refractive_swan_datamart`)  
-  - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` – design)  
-  - `lib/platform/data/data-plane/lake` (`refractive_swan_datalake` – design)  
+  - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` â€“ design)  
+  - `lib/platform/data/data-plane/lake` (`refractive_swan_datalake` â€“ design)  
   - `lib/platform/data/data-stores/vector_store` (`refractive_swan_vector_store`)
 
 **Tasks**
 
-- [x] Confirm `SqliteDatamart::from_optional_config(NodePlaneConfig::datamart_config())` is the node’s primary `DatamartSink` (tests cover disabled/enabled warehouse label).
+- [x] Confirm `SqliteDatamart::from_optional_config(NodePlaneConfig::datamart_config())` is the nodeâ€™s primary `DatamartSink` (tests cover disabled/enabled warehouse label).
 
 - [x] Ensure (with tests) `VectorPipelineContext` is constructed from:
 
@@ -354,9 +354,9 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-### P2 — Hub runtime crate & reporting warehouse/lake integration
+### P2: Hub runtime crate & reporting warehouse/lake integration
 
-#### P2.1 — Scaffold `refractive_swan_mesh_hub` crate
+#### P2.1: Scaffold `refractive_swan_mesh_hub` crate
 
 - **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/`
@@ -381,7 +381,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P2.2 — Hub job queue & node dispatch
+#### P2.2: Hub job queue & node dispatch
 
 - **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/src/job_queue.rs`, `node_registry.rs`
@@ -401,7 +401,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P2.3 — Federated analytics & eval in hub
+#### P2.3: Federated analytics & eval in hub
 
 - **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/src/analytics.rs`, `eval.rs`
@@ -424,7 +424,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P2.4 — Hub-side node registration & health-check loop
+#### P2.4: Hub-side node registration & health-check loop
 
 - **Status:** DONE  
 - **Path:** `lib/platform/mesh/hub/src/registry.rs`, `health.rs`
@@ -444,7 +444,7 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P2.5 — Hub HTTP surface (API server for frontend)
+#### P2.5: Hub HTTP surface (API server for frontend)
 
 - **Status:** INPROGRESS  
 - **Path:**  
@@ -466,19 +466,19 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P2.6 — Hub reporting warehouse & lake integration (future path)
+#### P2.6: Hub reporting warehouse & lake integration (future path)
 
 - **Status:** TODO  
 - **Path:**  
-  - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` – design)
-  - `lib/platform/data/data-plane/lake` (`refractive_swan_datalake` – design)
+  - `lib/platform/data/data-plane/warehouse` (`refractive_swan_datawarehouse` â€“ design)
+  - `lib/platform/data/data-plane/lake` (`refractive_swan_datalake` â€“ design)
   - `lib/platform/data/data-stores/relational_store`, `cache_store` (design)
 
 **Tasks**
 
 - [ ] Define minimal concrete `WarehouseAnalytics` for hub:
 
-  - either reuse `SqliteDatamart` with a “reporting” role, or
+  - either reuse `SqliteDatamart` with a â€œreportingâ€ role, or
   - add a separate reporting warehouse backed by `refractive_swan_relational_store`.
 
 - [ ] Implement first `LakeWriter`/`LakeReader` (even just local Parquet files) in line with `refractive_swan_datalake` README.
@@ -495,18 +495,18 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-### P3 — Governance & DP budgets
+### P3: Governance & DP budgets
 
-#### P3.1 — Embed governance engine into node mesh jobs
+#### P3.1: Embed governance engine into node mesh jobs
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:**  
   - `lib/platform/mesh/governance`  
   - `lib/platform/mesh/node/src/plane.rs` (or separate `jobs.rs`)
 
 **Tasks**
 
-- [ ] Implement `QueryDescriptor::from_job(job: &MeshJobDescriptor)`:
+- [x] Implement `QueryDescriptor::from_job(job: &MeshJobDescriptor)`:
 
   - map job type + parameters to class/cardinality/time range/requester.
 
@@ -528,33 +528,33 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P3.2 — Hub-side governance for ingestion & export
+#### P3.2: Hub-side governance for ingestion & export
 
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `lib/platform/mesh/hub/src/governance_adapter.rs`
 
 **Tasks**
 
-- [ ] Define hub-level rules:
+- [x] Define hub-level rules:
 
   - which job types can be run against which nodes (based on `tags`, `compliance_mode`, license tiers),
   - which lake snapshots may be ingested into the reporting warehouse.
 
-- [ ] Implement:
+- [x] Implement:
 
   - `fn allow_federated_job(job: &MeshJobDescriptor, node: &NodeMetadata, node_policy: &NodePolicy) -> bool`.
 
-- [ ] Apply checks in `JobQueue::dispatch`:
+- [x] Apply checks in `JobQueue::dispatch`:
 
   - skip nodes that fail hub policy before HTTP calls,
   - mark per-node `MeshJobResult.error` when the hub denies dispatch.
-- [ ] Ensure hub runtime accepts an injected pre-built `Policy`/`NodePolicy` (no env loading inside the hub crate) and add a unit test mirroring the node plane policy coverage.
+- [x] Ensure hub runtime accepts an injected pre-built `Policy`/`NodePolicy` (no env loading inside the hub crate) and add a unit test mirroring the node plane policy coverage.
 
 ---
 
-#### P3.3 — Governance + cache + relational store hooks
+#### P3.3: Governance + cache + relational store hooks
 
-- **Status:** TODO  
+- **Status:** DONE  
 - **Path:**  
   - `lib/platform/data/data-stores/cache_store`  
   - `lib/platform/data/data-stores/relational_store`  
@@ -562,36 +562,54 @@ We want a **concrete node/hub propagation system** such that:
 
 **Tasks**
 
-- [ ] Plan `CacheStore` usage:
+- [x] Plan `CacheStore` usage:
 
   - per-node rate-limits (`CacheStore::incr("rate_limit:<node>:<window>", 1)`),
-  - optional DP budget “hot cache” (with relational store as durable record).
+  - optional DP budget â€œhot cacheâ€ (with relational store as durable record).
 
-- [ ] Plan `RelationalStore` adoption:
+- [x] CacheStore planning notes:
+
+  - Document keyspace/TTL conventions in `lib/platform/data/data-stores/cache_store/README.md` for `rate_limit:<node>:<window>` counters and `dp_budget:<node>:<date>` trackers (Redis + in-memory).
+  - Wire `GovernanceEngine` to consult cache before evaluating DP budget (cache â†’ durable `RelationalStore` fallback) and set TTL on first increment.
+  - Capture cache health/readiness in `/mesh/health` (surface `cache_backend` + `cache_status` alongside vector/warehouse).
+
+- [x] Plan `RelationalStore` adoption:
 
   - treat current SQLite wiring in `SqliteDatamart` as a precursor to `RelationalBackend::Sqlite`,
   - design how node/hub might switch to Postgres/Duckdb with minimal domain changes.
 
-- [ ] Ensure (with tests) governance error codes align with `ComplianceAction` and license tiers (e.g., `policy_denied:dp_budget_exceeded`, `policy_denied:export_blocked_for_tier_licensed`).
+- [x] RelationalStore planning notes:
+
+  - Add a migration note to `lib/platform/data/data-stores/relational_store/README.md` that `WarehouseConfig` maps 1:1 to `RelationalConfig` (backend/url/pool/schema) so `SqliteDatamart` can wrap a generic `RelationalPool`.
+  - Plan `NodePlaneConfig` â†’ `RelationalBackend` selection via env (`refractive_swan_WAREHOUSE_BACKEND`, `..._URL`) with a no-op `Disabled` backend for cache-only nodes.
+  - Sketch hub path: `refractive_swan_mesh_hub` uses the same `RelationalBackend` enum to pick Postgres/DuckDB without touching domain DTOs.
+
+- [x] Ensure (with tests) governance error codes align with `ComplianceAction` and license tiers (e.g., `policy_denied:dp_budget_exceeded`, `policy_denied:export_blocked_for_tier_licensed`).
+
+- [x] Governance error-code alignment:
+
+  - Map `ComplianceAction::Export` denials to `policy_denied:export_blocked_for_tier_licensed` when license tier disallows export; keep `policy_denied:dp_budget_exceeded` for DP-budget failures.
+  - Add unit tests in `lib/platform/mesh/node/src/governance.rs` + `lib/platform/mesh/node/src/plane.rs` asserting emitted `MeshError.code` variants for (a) DP exceed, (b) export blocked by compliance policy, (c) hub-side deny passthrough.
+  - Mirror hub-side checks in `lib/platform/mesh/hub/src/governance_adapter.rs` so dispatch-denied jobs return `MeshErrorKind::PolicyDenied` with `policy_denied:hub` or more specific codes.
 
 ---
 
-### P4 — Frontend mesh dashboard (server ↔ frontend connection)
+### P4: Frontend mesh dashboard (server â†” frontend connection)
 
-#### P4.1 — Extend DTOs for web consumption
+#### P4.1: Extend DTOs for web consumption
 
-- **Status:** TODO  
+- **Status:** DONE  
 - **Path:** `lib/dto/web`, `lib/dto/mesh` (or directly via `refractive_swan_contracts`)
 
 **Tasks**
 
-- [ ] Add lightweight view types:
+- [x] Add lightweight view types:
 
   - `NodeView` = subset of `NodeMetadata` + last `MetricsSnapshot`.
   - `FederatedEvalView` from `FederatedEvalReport`.
   - `MeshTogglesView` (extends `/admin/toggles` with mesh & hub info).
 
-- [ ] Ensure (with tests) API responses for:
+- [x] Ensure (with tests) API responses for:
 
   - `/admin/toggles`,
   - `/mesh/health`, `/mesh/capabilities`,
@@ -600,14 +618,12 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P4.2 — API client layer in frontend
-
-- **Status:** TODO  
+#### P4.2 - API client layer in frontend`n`n- **Status:** DONE  
 - **Path:** `lib/app/frontend/web` (e.g. `services/mesh.ts`)
 
 **Tasks**
 
-- [ ] Implement typed clients:
+- [x] Implement typed clients:
 
   - `getNodeToggles()`,
   - `getNodeCapabilities()`,
@@ -615,50 +631,47 @@ We want a **concrete node/hub propagation system** such that:
   - `runGlobalNcitSummary()`,
   - `runFederatedEval(dataset: string)`.
 
-- [ ] Map TS types to Rust DTOs (`refractive_swan_web_dto` or manually maintained types).
-- [ ] Add minimal error/loading handling.
+- [x] Map TS types to Rust DTOs (`refractive_swan_web_dto` or manually maintained types).
+- [x] Add minimal error/loading handling.
 
 ---
 
-#### P4.3 — Mesh dashboard UI
-
-- **Status:** TODO  
+#### P4.3 - Mesh dashboard UI`n`n- **Status:** INPROGRESS  
 - **Path:** `lib/app/frontend/web` (e.g. `/mesh`, `/admin/mesh`)
 
 **Tasks**
 
-- [ ] Nodes page:
+- [x] Nodes page:
 
   - table of nodes: `node_id`, `status`, `last_seen`, `vector_backend`, `warehouse_backend`, `compliance_mode`, `tags`,
   - detail view: `PipelineMetrics`, recent `AdminEvent`s, eval datasets, datamart/health.
 
-- [ ] Hub analytics page:
+- [x] Hub analytics page:
 
   - global NCIt summary chart (federated / reporting mart),
   - federated eval: dataset selector + aggregated metrics view.
 
-- [ ] Governance view:
+- [x] Governance view:
 
   - per-node DP budgets (if available),
   - recent policy denials (node + hub).
 
 ---
+### P5: E2E multi-node/hub validation
 
-### P5 — E2E multi-node/hub validation
+#### P5.1: Local multi-node docker-compose / `cargo-make`
 
-#### P5.1 — Local multi-node docker-compose / `cargo-make`
-
-- **Status:** TODO  
+- **Status:** INPROGRESS  
 - **Path:** `code/ci/`, `docs/runbook/mesh-quickstart.md`
 
 **Tasks**
 
-- [ ] Define dev topology:
+- [x] Define dev topology:
 
   - `node-a`, `node-b`, `hub-1`,
   - env namespaces: `app.web.api.node_a`, `app.web.api.node_b`, `platform.mesh.hub`.
 
-- [ ] Provide:
+- [x] Provide:
 
   - `docker-compose.yml` or `cargo make mesh-dev`:
     - runs 2 node APIs + 1 hub,
@@ -674,14 +687,14 @@ We want a **concrete node/hub propagation system** such that:
 
 ---
 
-#### P5.2 — Integration tests for federated flows
+#### P5.2: Integration tests for federated flows
 
 - **Status:** TODO  
 - **Path:** `lib/platform/test_suite/tests/integration/mesh/`
 
 **Tasks**
 
-- [ ] Write tests that:
+- [x] Write tests that:
 
   - spin up two in-process axum routers (via `router_with_state(ApiState)`), each with distinct `NodePlaneConfig` (different datamart/vector configs),
   - simulate a hub:

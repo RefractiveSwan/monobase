@@ -82,6 +82,17 @@ mod tests {
             Some("mesh-health-node")
         );
         assert!(value.get("metrics").is_some());
+        assert_eq!(
+            value.get("cache_backend").and_then(Value::as_str),
+            Some("disabled")
+        );
+        assert_eq!(
+            value
+                .get("cache")
+                .and_then(|v| v.get("status"))
+                .and_then(Value::as_str),
+            Some("disabled")
+        );
     }
 
     #[tokio::test]
@@ -164,5 +175,10 @@ mod tests {
         assert!(output.get("datamart_persisted").is_some());
         assert!(output.get("vector_health").is_some());
         assert!(output.get("warehouse_health").is_some());
+        assert_eq!(
+            output.get("cache_backend").and_then(Value::as_str),
+            Some("disabled")
+        );
+        assert!(output.get("cache_health").is_some());
     }
 }

@@ -33,7 +33,7 @@ pub fn router() -> Router<ApiState> {
         .merge(admin::router());
 
     let hub_enabled = std::env::var("refractive_swan_API_ENABLE_HUB")
-        .map(|v| v.to_ascii_lowercase() != "false")
+        .map(|v| !v.eq_ignore_ascii_case("false"))
         .unwrap_or(true);
     if hub_enabled {
         router = router.merge(hub::router());

@@ -1,0 +1,35 @@
+{
+  "name": "refractive-swan-mesh-dev",
+  "image": "rustlang/rust:nightly",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
+    }
+  },
+  "remoteUser": "root",
+  "workspaceFolder": "/workspace",
+  "runArgs": [
+    "--privileged",
+    "--volume=/var/run/docker.sock:/var/run/docker.sock",
+    "--tmpfs=/tmp:exec"
+  ],
+  "containerEnv": {
+    "CARGO_TARGET_DIR": "/workspace/target",
+    "refractive_swan_EVAL_DATA_ROOT": "/workspace/lib/domain/meta/evaluation/data"
+  },
+  "forwardPorts": [8080, 8081, 8082, 8090, 6379],
+  "postCreateCommand": "rustup component add clippy rustfmt && cargo install cargo-make --locked",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "rust-analyzer.checkOnSave.command": "clippy"
+      },
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb"
+      ]
+    }
+  }
+}

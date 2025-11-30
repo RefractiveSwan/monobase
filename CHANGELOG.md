@@ -31,6 +31,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Sem
 
 ### Changed
 - MESH-030 – “P1.1/P1.3 mesh node wiring” (checkboxes: deterministic `NodePlaneConfig::from_env_with_node_id`, `/metrics/summary` now emits `MetricsSnapshot`, new `/mesh/health` `/mesh/capabilities` `/mesh/governance` + `/mesh/job` endpoints, `MeshJobType` variants finalized, NodeDataPlane `run_mesh_job` covers eval/analytics/health/export/introspection with regression-based MappingHealthCheck output, and stub hub endpoints for `/hub/nodes`, `/hub/jobs/analytics/ncit-summary`, `/hub/jobs/eval`).
+- MESH-030 – “P3.1 governance on node jobs” (checkbox completed: `QueryDescriptor` + `NodePolicy` budget/DP handling, governance-wrapped mesh jobs with requester-tagged metrics and pseudonymous audit traces).
+- MESH-030 – “P3.2 hub governance adapter” (checkbox completed: hub-side allow/deny rules by compliance mode/tags/export policy, hashed requester propagation, pre-built NodePolicy injection with tests, and JobQueue dispatch short-circuit for denied nodes).
+- MESH-030 – Cache/DP budget hardening (Redis backend for `refractive_swan_cache_store` with env toggle + optional Redis integration test, DP budgets recorded to `mesh_dp_budget` ledger, `/mesh/health` cache fields surfaced to frontend diagnostics, and ledger ready to switch to Postgres/DuckDB once `refractive_swan_relational_store` backends land).
+- MESH-030 – Mesh frontend DTOs for dashboards (`NodeView`, `FederatedEvalView`, `MeshTogglesView` added to `refractive_swan_web_dto` for mesh/hub/health responses).
+- MESH-030 – Mesh API alignment for dashboards (`/admin/toggles` returns mesh-aware view, `/hub/jobs/eval` now emits `FederatedEvalView` keyed by node_id, and hub routes gain coverage for `/hub/jobs/*` payloads).
 - BE-029 – “Ensure each mesh entity reports metrics tagged with mesh_node_id so observability dashboards can pivot per node” (checkbox completed).
 - REFR-022 – “Restructure refractive_swan_core into super-domains (primitives/clinical/interop/semantics) with bridges under consumer modules” (checkbox completed).
 - REFR-022 – “Preserve legacy public API paths via lib.rs re-exports and prelude wiring” (checkbox completed).

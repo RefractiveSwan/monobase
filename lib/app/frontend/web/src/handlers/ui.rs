@@ -37,9 +37,15 @@ mod tests {
     async fn components_preview_route_renders_gallery() {
         let backend = MockServer::start().await;
         Mock::given(method("GET"))
-            .and(path("/health"))
+            .and(path("/mesh/health"))
             .respond_with(ResponseTemplate::new(200).set_body_json(HealthResponse {
                 status: "ok".into(),
+                cache_backend: Some("mock".into()),
+                cache: Some(serde_json::json!({"status":"ok"})),
+                dp_budget_remaining: None,
+                dp_budget_status: None,
+                metrics: None,
+                node_id: None,
             }))
             .mount(&backend)
             .await;

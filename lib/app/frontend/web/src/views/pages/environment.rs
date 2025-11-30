@@ -66,6 +66,9 @@ fn render_diagnostics(env: Option<&EnvironmentView>) -> Markup {
         })))
         (card_body(html! {
             @if let Some(env) = env {
+                @if let Some(health) = &env.diagnostics.health {
+                    (render_health_summary(health))
+                }
                 div class="grid gap-3 md:grid-cols-2 text-xs font-mono text-gray-700" {
                     (pre_block("Health", env.diagnostics.health.as_ref().map(|h| serde_json::to_string_pretty(h).unwrap_or_default()).unwrap_or_else(|| "unavailable".into())))
                     (pre_block("Metrics", env.diagnostics.metrics.as_ref().map(|m| serde_json::to_string_pretty(m).unwrap_or_default()).unwrap_or_else(|| "unavailable".into())))
@@ -98,6 +101,47 @@ fn pre_block(label: &str, body: String) -> Markup {
         div class="rounded-md border border-gray-100 bg-slate-50 p-3" {
             p class="text-[11px] font-semibold text-gray-600 mb-1" { (label) }
             pre class="text-[11px] whitespace-pre-wrap break-all" { (body) }
+        }
+    }
+}
+
+fn render_health_summary(health: &crate::client::HealthResponse) -> Markup {
+    let cache_backend = health.cache_backend.as_deref().unwrap_or("disabled");
+    let cache_status = health
+        .cache
+        .as_ref()
+        .and_then(|c| c.get("status"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let node_id = health.node_id.as_deref().unwrap_or("unknown");
+    let dp_budget_remaining = health.dp_budget_remaining.or_else(|| {
+        health
+            .cache
+            .as_ref()
+            .and_then(|c| c.get("dp_budget_remaining"))
+            .and_then(|v| v.as_f64())
+    });
+    let dp_budget_status = health.dp_budget_status.clone().or_else(|| {
+        health
+            .cache
+            .as_ref()
+            .and_then(|c| c.get("dp_budget_status"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    });
+    html! {
+        div class="rounded-md border border-gray-100 bg-white p-3 text-xs text-gray-700 mb-2" {
+            p class="font-semibold text-navy-900 mb-1" { "Health summary" }
+            div class="flex flex-wrap gap-4" {
+                span { (format!("Status: {}", health.status)) }
+                span { (format!("Node: {}", node_id)) }
+                span { (format!("Cache: {} ({})", cache_backend, cache_status)) }
+                @if let Some(rem) = dp_budget_remaining {
+                    span { (format!("DP budget: {rem:.2}{}", dp_budget_status.as_deref().map(|s| format!(" ({s})")).unwrap_or_default())) }
+                } @else {
+                    span { "DP budget: n/a" }
+                }
+            }
         }
     }
 }

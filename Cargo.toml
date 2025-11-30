@@ -26,6 +26,7 @@ members = [
     "lib/dto/mesh",
     
     "lib/platform/data/data-plane/mart",
+    "lib/platform/data/data-stores/cache_store",
     "lib/platform/data/data-stores/vector_store",
 
     "lib/platform/meta/compliance",
@@ -65,10 +66,11 @@ reqwest = { version = "0.12.5", default-features = false, features = ["json", "r
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 serde_yaml = "0.9.34"
-tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal"] }
+ tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "signal", "time"] }
 dotenvy = "0.15.7"
 uuid = { version = "1.10.0", features = ["v4", "serde"] }
 refractive_swan_datamart = { path = "lib/platform/data/data-plane/mart" }
+refractive_swan_cache_store = { path = "lib/platform/data/data-stores/cache_store" }
 refractive_swan_vector_store = { path = "lib/platform/data/data-stores/vector_store" }
 thiserror = "2.0.17"
 

@@ -6,10 +6,11 @@ use refractive_swan_terminology::{list_code_systems, list_ontologies};
 use crate::{
     types::{
         ComplianceView, DatamartHealthView, FeatureTogglesView, IngestionSummary,
-        TerminologyInsights, VectorStatusView,
+        MeshFeatureTogglesView, TerminologyInsights, VectorStatusView,
     },
     utils::{ApiError, ApiState},
 };
+use refractive_swan_web_dto::MeshTogglesView;
 
 /// Return terminology registry coverage/insights for dashboards.
 pub async fn terminology_insights() -> Result<axum::response::Response, ApiError> {
@@ -125,5 +126,16 @@ pub async fn feature_toggles(
         vector_enabled,
         mesh_node_id: state.plane.node_id().to_string(),
     };
-    Ok(Json(view).into_response())
+    let mesh_view = MeshFeatureTogglesView {
+        vector: view.clone(),
+        mesh: MeshTogglesView {
+            mesh_enabled: true,
+            hub_enabled: true,
+            hub_url: std::env::var("refractive_swan_API_BASE_URL").ok(),
+            node_id: Some(view.mesh_node_id.clone()),
+            cache_backend: None,
+            warehouse_backend: None,
+        },
+    };
+    Ok(Json(mesh_view).into_response())
 }

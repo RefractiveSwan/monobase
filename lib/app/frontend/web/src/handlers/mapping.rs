@@ -370,6 +370,12 @@ mod tests {
             .and(path("/health"))
             .respond_with(ResponseTemplate::new(200).set_body_json(HealthResponse {
                 status: "ok".into(),
+                cache_backend: None,
+                cache: None,
+                dp_budget_remaining: None,
+                dp_budget_status: None,
+                metrics: None,
+                node_id: None,
             }))
             .mount(&backend)
             .await;

@@ -16,6 +16,8 @@ pub struct MeshHealthResponse {
     pub status: &'static str,
     pub node_id: String,
     pub metrics: serde_json::Value,
+    pub cache_backend: String,
+    pub cache: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
@@ -32,6 +34,7 @@ pub async fn health(state: axum::extract::State<ApiState>) -> impl axum::respons
     let metrics_handle = state.plane.metrics();
     let metrics = metrics_handle.lock().await.clone();
     let metrics_snapshot = metrics_snapshot_json(&metrics);
+    let cache_health = state.plane.cache_health().await;
     let node_id = state.plane.node_id().to_string();
     info!(
         target: "refractive_swan_api",
@@ -43,6 +46,8 @@ pub async fn health(state: axum::extract::State<ApiState>) -> impl axum::respons
         status: "ok",
         node_id,
         metrics: metrics_snapshot,
+        cache_backend: state.plane.cache_backend(),
+        cache: cache_health,
     })
 }
 

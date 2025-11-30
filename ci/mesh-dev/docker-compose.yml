@@ -1,0 +1,84 @@
+services:
+  redis:
+    image: redis:7-alpine
+    platform: linux/amd64
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+
+  node-a:
+    image: rustlang/rust:nightly
+    platform: linux/amd64
+    working_dir: /app
+    volumes:
+      - ../..:/app
+    command: >
+      bash -lc "mkdir -p /tmp/mesh-target && PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin cargo run -p refractive_swan_api --bin refractive_swan_api"
+    environment:
+      refractive_swan_ENV: dev
+      refractive_swan_API_HOST: 0.0.0.0
+      refractive_swan_API_PORT: 8081
+      refractive_swan_API_ENABLE_HUB: "false"
+      refractive_swan_MESH_NODE_ID: node-a
+      refractive_swan_API_BASE_URL: http://node-a:8081
+      refractive_swan_VECTOR_ENABLED: "false"
+      refractive_swan_WAREHOUSE_URL: sqlite:///tmp/node-a.db
+      refractive_swan_CACHE_BACKEND: inmemory
+      refractive_swan_EVAL_DATA_ROOT: /app/lib/domain/meta/evaluation/data
+      CARGO_TARGET_DIR: /tmp/mesh-target/node-a
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+  node-b:
+    image: rustlang/rust:nightly
+    platform: linux/amd64
+    working_dir: /app
+    volumes:
+      - ../..:/app
+    command: >
+      bash -lc "mkdir -p /tmp/mesh-target && PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin cargo run -p refractive_swan_api --bin refractive_swan_api"
+    environment:
+      refractive_swan_ENV: dev
+      refractive_swan_API_HOST: 0.0.0.0
+      refractive_swan_API_PORT: 8082
+      refractive_swan_API_ENABLE_HUB: "false"
+      refractive_swan_MESH_NODE_ID: node-b
+      refractive_swan_API_BASE_URL: http://node-b:8082
+      refractive_swan_VECTOR_ENABLED: "false"
+      refractive_swan_WAREHOUSE_URL: sqlite:///tmp/node-b.db
+      refractive_swan_CACHE_BACKEND: inmemory
+      refractive_swan_EVAL_DATA_ROOT: /app/lib/domain/meta/evaluation/data
+      CARGO_TARGET_DIR: /tmp/mesh-target/node-b
+    ports:
+      - "8082:8082"
+    depends_on:
+      - redis
+
+  hub:
+    image: rustlang/rust:nightly
+    platform: linux/amd64
+    working_dir: /app
+    volumes:
+      - ../..:/app
+    command: >
+      bash -lc "mkdir -p /tmp/mesh-target && PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin cargo run -p refractive_swan_api --bin refractive_swan_api"
+    environment:
+      refractive_swan_ENV: dev
+      refractive_swan_API_HOST: 0.0.0.0
+      refractive_swan_API_PORT: 8080
+      refractive_swan_API_ENABLE_HUB: "true"
+      refractive_swan_API_BASE_URL: http://hub:8080
+      refractive_swan_HUB_NODES: node-a=http://node-a:8081,node-b=http://node-b:8082
+      refractive_swan_VECTOR_ENABLED: "false"
+      refractive_swan_WAREHOUSE_URL: sqlite:///tmp/hub.db
+      refractive_swan_CACHE_BACKEND: inmemory
+      refractive_swan_EVAL_DATA_ROOT: /app/lib/domain/meta/evaluation/data
+      CARGO_TARGET_DIR: /tmp/mesh-target/hub
+    ports:
+      - "8080:8080"
+    depends_on:
+      - node-a
+      - node-b
+      - redis

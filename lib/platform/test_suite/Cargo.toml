@@ -30,6 +30,8 @@ refractive_swan_compliance = { path = "../meta/compliance" }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "macros", "sqlite"] }
 refractive_swan_eval = { path = "../../domain/meta/evaluation" }
 tempfile = "3.10"
+refractive_swan_mesh_node = { path = "../mesh/node" }
+refractive_swan_mesh_dto = { path = "../../dto/mesh" }
 
 [features]
 backend-pgvector = ["refractive_swan_vector_store/backend-pgvector"]

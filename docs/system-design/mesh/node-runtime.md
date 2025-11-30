@@ -70,9 +70,9 @@ pub struct NodeDataPlane {
 - Optional namespacing for multi-node setups: `app.mesh.node.<suffix>` (reserve for future per-node overrides).
 - Mesh identity/capacity: `refractive_swan_MESH_NODE_ID`, `refractive_swan_MESH_NODE_TAGS` (CSV), `refractive_swan_MESH_MAX_DATASET_SIZE`.
 - Compliance: loaded once via `refractive_swan_compliance::ComplianceConfig::from_env`.
-- Vector: `refractive_swan_VECTOR_*` → `VectorStoreConfig` (optional/disabled when `refractive_swan_VECTOR_ENABLED` is false).
+- Vector: `refractive_swan_VECTOR_*` + `VectorStoreConfig` (optional/disabled when `refractive_swan_VECTOR_ENABLED` is false).
 - Datamart: `refractive_swan_WAREHOUSE_URL` (optional; disabled when missing).
-
+- Cache: `refractive_swan_CACHE_BACKEND` (`disabled` | `inmemory` | `redis`), `refractive_swan_CACHE_URL` (required for Redis), `refractive_swan_CACHE_DEFAULT_TTL_SECS`.
 ---
 
 ## Responsibilities
@@ -85,8 +85,8 @@ pub struct NodeDataPlane {
 - **Mesh capabilities** – `NodeDataPlane::capabilities(&self, base_url)` returns `NodeCapabilities` (vector backend, warehouse backend, compliance mode, max dataset size, tags) for `/mesh/capabilities` and hub discovery.
 - **Health + observability** – `/metrics/summary` and `/mesh/health` expose `MetricsSnapshot` (`metrics_snapshot_json`) tagged with `mesh_node_id` and `compliance_mode`.
 - **Eval datasets** – `dataset_store` and `policy` are shared with eval handlers so dataset manifests respect the same compliance mode.
-- **Mesh jobs** – `NodeDataPlane::run_mesh_job` handles eval datasets, analytics queries, mapping health, and node introspection for `/mesh/job` (governance/export hooks will compose here once `refractive_swan_mesh_governance` lands).
-- **Governance** – `policy` is surfaced via `/mesh/governance`; DP budgets and mesh governance hooks will layer on top.
+- **Mesh jobs** - `NodeDataPlane::run_mesh_job` handles eval datasets, analytics queries, mapping health, and node introspection for `/mesh/job` (governance/export hooks will compose here once `refractive_swan_mesh_governance` lands).
+- **Governance + cache** - `policy` is surfaced via `/mesh/governance`; DP budgets now read/write through `refractive_swan_cache_store` (in-memory/Redis) with a 24h TTL per `dp_budget:<node>:<date>` key, are durably recorded to `mesh_dp_budget` in the warehouse (sqlite today; Postgres/DuckDB once `refractive_swan_relational_store` backends land), and `/mesh/health` exposes `cache_backend`/`cache_health` alongside vector/warehouse health.
 - **Regression health** – `MappingHealthCheck` runs the regression bundle (`fhir_bundle_sr`) through the pipeline, records vector usage/latency, attempts datamart persistence, and returns state counts plus backend labels, vector health, and warehouse health.
 - **Mesh job schemas** – JSON schemas for `MeshJobDescriptor`, `MeshJobResult`, and per-type outputs (`mapping_health_check_report`, `export_job_summary`, `node_introspection_view`) live under `ci/contracts` (generate via `cargo run -p refractive_swan_contracts --bin contracts-schema`).
 - **Warehouse roles** – Node datamart runs in `Operational` role (sqlite mart via `SqliteDatamart::from_optional_config`). Future `Reporting` / `Archival` roles will attach to a hub reporting warehouse or lake exports; lake hooks (`LakeWriter`/`LakeReader`) are optional injection points.
@@ -111,7 +111,7 @@ pub struct NodeDataPlane {
 
 - **refractive_swan_relational_store**: Connection pooling for warehouse
 - **refractive_swan_vector_store**: Concrete vector backend (Qdrant/PGVector)
-- **refractive_swan_cache_store** (future): Analytics query caching
+- **refractive_swan_cache_store**: In-memory cache today for DP budgets/rate limits; Redis planned for shared counters and analytics caching
 
 ### Platform Mesh Layer
 
@@ -209,16 +209,20 @@ The node exposes HTTP endpoints (currently in `refractive_swan_api`, future in t
 
 ### Eval Endpoints
 
-- `GET /api/eval/datasets` → list available datasets
-- `POST /api/eval/run` → `run_eval_job`
+- `GET /api/eval/datasets` - list available datasets
+- `POST /api/eval/run` - `run_eval_job`
 
-### Mesh Endpoints (Future)
+### Mesh Endpoints (current surface)
 
-- `POST /mesh/job` → `run_job_with_governance`
-- `GET /mesh/capabilities` → return `NodeCapabilities`
-- `GET /mesh/health` → node health check
+- `POST /mesh/job` - `run_job_with_governance`
+- `GET /mesh/capabilities` - return `NodeCapabilities`
+- `GET /mesh/health` - node health check with cache/vector/warehouse labels
 
----
+### Hub Surface (stubbed in `refractive_swan_api`)
+
+- `GET /hub/nodes` - returns `NodeView` entries (node metadata + last `MetricsSnapshot`, cache/vector/warehouse labels).
+- `POST /hub/jobs/analytics/ncit-summary` - dispatches `MeshJobType::AnalyticsQuery` across the registry and aggregates into `AnalyticsSummaryResponse`.
+- `POST /hub/jobs/eval?dataset=<name>` - dispatches `MeshJobType::EvalDataset` across the registry and returns `FederatedEvalView { dataset, aggregated, per_node: [{ node_id, summary }] }` keyed by mesh node ID.
 
 ## Testing
 
@@ -273,3 +277,6 @@ The node exposes HTTP endpoints (currently in `refractive_swan_api`, future in t
 - **Governance**: `lib/platform/mesh/governance/README.md` (to be created)
 - **Hub**: `lib/platform/mesh/hub/README.md` (to be created)
 - **Mesh Layout**: `docs/system-design/base/mesh-data-plane-layout.md`
+
+
+

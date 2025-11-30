@@ -130,6 +130,44 @@ Write-Host ""
 '''
 
 # =============================================================================
+# Mesh dev harness (two nodes + hub)
+# =============================================================================
+
+[tasks.mesh-dev-up]
+description = "Start mesh dev topology (node-a, node-b, hub, redis) via docker-compose"
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+cd ci/mesh-dev
+docker compose up --build
+    '''
+]
+windows_alias = "mesh-dev-up-windows"
+
+[tasks.mesh-dev-up-windows]
+description = "Start mesh dev topology (Windows, docker compose)"
+command = "powershell"
+args = ["-NoLogo", "-NoProfile", "-Command", "cd ci/mesh-dev; docker compose up --build"]
+
+[tasks.mesh-dev-down]
+description = "Stop mesh dev topology and remove containers"
+script_runner = "bash"
+script = [
+    '''
+set -euo pipefail
+cd ci/mesh-dev
+docker compose down
+    '''
+]
+windows_alias = "mesh-dev-down-windows"
+
+[tasks.mesh-dev-down-windows]
+description = "Stop mesh dev topology and remove containers (Windows)"
+command = "powershell"
+args = ["-NoLogo", "-NoProfile", "-Command", "cd ci/mesh-dev; docker compose down"]
+
+# =============================================================================
 # 🔴 ADVANCED LEVEL - Complex orchestrated pipelines
 # =============================================================================
 

@@ -2,12 +2,30 @@ use refractive_swan_contracts::pipeline::{
     DimNCITConcept, MappingResult, StgServiceRequestFlat, StgSrCodeExploded, ValidationReport,
 };
 use refractive_swan_observability::VectorUsageSnapshot;
-use refractive_swan_web_dto::PipelineOutput;
+use refractive_swan_web_dto::{NodeView, PipelineOutput};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HealthResponse {
     pub status: String,
+    #[serde(default)]
+    pub cache_backend: Option<String>,
+    #[serde(default)]
+    pub cache: Option<Value>,
+    #[serde(default)]
+    pub dp_budget_remaining: Option<f64>,
+    #[serde(default)]
+    pub dp_budget_status: Option<String>,
+    #[serde(default)]
+    pub metrics: Option<Value>,
+    #[serde(default)]
+    pub node_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct HubNodesResponse {
+    pub nodes: Vec<NodeView>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -49,4 +67,26 @@ impl MapBundlesResponse {
             validation_reports,
         }
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MeshFeatureToggles {
+    pub vector: FeatureTogglesView,
+    pub mesh: MeshTogglesView,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FeatureTogglesView {
+    pub vector_enabled: bool,
+    pub mesh_node_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MeshTogglesView {
+    pub mesh_enabled: bool,
+    pub hub_enabled: bool,
+    pub hub_url: Option<String>,
+    pub node_id: Option<String>,
+    pub cache_backend: Option<String>,
+    pub warehouse_backend: Option<String>,
 }

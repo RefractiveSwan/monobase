@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use futures_util::StreamExt;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::sync::Mutex;
 
@@ -14,12 +15,20 @@ use refractive_swan_mesh_dto::{
 
 pub mod analytics;
 pub mod eval;
+mod governance_adapter;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct HubConfig {
     pub hub_id: String,
     pub base_url: String,
     pub timeout_secs: u64,
+    pub seed_nodes: Vec<HubSeedNode>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct HubSeedNode {
+    pub node_id: MeshNodeId,
+    pub url: Url,
 }
 
 impl HubConfig {
@@ -33,25 +42,50 @@ impl HubConfig {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(15);
+        let seed_nodes = std::env::var("refractive_swan_HUB_NODES")
+            .ok()
+            .and_then(|raw| parse_seed_nodes(&raw))
+            .unwrap_or_default();
         Self {
             hub_id,
             base_url,
             timeout_secs,
+            seed_nodes,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+fn parse_seed_nodes(raw: &str) -> Option<Vec<HubSeedNode>> {
+    let mut seeds = Vec::new();
+    for entry in raw.split(',').map(str::trim).filter(|s| !s.is_empty()) {
+        let mut parts = entry.splitn(2, '=');
+        let id = parts.next()?;
+        let url_raw = parts.next()?;
+        let url = Url::parse(url_raw).ok()?;
+        seeds.push(HubSeedNode {
+            node_id: MeshNodeId(id.to_string()),
+            url,
+        });
+    }
+    Some(seeds)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum NodeStatus {
+    #[default]
     Unknown,
     Online,
     Offline,
 }
 
-impl Default for NodeStatus {
-    fn default() -> Self {
-        NodeStatus::Unknown
+impl std::fmt::Display for NodeStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NodeStatus::Unknown => write!(f, "unknown"),
+            NodeStatus::Online => write!(f, "online"),
+            NodeStatus::Offline => write!(f, "offline"),
+        }
     }
 }
 
@@ -89,16 +123,23 @@ impl NodeRegistry {
         }
     }
 
-    pub fn record_success(&mut self, node_id: &MeshNodeId) {
+    pub fn record_success(&mut self, node_id: &MeshNodeId, requester_hash: Option<String>) {
         let entry = self.stats.entry(node_id.clone()).or_default();
         entry.successes += 1;
         entry.last_error = None;
+        entry.last_requester_hash = requester_hash;
     }
 
-    pub fn record_failure(&mut self, node_id: &MeshNodeId, error: String) {
+    pub fn record_failure(
+        &mut self,
+        node_id: &MeshNodeId,
+        error: String,
+        requester_hash: Option<String>,
+    ) {
         let entry = self.stats.entry(node_id.clone()).or_default();
         entry.failures += 1;
         entry.last_error = Some(error);
+        entry.last_requester_hash = requester_hash;
     }
 
     pub fn stats(&self, node_id: &MeshNodeId) -> Option<&NodeStats> {
@@ -111,6 +152,20 @@ pub struct NodeStats {
     pub successes: u64,
     pub failures: u64,
     pub last_error: Option<String>,
+    pub last_requester_hash: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct NodePolicy {
+    pub export_allowed: bool,
+}
+
+impl Default for NodePolicy {
+    fn default() -> Self {
+        Self {
+            export_allowed: true,
+        }
+    }
 }
 
 #[derive(Debug, Error)]
@@ -126,6 +181,15 @@ pub struct JobQueue {
     client: reqwest::Client,
     registry: std::sync::Arc<Mutex<NodeRegistry>>,
     concurrency: usize,
+    node_policy: NodePolicy,
+    hub_policy: governance_adapter::HubPolicy,
+}
+
+/// Result paired with the node that produced it.
+#[derive(Clone, Debug)]
+pub struct NodeJobResult {
+    pub node_id: MeshNodeId,
+    pub result: MeshJobResult,
 }
 
 impl JobQueue {
@@ -138,6 +202,8 @@ impl JobQueue {
             client,
             registry: std::sync::Arc::new(Mutex::new(registry)),
             concurrency: 4,
+            node_policy: NodePolicy::default(),
+            hub_policy: governance_adapter::HubPolicy::default(),
         }
     }
 
@@ -146,11 +212,21 @@ impl JobQueue {
         self
     }
 
+    pub fn with_node_policy(mut self, node_policy: NodePolicy) -> Self {
+        self.node_policy = node_policy;
+        self
+    }
+
+    pub fn with_hub_policy(mut self, hub_policy: governance_adapter::HubPolicy) -> Self {
+        self.hub_policy = hub_policy;
+        self
+    }
+
     pub async fn dispatch(
         &self,
         job: &MeshJobDescriptor,
         targets: Option<Vec<MeshNodeId>>,
-    ) -> Result<Vec<MeshJobResult>, HubError> {
+    ) -> Result<Vec<NodeJobResult>, HubError> {
         let nodes: Vec<NodeMetadata> = {
             let registry = self.registry.lock().await;
             match targets {
@@ -162,14 +238,33 @@ impl JobQueue {
         let client = self.client.clone();
         let registry = self.registry.clone();
         let job_id = job.job_id.clone();
+        let node_policy = self.node_policy.clone();
+        let hub_policy = self.hub_policy.clone();
 
         let mut stream = futures_util::stream::iter(nodes.into_iter().map(|node| {
             let client = client.clone();
             let registry = registry.clone();
-            let job = job.clone();
+            let mut job = job.clone();
+            let requester_hash = Self::pseudonymize_requester(&mut job);
+            let node_policy = node_policy.clone();
+            let hub_policy = hub_policy.clone();
             async move {
                 let node_id = node.node_id.clone();
-                let result: Result<MeshJobResult, HubError> = async {
+                if let Err(denied) =
+                    governance_adapter::allow_federated_job(&job, &node, &node_policy, &hub_policy)
+                {
+                    let mut reg = registry.lock().await;
+                    reg.record_failure(
+                        &node_id,
+                        "hub_policy_denied".into(),
+                        requester_hash.clone(),
+                    );
+                    return Ok(NodeJobResult {
+                        node_id,
+                        result: denied,
+                    });
+                }
+                let result: Result<NodeJobResult, HubError> = async {
                     let url = node
                         .url
                         .join("mesh/job")
@@ -184,14 +279,19 @@ impl JobQueue {
                         .json()
                         .await
                         .map_err(|err| HubError::Http(err.to_string()))?;
-                    Ok(parsed)
+                    Ok(NodeJobResult {
+                        node_id: node_id.clone(),
+                        result: parsed,
+                    })
                 }
                 .await;
 
                 let mut reg = registry.lock().await;
                 match &result {
-                    Ok(_) => reg.record_success(&node_id),
-                    Err(err) => reg.record_failure(&node_id, err.to_string()),
+                    Ok(_) => reg.record_success(&node_id, requester_hash.clone()),
+                    Err(err) => {
+                        reg.record_failure(&node_id, err.to_string(), requester_hash.clone())
+                    }
                 }
                 result.map_err(|e| (node_id, e))
             }
@@ -202,22 +302,48 @@ impl JobQueue {
         while let Some(item) = stream.next().await {
             match item {
                 Ok(result) => results.push(result),
-                Err((node_id, err)) => results.push(MeshJobResult {
-                    job_id: job_id.clone(),
-                    status: MeshJobStatus::Failed,
-                    metrics: None,
-                    output: None,
-                    error: Some(MeshError {
-                        kind: MeshErrorKind::NodeUnavailable,
-                        code: MeshErrorCode::new("hub_dispatch_error"),
-                        message: format!("{}: {}", node_id, err),
-                        context: None,
-                    }),
+                Err((node_id, err)) => results.push(NodeJobResult {
+                    node_id: node_id.clone(),
+                    result: MeshJobResult {
+                        job_id: job_id.clone(),
+                        status: MeshJobStatus::Failed,
+                        metrics: None,
+                        output: None,
+                        error: Some(MeshError {
+                            kind: MeshErrorKind::NodeUnavailable,
+                            code: MeshErrorCode::new("hub_dispatch_error"),
+                            message: format!("{}: {}", node_id, err),
+                            context: None,
+                        }),
+                    },
                 }),
             }
         }
 
         Ok(results)
+    }
+
+    fn pseudonymize_requester(job: &mut MeshJobDescriptor) -> Option<String> {
+        let ctx = job.governance_context.as_ref()?;
+        if let Some(req) = ctx.get("requester").and_then(|v| v.as_str()) {
+            let mut hasher = Sha256::new();
+            // Optional salt: refractive_swan_HUB_REQUESTER_SALT; default static string.
+            if let Ok(Some(salt)) =
+                refractive_swan_configuration::string_var("refractive_swan_HUB_REQUESTER_SALT")
+            {
+                hasher.update(salt.as_bytes());
+            } else {
+                hasher.update(b"default_hub_salt");
+            }
+            hasher.update(req.as_bytes());
+            let hash = hasher.finalize();
+            let hashed = format!("requester_hash:{}", hex::encode(hash));
+            let mut new_ctx = ctx.clone();
+            new_ctx["requester"] = serde_json::Value::String(hashed.clone());
+            job.governance_context = Some(new_ctx);
+            return Some(hashed);
+        }
+        None
     }
 }
 
@@ -264,7 +390,7 @@ pub async fn health_check_nodes(queue: &JobQueue) {
                 Ok(url) => url,
                 Err(err) => {
                     let mut reg = registry.lock().await;
-                    reg.record_failure(&node.node_id, err.to_string());
+                    reg.record_failure(&node.node_id, err.to_string(), None);
                     reg.upsert(NodeMetadata {
                         status: NodeStatus::Offline,
                         ..node
@@ -276,7 +402,7 @@ pub async fn health_check_nodes(queue: &JobQueue) {
             let mut reg = registry.lock().await;
             match resp {
                 Ok(ok) if ok.status().is_success() => {
-                    reg.record_success(&node.node_id);
+                    reg.record_success(&node.node_id, None);
                     reg.upsert(NodeMetadata {
                         status: NodeStatus::Online,
                         last_seen_ms: Some(now_ms()),
@@ -284,14 +410,14 @@ pub async fn health_check_nodes(queue: &JobQueue) {
                     });
                 }
                 Ok(failed) => {
-                    reg.record_failure(&node.node_id, failed.status().to_string());
+                    reg.record_failure(&node.node_id, failed.status().to_string(), None);
                     reg.upsert(NodeMetadata {
                         status: NodeStatus::Offline,
                         ..node
                     });
                 }
                 Err(err) => {
-                    reg.record_failure(&node.node_id, err.to_string());
+                    reg.record_failure(&node.node_id, err.to_string(), None);
                     reg.upsert(NodeMetadata {
                         status: NodeStatus::Offline,
                         ..node
@@ -302,7 +428,7 @@ pub async fn health_check_nodes(queue: &JobQueue) {
     }))
     .buffer_unordered(queue.concurrency);
 
-    while let Some(_) = stream.next().await {}
+    while (stream.next().await).is_some() {}
 }
 
 fn now_ms() -> u128 {
@@ -448,5 +574,25 @@ mod tests {
         let stats_b = guard.stats(&node_b.node_id).unwrap();
         assert!(stats_a.successes >= 1);
         assert!(stats_b.failures >= 1);
+    }
+
+    #[test]
+    fn pseudonymize_requester_hashes_value() {
+        let mut job = MeshJobDescriptor {
+            job_id: "job-1".into(),
+            job_type: refractive_swan_contracts::MeshJobType::AnalyticsQuery,
+            parameters: serde_json::json!({"query_type":"ncit_summary"}),
+            governance_context: Some(serde_json::json!({"requester":"alice@example.com"})),
+        };
+        let hashed = JobQueue::pseudonymize_requester(&mut job);
+        let requester_after = job
+            .governance_context
+            .as_ref()
+            .and_then(|ctx| ctx.get("requester"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        assert!(requester_after.starts_with("requester_hash:"));
+        assert_ne!(requester_after, "alice@example.com");
+        assert_eq!(hashed.as_deref(), Some(requester_after));
     }
 }

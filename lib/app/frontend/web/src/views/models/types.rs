@@ -2,6 +2,9 @@ use refractive_swan_contracts::{
     eval::{DatasetListEntry, EvalSummary},
     pipeline::{MappingState, ValidationSeverity},
 };
+use refractive_swan_web_dto::{
+    AdminEvent, AnalyticsSummaryResponse, EvalSummary as DtoEvalSummary,
+};
 
 use crate::client::MetricsSnapshot;
 use crate::{client::CohortFilters, vector::VectorMode, views::layout::ViewChrome};
@@ -42,6 +45,10 @@ pub struct PageContext {
     pub mesh_jobs: Vec<MeshJobView>,
     pub mesh_governance: Option<String>,
     pub environment: Option<EnvironmentView>,
+    pub mesh_admin_events: Vec<AdminEvent>,
+    pub hub_analytics: Option<AnalyticsSummaryResponse>,
+    pub hub_eval: Option<DtoEvalSummary>,
+    pub mesh_alerts: Vec<String>,
 }
 
 impl Default for PageContext {
@@ -77,6 +84,10 @@ impl Default for PageContext {
             mesh_jobs: Vec::new(),
             mesh_governance: None,
             environment: None,
+            mesh_admin_events: Vec::new(),
+            hub_analytics: None,
+            hub_eval: None,
+            mesh_alerts: Vec::new(),
         }
     }
 }
@@ -466,10 +477,16 @@ pub struct MeshNodeView {
     pub id: String,
     pub vector_backend: String,
     pub warehouse_backend: String,
+    pub cache_backend: Option<String>,
+    pub cache_status: Option<String>,
+    pub last_seen_ms: Option<u128>,
+    pub dp_budget_remaining: Option<f64>,
+    pub dp_budget_status: Option<String>,
     pub compliance_mode: String,
     pub max_dataset_size: u64,
     pub tags: Vec<String>,
     pub status: String,
+    pub metrics: Option<refractive_swan_web_dto::PipelineMetrics>,
 }
 
 #[derive(Debug, Clone)]

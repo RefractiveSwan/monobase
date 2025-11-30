@@ -16,6 +16,7 @@ pub struct QueryDescriptor {
     pub class: QueryClass,
     pub expected_cardinality: Option<u64>,
     pub requester: Option<String>,
+    #[allow(dead_code)]
     pub time_range: Option<TimeRange>,
 }
 
@@ -107,11 +108,11 @@ impl NodePolicy {
             .unwrap_or(policy.max_cardinality_no_dp);
         policy.export_allowed = string_var("refractive_swan_EXPORT_ALLOWED")
             .ok()
-            .and_then(|v| v.map(|s| s.to_ascii_lowercase() != "false"))
+            .and_then(|v| v.map(|s| !s.eq_ignore_ascii_case("false")))
             .unwrap_or(policy.export_allowed);
         policy.hub_registration_allowed = string_var("refractive_swan_HUB_REGISTRATION_ALLOWED")
             .ok()
-            .and_then(|v| v.map(|s| s.to_ascii_lowercase() != "false"))
+            .and_then(|v| v.map(|s| !s.eq_ignore_ascii_case("false")))
             .unwrap_or(policy.hub_registration_allowed);
         policy
     }
@@ -128,26 +129,33 @@ pub struct GovernanceEngine;
 
 impl GovernanceEngine {
     pub fn evaluate(descriptor: &QueryDescriptor, policy: &NodePolicy) -> GovernanceDecision {
+        let requester_note = descriptor
+            .requester
+            .as_deref()
+            .map(|r| format!(" (requester={r})"))
+            .unwrap_or_default();
         match descriptor.class {
             QueryClass::MappingJob | QueryClass::NodeIntrospection => GovernanceDecision::Allow,
             QueryClass::AnalyticsJob => {
-                if let Some(card) = descriptor.expected_cardinality {
-                    if card > policy.max_cardinality_no_dp {
-                        if policy.dp_budget_consumed + 0.1 > policy.dp_budget_daily {
-                            return GovernanceDecision::Deny("dp_budget_exceeded".into());
-                        }
-                        return GovernanceDecision::AllowWithNoise { epsilon: 0.1 };
+                if let Some(card) = descriptor.expected_cardinality
+                    && card > policy.max_cardinality_no_dp
+                {
+                    if policy.dp_budget_consumed + 0.1 > policy.dp_budget_daily {
+                        return GovernanceDecision::Deny(format!(
+                            "dp_budget_exceeded{requester_note}"
+                        ));
                     }
+                    return GovernanceDecision::AllowWithNoise { epsilon: 0.1 };
                 }
                 GovernanceDecision::Allow
             }
             QueryClass::EvalJob => GovernanceDecision::Allow,
             QueryClass::ExportJob => {
                 if !policy.export_allowed {
-                    return GovernanceDecision::Deny("export_not_allowed".into());
+                    return GovernanceDecision::Deny(format!("export_not_allowed{requester_note}"));
                 }
                 if policy.dp_budget_consumed + 0.5 > policy.dp_budget_daily {
-                    return GovernanceDecision::Deny("dp_budget_exceeded".into());
+                    return GovernanceDecision::Deny(format!("dp_budget_exceeded{requester_note}"));
                 }
                 GovernanceDecision::AllowWithNoise { epsilon: 0.5 }
             }
@@ -213,6 +221,24 @@ mod tests {
         let descriptor = QueryDescriptor::from_job(&job(MeshJobType::ExportJob, None));
         let decision = GovernanceEngine::evaluate(&descriptor, &policy);
         assert!(matches!(decision, GovernanceDecision::Deny(_)));
+    }
+
+    #[test]
+    fn export_denies_on_budget_exceeded() {
+        let policy = NodePolicy {
+            dp_budget_daily: 0.1,
+            dp_budget_consumed: 0.1,
+            export_allowed: true,
+            ..NodePolicy::default()
+        };
+        let descriptor = QueryDescriptor::from_job(&job(MeshJobType::ExportJob, None));
+        let decision = GovernanceEngine::evaluate(&descriptor, &policy);
+        match decision {
+            GovernanceDecision::Deny(reason) => {
+                assert!(reason.contains("dp_budget_exceeded"));
+            }
+            other => panic!("expected Deny, got {:?}", other),
+        }
     }
 
     #[test]

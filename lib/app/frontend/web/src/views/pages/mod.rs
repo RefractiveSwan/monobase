@@ -17,6 +17,9 @@ pub use eval::{
     render_eval_page,
 };
 pub use landing::render_landing_page;
-pub use mesh::render_mesh_page;
+pub use mesh::{
+    render_admin_events_fragment, render_hub_analytics_fragment, render_hub_eval_fragment,
+    render_mesh_page,
+};
 pub use observability::{render_log_fragment, render_observability_page};
 pub use workbench::render_workbench_page;

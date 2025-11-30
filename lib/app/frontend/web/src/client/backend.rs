@@ -6,13 +6,15 @@ use reqwest::{Client, RequestBuilder, Response};
 use serde::de::DeserializeOwned;
 
 use super::error::{BackendError, ClientError};
-use super::types::{HealthResponse, MapBundlesResponse};
+use super::types::{HealthResponse, HubNodesResponse, MapBundlesResponse, MeshFeatureToggles};
 use crate::{config::AppConfig, vector::VectorMode};
 
+use refractive_swan_contracts::NodeCapabilities;
 pub use refractive_swan_observability::MetricsSnapshot;
 pub use refractive_swan_web_dto::{
     AdminEvent, AdminEventKind, AnalyticsSummaryResponse, AnalyticsSummaryRow, CohortResponse,
-    CohortRow, DatasetListEntry, DatasetManifest, EvalRunResponse, EvalSummary, PipelineMetrics,
+    CohortRow, DatasetListEntry, DatasetManifest, EvalRunResponse, EvalSummary, FederatedEvalView,
+    NodeView, PipelineMetrics,
 };
 
 #[derive(Debug, Clone)]
@@ -39,8 +41,60 @@ impl BackendClient {
         base
     }
 
+    pub async fn mesh_capabilities(&self) -> Result<NodeCapabilities, ClientError> {
+        let response = self
+            .send(self.client.get(self.endpoint("/mesh/capabilities")))
+            .await?;
+        Self::handle_json(response).await
+    }
+
     pub async fn health(&self) -> Result<HealthResponse, ClientError> {
-        let response = self.send(self.client.get(self.endpoint("/health"))).await?;
+        // Prefer mesh-aware health for cache/metrics context; fallback to basic /health if it fails.
+        let response = match self
+            .send(self.client.get(self.endpoint("/mesh/health")))
+            .await
+        {
+            Ok(resp) => resp,
+            Err(_) => self.send(self.client.get(self.endpoint("/health"))).await?,
+        };
+        Self::handle_json(response).await
+    }
+
+    pub async fn node_toggles(&self) -> Result<MeshFeatureToggles, ClientError> {
+        let response = self
+            .send(self.client.get(self.endpoint("/admin/toggles")))
+            .await?;
+        Self::handle_json(response).await
+    }
+
+    pub async fn hub_nodes(&self) -> Result<HubNodesResponse, ClientError> {
+        let response = self
+            .send(self.client.get(self.endpoint("/hub/nodes")))
+            .await?;
+        Self::handle_json(response).await
+    }
+
+    pub async fn hub_ncit_summary(&self) -> Result<AnalyticsSummaryResponse, ClientError> {
+        let response = self
+            .send(
+                self.client
+                    .post(self.endpoint("/hub/jobs/analytics/ncit-summary")),
+            )
+            .await?;
+        Self::handle_json(response).await
+    }
+
+    pub async fn run_federated_eval(
+        &self,
+        dataset: &str,
+    ) -> Result<FederatedEvalView, ClientError> {
+        let response = self
+            .send(
+                self.client
+                    .post(self.endpoint("/hub/jobs/eval"))
+                    .query(&[("dataset", dataset)]),
+            )
+            .await?;
         Self::handle_json(response).await
     }
 
