@@ -5,6 +5,6 @@ pub mod cli;
 pub mod datamart;
 pub mod ingestion;
 pub mod mapping;
+pub mod mesh;
 pub mod regression;
 pub mod vector;
-pub mod mesh;

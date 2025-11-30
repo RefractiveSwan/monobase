@@ -1,6 +1,9 @@
 {
   "name": "refractive-swan-mesh-dev",
-  "image": "rustlang/rust:nightly",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": false
@@ -13,16 +16,20 @@
     "--volume=/var/run/docker.sock:/var/run/docker.sock",
     "--tmpfs=/tmp:exec"
   ],
+  "mounts": [
+    "source=refractive-swan-cargo-registry,target=/root/.cargo/registry,type=volume",
+    "source=refractive-swan-cargo-git,target=/root/.cargo/git,type=volume",
+    "source=refractive-swan-target,target=/workspace/target,type=volume"
+  ],
   "containerEnv": {
     "CARGO_TARGET_DIR": "/workspace/target",
     "refractive_swan_EVAL_DATA_ROOT": "/workspace/lib/domain/meta/evaluation/data"
   },
   "forwardPorts": [8080, 8081, 8082, 8090, 6379],
-  "postCreateCommand": "cd ${containerWorkspaceFolder} && bash data/ops/scripts/install_rust_tooling.sh",
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash",
+        "terminal.integrated.shell.linux": "/bin/zsh",
         "rust-analyzer.checkOnSave.command": "clippy"
       },
       "extensions": [

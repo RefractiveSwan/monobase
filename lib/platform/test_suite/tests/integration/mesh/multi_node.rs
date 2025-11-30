@@ -1,9 +1,9 @@
 use axum::{
+    Router,
     body::Body,
     http::{Request, StatusCode},
-    Router,
 };
-use refractive_swan_api::{utils::ApiState, router_with_state as api_router};
+use refractive_swan_api::{router_with_state as api_router, utils::ApiState};
 use refractive_swan_contracts::{MeshJobDescriptor, MeshJobType};
 use refractive_swan_mesh_dto::MeshNodeId;
 use refractive_swan_mesh_node::NodePlaneConfig;

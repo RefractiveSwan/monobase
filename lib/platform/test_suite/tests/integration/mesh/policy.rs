@@ -5,7 +5,7 @@ use refractive_swan_mesh_dto::MeshNodeId;
 use refractive_swan_mesh_node::NodePlaneConfig;
 use refractive_swan_test_suite::scoped_env_var;
 
-use refractive_swan_api::{utils::ApiState, router_with_state as api_router};
+use refractive_swan_api::{router_with_state as api_router, utils::ApiState};
 use tower::Service;
 
 /// If DP budget is zero, governance should deny a DP-consuming job.
@@ -42,8 +42,7 @@ async fn dp_budget_denial_is_reported() {
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .unwrap();
-    let result: refractive_swan_contracts::MeshJobResult =
-        serde_json::from_slice(&body).unwrap();
+    let result: refractive_swan_contracts::MeshJobResult = serde_json::from_slice(&body).unwrap();
     let code = result
         .error
         .as_ref()
